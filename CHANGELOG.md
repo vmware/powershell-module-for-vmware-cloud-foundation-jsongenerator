@@ -4,7 +4,7 @@
 > Release Date: 2025-11-xx
 - [Added] Support for onboard change control to increase range of versions the workbook content transfer process can support
 - [Added] Ability to transparently handle versions of P&P that do not impact automation
-- [Changed] Minimum supported P&P Workbook version updated to v1.9.0.007
+- [Added] Support for LAG in VCF Installer Management Domain Bringup File
 - [Fixed] Appliance size retrieval from P&P
 - [Fixed] References to outdated named cells
 - [Fixed] Workload datacenter name for workload domain deployment now calculated vs using Day-N configuration value
