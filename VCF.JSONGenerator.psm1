@@ -1479,10 +1479,7 @@ Function Get-PnPInputFileInputs
 }
 
 Function New-TransferExcelContents
-{
-    #Import Changed Names
-    #$changedNames = Get-Content "$PSScriptRoot\changed-names.json" | convertfrom-json
-    
+{    
     #Get Source File
     Show-PnPFilesInFolder
     Do
