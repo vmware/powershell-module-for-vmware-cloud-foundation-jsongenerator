@@ -110,8 +110,16 @@ Function Start-VCFJsonGeneration
                     $managementMenuNetworkPoolColour = $disabledColour
                     $managementMenuStretchedClusterColour = $disabledColour
                 }
-                $menuItem14 = "Edge Cluster"
-                $managementMenuEdgeClusterColour = $enabledColour
+                If ($managementObject.edgeCluster)
+                {
+                    $menuItem14 = "Edge Cluster"
+                    $managementMenuEdgeClusterColour = $enabledColour    
+                }
+                else
+                {
+                    $menuItem14 = "Edge Cluster (Disabled: Edges not required)"
+                    $managementMenuEdgeClusterColour = $disabledColour
+                }
             }
             else
             {
@@ -159,9 +167,16 @@ Function Start-VCFJsonGeneration
                     $menuItem23 = "Stretch Initial Cluster (Disabled: Stretch cluster not selected)"
                     $workloadMenuStretchedClusterColour = $disabledColour
                 }
-                
-                $menuItem24 = "Edge Cluster"
-                $workloadMenuEdgeClusterColour = $enabledColour
+                If ($workloadObject.edgecluster)
+                {
+                    $menuItem24 = "Edge Cluster"
+                    $workloadMenuEdgeClusterColour = $enabledColour    
+                }
+                else
+                {
+                       $menuItem24 = "Edge Cluster"
+                       $workloadMenuEdgeClusterColour = $disabledColour
+                }
             }
             else
             {
@@ -560,7 +575,7 @@ Function Start-VCFJsonGeneration
                 14
                 {
                     Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem14" -Foregroundcolor Cyan; Write-Host -Object ''
-                    If ($managementObject)
+                    If ($managementObject.edgecluster)
                     {
                         New-EdgeJSONFile -instanceObject $managementObject
                     }
@@ -622,7 +637,7 @@ Function Start-VCFJsonGeneration
                 24
                 {
                     Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem24" -Foregroundcolor Cyan; Write-Host -Object ''
-                    If ($workloadObject)
+                    If ($workloadObject.edgecluster)
                     {
                         New-EdgeJSONFile -instanceObject $workloadObject
                     }
