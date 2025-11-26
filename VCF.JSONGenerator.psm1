@@ -3843,7 +3843,6 @@ Function New-ManagementDomainJsonFile
             }
             $transportZoneArray = @()
             $transportZoneArray += $vlanTransportZone
-            $transportZoneArray += $overlayTransportZone
             $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZoneArray
             $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
 
@@ -4110,7 +4109,6 @@ Function New-ManagementDomainJsonFile
             }
             $transportZoneArray = @()
             $transportZoneArray += $vlanTransportZone
-            $transportZoneArray += $overlayTransportZone
             $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZoneArray
             $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
 
