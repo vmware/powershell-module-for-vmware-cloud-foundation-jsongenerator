@@ -3894,8 +3894,11 @@ Function New-ManagementDomainJsonFile
                     'lacpTimeoutMode' = ($instanceObject.vsphereClusters[0].vds[1].lagTimeout).toUpper()
                     'uplinksCount' = $instanceObject.vsphereClusters[0].vds[1].uplinkCount -as [INT]
                 }
-                $dvsObject[1] | Add-Member -notePropertyName 'nsxtSwitchConfig' -notePropertyValue $nsxtSwitchConfigObject
-                $dvsObject[1] | Add-Member -notePropertyName 'nsxTeamings' -notePropertyValue $teamingsArray 
+                If ($instanceObject.version -in "9.0.0.0","9.0.1.0")
+                {
+                    $dvsObject[1] | Add-Member -notePropertyName 'nsxtSwitchConfig' -notePropertyValue $nsxtSwitchConfigObject
+                    $dvsObject[1] | Add-Member -notePropertyName 'nsxTeamings' -notePropertyValue $teamingsArray     
+                }
                 $dvsObject[1] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
             }
         }
@@ -4158,16 +4161,27 @@ Function New-ManagementDomainJsonFile
                    'lacpTimeoutMode' = ($instanceObject.vsphereClusters[0].vds[1].lagTimeout).toUpper()
                    'uplinksCount' = $instanceObject.vsphereClusters[0].vds[1].uplinkCount -as [INT]
                }
-               $dvsObject[1] | Add-Member -notePropertyName 'nsxtSwitchConfig' -notePropertyValue $nsxtSwitchConfigObject
-               $dvsObject[1] | Add-Member -notePropertyName 'nsxTeamings' -notePropertyValue $teamingsArray
+               If ($instanceObject.version -in "9.0.0.0","9.0.1.0")
+               {
+                   $dvsObject[1] | Add-Member -notePropertyName 'nsxtSwitchConfig' -notePropertyValue $nsxtSwitchConfigObject
+                   $dvsObject[1] | Add-Member -notePropertyName 'nsxTeamings' -notePropertyValue $teamingsArray     
+               }
                $dvsObject[1] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
            }
 
             ##### VDS 3 #####
             #Figure out nsxtSwitchConfig
             $nsxtSwitchConfigObject = New-Object -type psobject
+            If ($instanceObject.version -in "9.0.0.0","9.0.1.0")
+            {
+                $vlanTransportZoneName = "nsx-vlan-transportzone-2"
+            }
+            else 
+            {
+                $vlanTransportZoneName = "nsx-vlan-transportzone-1"
+            }
             $vlanTransportZone = [pscustomobject]@{
-                'name'          = "nsx-vlan-transportzone-2"
+                'name'          = $vlanTransportZoneName
                 'transportType' = "VLAN"
             }
             $transportZoneArray = @()
