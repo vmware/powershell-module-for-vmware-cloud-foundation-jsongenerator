@@ -1,0 +1,50 @@
+[
+	{
+		"OldName": "input_vvs_dr_ntp1_ip",
+		"NewName": "input_vvs_dr_ntp1_server"
+	},
+	{
+		"OldName": "input_cluster_vsan_type",
+		"NewName": "cluster_vsan_type_chosen"
+	},
+	{
+		"OldName": "input_flt_vidb_deployment_mode",
+		"NewName": "flt_vidb_chosen"
+	},
+	{
+		"OldName": "input_mgmt_ec_gateway_type",
+		"NewName": "mgmt_vns_chosen"
+	},
+	{
+		"OldName": "input_wld_cl01_vsan_client_network_chosen",
+		"NewName": "wld_cl01_vsan_client_network_chosen"
+	},
+	{
+		"OldName": "input_xreg_logs_nodea_hostname",
+		"NewName": "vvs_dr_flt_logs_nodea_hostname"
+	},
+	{
+		"OldName": "input_xreg_logs_nodeb_hostname",
+		"NewName": "vvs_dr_flt_logs_nodeb_hostname"
+	},
+	{
+		"OldName": "input_xreg_logs_nodec_hostname",
+		"NewName": "vvs_dr_flt_logs_nodec_hostname"
+	},
+	{
+		"OldName": "input_xreg_net_nodea_hostname",
+		"NewName": "vvs_dr_flt_net_nodea_hostname"
+	},
+	{
+		"OldName": "input_xreg_net_nodeb_hostname",
+		"NewName": "vvs_dr_flt_net_nodeb_hostname"
+	},
+	{
+		"OldName": "input_xreg_net_nodec_hostname",
+		"NewName": "vvs_dr_flt_net_nodec_hostname"
+	},
+	{
+		"OldName": "input_xreg_vrops_flt_hostname",
+		"NewName": "vvs_dr_flt_fleet_manager_hostname"
+	}
+]
