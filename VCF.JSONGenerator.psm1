@@ -3835,15 +3835,38 @@ Function New-ManagementDomainJsonFile
             }
 
             ##### VDS 2 #####
+            #Figure out nsxtSwitchConfig
+            $nsxtSwitchConfigObject = New-Object -type psobject
+            $vlanTransportZone = [pscustomobject]@{
+                'name'          = "nsx-vlan-transportzone-1"
+                'transportType' = "VLAN"
+            }
+            $transportZoneArray = @()
+            $transportZoneArray += $vlanTransportZone
+            $transportZoneArray += $overlayTransportZone
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZoneArray
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
+
+            #figure out teamingArray
             If  ($instanceObject.vsphereClusters[0].vds[1].type -eq "VDS LAG")
             {
+                $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[1].lagName)
+                $policy = "FAILOVER_ORDER"
                 $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[1].lagName)-0"
                 $uplink2Name= "$($instanceObject.vsphereClusters[0].vds[1].lagName)-1"
             }
             else
             {
+                $activeUplinksArray = @("uplink1","uplink2")
+                $policy = "LOADBALANCE_SRCID"
                 $uplink1Name = "uplink1"
                 $uplink2Name= "uplink2"
+            }
+            $teamingsArray = @()
+            $teamingsArray += [pscustomobject]@{
+                'policy' = $policy
+                'standByUplinks' = @()
+                'activeUplinks' = $activeUplinksArray
             }
 
             $vmnicObject = @()
@@ -3871,6 +3894,8 @@ Function New-ManagementDomainJsonFile
                     'lacpTimeoutMode' = ($instanceObject.vsphereClusters[0].vds[1].lagTimeout).toUpper()
                     'uplinksCount' = $instanceObject.vsphereClusters[0].vds[1].uplinkCount -as [INT]
                 }
+                $dvsObject[1] | Add-Member -notePropertyName 'nsxtSwitchConfig' -notePropertyValue $nsxtSwitchConfigObject
+                $dvsObject[1] | Add-Member -notePropertyName 'nsxTeamings' -notePropertyValue $teamingsArray 
                 $dvsObject[1] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
             }
         }
@@ -3925,8 +3950,6 @@ Function New-ManagementDomainJsonFile
                 'networks' = $networks | Where-Object {$_ -in "MANAGEMENT","VM_MANAGEMENT","VMOTION","VSAN"}
                 'mtu' = $vdsMtu
                 'vmnicsToUplinks' = $vmnicObject
-                'nsxtSwitchConfig' = $nsxtSwitchConfigObject
-                'nsxTeamings' = $teamingsArray
             }
             If  ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
             {
@@ -3938,6 +3961,8 @@ Function New-ManagementDomainJsonFile
                     'lacpTimeoutMode' = ($instanceObject.vsphereClusters[0].vds[0].lagTimeout).toUpper()
                     'uplinksCount' = $instanceObject.vsphereClusters[0].vds[0].uplinkCount -as [INT]
                 }
+                $dvsObject[0] | Add-Member -notePropertyName 'nsxtSwitchConfig' -notePropertyValue $nsxtSwitchConfigObject
+                $dvsObject[0] | Add-Member -notePropertyName 'nsxTeamings' -notePropertyValue $teamingsArray
                 $dvsObject[0] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
             }
 
@@ -4060,8 +4085,6 @@ Function New-ManagementDomainJsonFile
             }
             If  ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
             {
-                $dvsObject[0] | Add-Member -notePropertyName 'nsxtSwitchConfig' -notePropertyValue $nsxtSwitchConfigObject
-                $dvsObject[0] | Add-Member -notePropertyName 'nsxTeamings' -notePropertyValue $teamingsArray
                 $lagSpecsObject = @()
                 $lagSpecsObject += [pscustomobject]@{
                     'name' = $instanceObject.vsphereClusters[0].vds[0].lagName
@@ -4070,22 +4093,46 @@ Function New-ManagementDomainJsonFile
                     'lacpTimeoutMode' = ($instanceObject.vsphereClusters[0].vds[0].lagTimeout).toUpper()
                     'uplinksCount' = $instanceObject.vsphereClusters[0].vds[0].uplinkCount -as [INT]
                 }
+                $dvsObject[0] | Add-Member -notePropertyName 'nsxtSwitchConfig' -notePropertyValue $nsxtSwitchConfigObject
+                $dvsObject[0] | Add-Member -notePropertyName 'nsxTeamings' -notePropertyValue $teamingsArray
                 $dvsObject[0] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
-
             }
 
-           ##### VDS 2 #####
-           If  ($instanceObject.vsphereClusters[0].vds[1].type -eq "VDS LAG")
-           {
-               $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[1].lagName)-0"
-               $uplink2Name= "$($instanceObject.vsphereClusters[0].vds[1].lagName)-1"
-           }
-           else
-           {
-               $uplink1Name = "uplink1"
-               $uplink2Name= "uplink2"
-           }
+            ##### VDS 2 #####
+            #Figure out nsxtSwitchConfig
+            $nsxtSwitchConfigObject = New-Object -type psobject
+            $vlanTransportZone = [pscustomobject]@{
+                'name'          = "nsx-vlan-transportzone-1"
+                'transportType' = "VLAN"
+            }
+            $transportZoneArray = @()
+            $transportZoneArray += $vlanTransportZone
+            $transportZoneArray += $overlayTransportZone
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZoneArray
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
 
+            #figure out teamingArray
+            If  ($instanceObject.vsphereClusters[0].vds[1].type -eq "VDS LAG")
+            {
+                $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[1].lagName)
+                $policy = "FAILOVER_ORDER"
+                $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[1].lagName)-0"
+                $uplink2Name= "$($instanceObject.vsphereClusters[0].vds[1].lagName)-1"
+            }
+            else
+            {
+                $activeUplinksArray = @("uplink1","uplink2")
+                $policy = "LOADBALANCE_SRCID"
+                $uplink1Name = "uplink1"
+                $uplink2Name= "uplink2"
+            }
+            $teamingsArray = @()
+            $teamingsArray += [pscustomobject]@{
+                'policy' = $policy
+                'standByUplinks' = @()
+                'activeUplinks' = $activeUplinksArray
+            }
+ 
            $vmnicObject = @()
            $vmnicObject += [pscustomobject]@{
                'id'      = $instanceObject.vsphereClusters[0].vds[1].pnics.split(",")[0]
@@ -4111,6 +4158,8 @@ Function New-ManagementDomainJsonFile
                    'lacpTimeoutMode' = ($instanceObject.vsphereClusters[0].vds[1].lagTimeout).toUpper()
                    'uplinksCount' = $instanceObject.vsphereClusters[0].vds[1].uplinkCount -as [INT]
                }
+               $dvsObject[1] | Add-Member -notePropertyName 'nsxtSwitchConfig' -notePropertyValue $nsxtSwitchConfigObject
+               $dvsObject[1] | Add-Member -notePropertyName 'nsxTeamings' -notePropertyValue $teamingsArray
                $dvsObject[1] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
            }
 
@@ -4118,7 +4167,7 @@ Function New-ManagementDomainJsonFile
             #Figure out nsxtSwitchConfig
             $nsxtSwitchConfigObject = New-Object -type psobject
             $vlanTransportZone = [pscustomobject]@{
-                'name'          = "nsx-vlan-transportzone-1"
+                'name'          = "nsx-vlan-transportzone-2"
                 'transportType' = "VLAN"
             }
             $transportZoneArray = @()
