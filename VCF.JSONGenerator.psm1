@@ -3770,19 +3770,19 @@ Function New-ManagementDomainJsonFile
             $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
 
             #figure out teamingArray
-            If  ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
+            If ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
             {
                 $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[0].lagName)
                 $policy = "FAILOVER_ORDER"
                 $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[0].lagName)-0"
-                $uplink2Name= "$($instanceObject.vsphereClusters[0].vds[0].lagName)-1"
+                $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[0].lagName)-1"
             }
             else
             {
                 $activeUplinksArray = @("uplink1","uplink2")
                 $policy = "LOADBALANCE_SRCID"
                 $uplink1Name = "uplink1"
-                $uplink2Name= "uplink2"
+                $uplink2Name = "uplink2"
             }
             $teamingsArray = @()
             $teamingsArray += [pscustomobject]@{
@@ -3842,14 +3842,14 @@ Function New-ManagementDomainJsonFile
                 $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[0].lagName)
                 $policy = "FAILOVER_ORDER"
                 $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[0].lagName)-0"
-                $uplink2Name= "$($instanceObject.vsphereClusters[0].vds[0].lagName)-1"
+                $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[0].lagName)-1"
             }
             else
             {
                 $activeUplinksArray = @("uplink1","uplink2")
                 $policy = "LOADBALANCE_SRCID"
                 $uplink1Name = "uplink1"
-                $uplink2Name= "uplink2"
+                $uplink2Name = "uplink2"
             }
             $teamingsArray = @()
             $teamingsArray += [pscustomobject]@{
@@ -3906,14 +3906,14 @@ Function New-ManagementDomainJsonFile
                 $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[1].lagName)
                 $policy = "FAILOVER_ORDER"
                 $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[1].lagName)-0"
-                $uplink2Name= "$($instanceObject.vsphereClusters[0].vds[1].lagName)-1"
+                $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[1].lagName)-1"
             }
             else
             {
                 $activeUplinksArray = @("uplink1","uplink2")
                 $policy = "LOADBALANCE_SRCID"
                 $uplink1Name = "uplink1"
-                $uplink2Name= "uplink2"
+                $uplink2Name = "uplink2"
             }
             $teamingsArray = @()
             $teamingsArray += [pscustomobject]@{
@@ -3976,14 +3976,14 @@ Function New-ManagementDomainJsonFile
                 $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[0].lagName)
                 $policy = "FAILOVER_ORDER"
                 $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[0].lagName)-0"
-                $uplink2Name= "$($instanceObject.vsphereClusters[0].vds[0].lagName)-1"
+                $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[0].lagName)-1"
             }
             else
             {
                 $activeUplinksArray = @("uplink1","uplink2")
                 $policy = "LOADBALANCE_SRCID"
                 $uplink1Name = "uplink1"
-                $uplink2Name= "uplink2"
+                $uplink2Name = "uplink2"
             }
             $teamingsArray = @()
             $teamingsArray += [pscustomobject]@{
@@ -4041,14 +4041,14 @@ Function New-ManagementDomainJsonFile
                 $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[1].lagName)
                 $policy = "FAILOVER_ORDER"
                 $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[1].lagName)-0"
-                $uplink2Name= "$($instanceObject.vsphereClusters[0].vds[1].lagName)-1"
+                $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[1].lagName)-1"
             }
             else
             {
                 $activeUplinksArray = @("uplink1","uplink2")
                 $policy = "LOADBALANCE_SRCID"
                 $uplink1Name = "uplink1"
-                $uplink2Name= "uplink2"
+                $uplink2Name = "uplink2"
             }
             $teamingsArray = @()
             $teamingsArray += [pscustomobject]@{
@@ -4107,14 +4107,14 @@ Function New-ManagementDomainJsonFile
                 $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[0].lagName)
                 $policy = "FAILOVER_ORDER"
                 $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[0].lagName)-0"
-                $uplink2Name= "$($instanceObject.vsphereClusters[0].vds[0].lagName)-1"
+                $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[0].lagName)-1"
             }
             else
             {
                 $activeUplinksArray = @("uplink1","uplink2")
                 $policy = "LOADBALANCE_SRCID"
                 $uplink1Name = "uplink1"
-                $uplink2Name= "uplink2"
+                $uplink2Name = "uplink2"
             }
             $teamingsArray = @()
             $teamingsArray += [pscustomobject]@{
@@ -4172,14 +4172,14 @@ Function New-ManagementDomainJsonFile
                 $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[1].lagName)
                 $policy = "FAILOVER_ORDER"
                 $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[1].lagName)-0"
-                $uplink2Name= "$($instanceObject.vsphereClusters[0].vds[1].lagName)-1"
+                $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[1].lagName)-1"
             }
             else
             {
                 $activeUplinksArray = @("uplink1","uplink2")
                 $policy = "LOADBALANCE_SRCID"
                 $uplink1Name = "uplink1"
-                $uplink2Name= "uplink2"
+                $uplink2Name = "uplink2"
             }
             $teamingsArray = @()
             $teamingsArray += [pscustomobject]@{
@@ -4248,14 +4248,14 @@ Function New-ManagementDomainJsonFile
                 $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[2].lagName)
                 $policy = "FAILOVER_ORDER"
                 $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[2].lagName)-0"
-                $uplink2Name= "$($instanceObject.vsphereClusters[0].vds[2].lagName)-1"
+                $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[2].lagName)-1"
             }
             else
             {
                 $activeUplinksArray = @("uplink1","uplink2")
                 $policy = "LOADBALANCE_SRCID"
                 $uplink1Name = "uplink1"
-                $uplink2Name= "uplink2"
+                $uplink2Name = "uplink2"
             }
             $teamingsArray = @()
             $teamingsArray += [pscustomobject]@{
@@ -4543,50 +4543,90 @@ Function New-WorkloadDomainJsonFile
         }
 
         $vmnicObject = @()
+        If ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
+        {
+            $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[0].lagName)-0"
+            $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[0].lagName)-1"
+        }
+        else
+        {
+            $uplink1Name = "uplink1"
+            $uplink2Name = "uplink2"
+        }
         $vmnicObject += [pscustomobject]@{
             'id'      = $instanceObject.vsphereClusters[0].vds[0].pnics.split(",")[0]
             'vdsName' = $instanceObject.vsphereClusters[0].vds[0].vdsName
-            'uplink' = "uplink1"
+            'uplink' = $uplink1Name
         }
         $vmnicObject += [pscustomobject]@{
             'id'      = $instanceObject.vsphereClusters[0].vds[0].pnics.split(",")[1]
             'vdsName' = $instanceObject.vsphereClusters[0].vds[0].vdsName
-            'uplink' = "uplink2"
+            'uplink' = $uplink2Name
         }
         If ($instanceObject.vsphereClusters[0].vdsProfile -in "Storage Traffic Separation","NSX Traffic Separation")
         {
+            If ($instanceObject.vsphereClusters[0].vds[1].type -eq "VDS LAG")
+            {
+                $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[1].lagName)-0"
+                $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[1].lagName)-1"
+            }
+            else
+            {
+                $uplink1Name = "uplink1"
+                $uplink2Name = "uplink2"
+            }
             $vmnicObject += [pscustomobject]@{
                 'id'      = $instanceObject.vsphereClusters[0].vds[1].pnics.split(",")[0]
                 'vdsName' = $instanceObject.vsphereClusters[0].vds[1].vdsName
-                'uplink' = "uplink1"
+                'uplink' = $uplink1Name
             }
             $vmnicObject += [pscustomobject]@{
                 'id'      = $instanceObject.vsphereClusters[0].vds[1].pnics.split(",")[1]
                 'vdsName' = $instanceObject.vsphereClusters[0].vds[1].vdsName
-                'uplink' = "uplink2"
+                'uplink' = $uplink2Name
             }
         }
         If ($instanceObject.vsphereClusters[0].vdsProfile -eq "Storage Traffic and NSX Traffic Separation")
         {
+            If ($instanceObject.vsphereClusters[0].vds[1].type -eq "VDS LAG")
+            {
+                $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[1].lagName)-0"
+                $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[1].lagName)-1"
+            }
+            else
+            {
+                $uplink1Name = "uplink1"
+                $uplink2Name = "uplink2"
+            } 
             $vmnicObject += [pscustomobject]@{
                 'id'      = $instanceObject.vsphereClusters[0].vds[1].pnics.split(",")[0]
                 'vdsName' = $instanceObject.vsphereClusters[0].vds[1].vdsName
-                'uplink' = "uplink1"
+                'uplink' = $uplink1Name
             }
             $vmnicObject += [pscustomobject]@{
                 'id'      = $instanceObject.vsphereClusters[0].vds[1].pnics.split(",")[1]
                 'vdsName' = $instanceObject.vsphereClusters[0].vds[1].vdsName
-                'uplink' = "uplink2"
+                'uplink' = $uplink2Name
             }
+            If ($instanceObject.vsphereClusters[0].vds[2].type -eq "VDS LAG")
+            {
+                $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[2].lagName)-0"
+                $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[2].lagName)-1"
+            }
+            else
+            {
+                $uplink1Name = "uplink1"
+                $uplink2Name = "uplink2"
+            } 
             $vmnicObject += [pscustomobject]@{
                 'id'      = $instanceObject.vsphereClusters[0].vds[2].pnics.split(",")[0]
                 'vdsName' = $instanceObject.vsphereClusters[0].vds[2].vdsName
-                'uplink' = "uplink1"
+                'uplink' = $uplink1Name
             }
             $vmnicObject += [pscustomobject]@{
                 'id'      = $instanceObject.vsphereClusters[0].vds[2].pnics.split(",")[1]
                 'vdsName' = $instanceObject.vsphereClusters[0].vds[2].vdsName
-                'uplink' = "uplink2"
+                'uplink' = $uplink2Name
             }
         }
 
@@ -4646,51 +4686,118 @@ Function New-WorkloadDomainJsonFile
             LogMessage -type ERROR -message "Your cluster configuration exceeds the maximum limit of $maxClusterNodeCount. Please adjust the total node count across racks and retry"
         }
 
-        $activeUplinksArray = @()
-        $activeUplinksArray += "uplink1"
-        $activeUplinksArray += "uplink2"
-
+        #work out portgroup configuration based on lag or not, by portgroup type
         $portgroupObject = @()
+        
+        #managment portgroup, always on vds1
+        If ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
+        {
+            $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[0].lagName)
+            $teamingPolicy = "failover_explicit"
+        }
+        else
+        {
+            $activeUplinksArray = @()
+            $activeUplinksArray += "uplink1"
+            $activeUplinksArray += "uplink2"
+            $teamingPolicy = "loadbalance_loadbased"
+        }        
         $portgroupObject += [pscustomobject]@{
             'name'          = $instanceObject.vsphereClusters[0].portgroupNames.az1.mgmt
             'transportType' = "MANAGEMENT"
             'standByUplinks' = @()
-            'teamingPolicy' = "loadbalance_loadbased"
+            'teamingPolicy' = $teamingPolicy
             'activeUplinks' = $activeUplinksArray
         }
+
+        #vmotion portgroup, always on vds1
+        If ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
+        {
+            $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[0].lagName) 
+            $teamingPolicy = "failover_explicit"
+        }
+        else
+        {
+            $activeUplinksArray = @()
+            $activeUplinksArray += "uplink1"
+            $activeUplinksArray += "uplink2"
+            $teamingPolicy = "loadbalance_loadbased"
+        }   
         $portgroupObject += [pscustomobject]@{
             'name'          = $instanceObject.vsphereClusters[0].portgroupNames.az1.vmotion
             'transportType' = "VMOTION"
             'standByUplinks' = @()
-            'teamingPolicy' = "loadbalance_loadbased"
+            'teamingPolicy' = $teamingPolicy
             'activeUplinks' = $activeUplinksArray
+        }
+
+        #vsan portgroup, always on vds1 or vds2
+        If ($instanceObject.vsphereClusters[0].vdsProfile -in "Default","NSX Traffic Separation")
+        {
+            #vsan is on first vds
+            If ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
+            {
+                $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[0].lagName) 
+                $teamingPolicy = "failover_explicit"
+            }
+            else
+            {
+                $activeUplinksArray = @()
+                $activeUplinksArray += "uplink1"
+                $activeUplinksArray += "uplink2"
+                $teamingPolicy = "loadbalance_loadbased"
+            }  
+        }
+        else
+        {
+            #vsan is on second vds
+            If ($instanceObject.vsphereClusters[0].vds[1].type -eq "VDS LAG")
+            {
+                $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[1].lagName) 
+                $teamingPolicy = "failover_explicit"
+            }
+            else
+            {
+                $activeUplinksArray = @()
+                $activeUplinksArray += "uplink1"
+                $activeUplinksArray += "uplink2"
+                $teamingPolicy = "loadbalance_loadbased"
+            }
         }
         $portgroupObject += [pscustomobject]@{
             'name'          = $instanceObject.vsphereClusters[0].portgroupNames.az1.vsan
             'transportType' = "VSAN"
             'standByUplinks' = @()
-            'teamingPolicy' = "loadbalance_loadbased"
+            'teamingPolicy' = $teamingPolicy
             'activeUplinks' = $activeUplinksArray
         }
         
+        #vsan external portgroup. always on first vds, and must be in a multi-vds configuration
         If (($instanceObject.vsphereClusters[0].storageModel -eq "vSAN Storage Cluster") -and ($instanceObject.vsphereClusters[0].secondaryStorage -eq "vSAN Storage Client Network") -and ($instanceObject.vsphereClusters[0].vdsProfile -ne "Default"))
         {
+            If ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
+            {
+                $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[0].lagName) 
+                $teamingPolicy = "failover_explicit"
+            }
+            else
+            {
+                $activeUplinksArray = @()
+                $activeUplinksArray += "uplink1"
+                $activeUplinksArray += "uplink2"
+                $teamingPolicy = "loadbalance_loadbased"
+            }   
             $portgroupObject += [pscustomobject]@{
                 'name'          = $instanceObject.vsphereClusters[0].portgroupNames.az1.vsanClient
                 'transportType' = "VSAN_EXTERNAL"
                 'standByUplinks' = @()
-                'teamingPolicy' = "loadbalance_loadbased"
+                'teamingPolicy' = $teamingPolicy
                 'activeUplinks' = $activeUplinksArray
             }
         }
         
         $vdsMtu = $([INT]$instanceObject.vsphereClusters[0].vds[0].mtu)
-        $transportZoneArray = @()
-        $transportZoneArray += [pscustomobject]@{
-            'name'          = "nsx-vlan-transportzone"
-            'transportType' = "VLAN"
-        }
-        $transportZoneArray += [pscustomobject]@{
+        $overlayTransportZone = [pscustomobject]@{
             'name'          = "overlay-tz-$($instanceObject.nsxtManager.hostname)"
             'transportType' = "OVERLAY"
         }
@@ -4715,86 +4822,274 @@ Function New-WorkloadDomainJsonFile
                 < $operationMode = "ENS"
             }
         }
-        $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
-        $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZoneArray
 
-        $vdsObject = @()
+        $vdsSpecObject = @()
         If ($instanceObject.vsphereClusters[0].vdsProfile -eq "Default")
         {
-            $vdsObject += [pscustomobject]@{
+            ##### VDS 1 #####
+            #Figure out nsxtSwitchConfig
+            $nsxtSwitchConfigObject = New-Object -type psobject
+            $vlanTransportZone = [pscustomobject]@{
+                'name'          = "nsx-vlan-transportzone-0"
+                'transportType' = "VLAN"
+            }
+            $transportZoneArray = @()
+            $transportZoneArray += $vlanTransportZone
+            $transportZoneArray += $overlayTransportZone
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZoneArray
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
+            $vdsSpecObject += [pscustomobject]@{
                 'name'         = $instanceObject.vsphereClusters[0].vds[0].vdsName
                 'mtu' = $vdsMtu
                 'portGroupSpecs' = $portgroupObject
                 'nsxtSwitchConfig' = $nsxtSwitchConfigObject
             }
+            If ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
+            {
+                $lagSpecsObject = @()
+                $lagSpecsObject += [pscustomobject]@{
+                    'name' = $instanceObject.vsphereClusters[0].vds[0].lagName
+                    'lacpMode' = ($instanceObject.vsphereClusters[0].vds[0].lagMode).toUpper()
+                    'loadBalancingMode' = (($instanceObject.vsphereClusters[0].vds[0].lagLoadBalancing).replace(" ","_")).toUpper()
+                    'lacpTimeoutMode' = ($instanceObject.vsphereClusters[0].vds[0].lagTimeout).toUpper()
+                    'uplinksCount' = $instanceObject.vsphereClusters[0].vds[0].uplinkCount -as [INT]
+                }
+                $vdsSpecObject[0] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
+            }
         }
         elseif ($instanceObject.vsphereClusters[0].vdsProfile -eq "Storage Traffic Separation")
         {
-            $vdsObject += [pscustomobject]@{
+            ##### VDS 1 #####
+            #Figure out nsxtSwitchConfig
+            $nsxtSwitchConfigObject = New-Object -type psobject
+            $vlanTransportZone = [pscustomobject]@{
+                'name'          = "nsx-vlan-transportzone-0"
+                'transportType' = "VLAN"
+            }
+            $transportZoneArray = @()
+            $transportZoneArray += $vlanTransportZone
+            $transportZoneArray += $overlayTransportZone
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZoneArray
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
+            $vdsSpecObject += [pscustomobject]@{
                 'name'         = $instanceObject.vsphereClusters[0].vds[0].vdsName
                 'mtu' = $vdsMtu
                 'portGroupSpecs' = $portgroupObject | Where-Object {$_.transportType -in "MANAGEMENT","VMOTION","VSAN_EXTERNAL"}
                 'nsxtSwitchConfig' = $nsxtSwitchConfigObject
             }
-            $vdsObject += [pscustomobject]@{
+            If ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
+            {
+                $lagSpecsObject = @()
+                $lagSpecsObject += [pscustomobject]@{
+                    'name' = $instanceObject.vsphereClusters[0].vds[0].lagName
+                    'lacpMode' = ($instanceObject.vsphereClusters[0].vds[0].lagMode).toUpper()
+                    'loadBalancingMode' = (($instanceObject.vsphereClusters[0].vds[0].lagLoadBalancing).replace(" ","_")).toUpper()
+                    'lacpTimeoutMode' = ($instanceObject.vsphereClusters[0].vds[0].lagTimeout).toUpper()
+                    'uplinksCount' = $instanceObject.vsphereClusters[0].vds[0].uplinkCount -as [INT]
+                }
+                $vdsSpecObject[0] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
+            }
+            
+            ##### VDS 2 #####
+            $vdsSpecObject += [pscustomobject]@{
                 'name'         = $instanceObject.vsphereClusters[0].vds[1].vdsName
                 'mtu' = $vdsMtu
                 'portGroupSpecs' = @($portgroupObject | Where-Object {$_.transportType -in "VSAN"})
+            }
+            If ($instanceObject.vsphereClusters[0].vds[1].type -eq "VDS LAG")
+            {
+                $lagSpecsObject = @()
+                $lagSpecsObject += [pscustomobject]@{
+                    'name' = $instanceObject.vsphereClusters[0].vds[1].lagName
+                    'lacpMode' = ($instanceObject.vsphereClusters[0].vds[1].lagMode).toUpper()
+                    'loadBalancingMode' = (($instanceObject.vsphereClusters[0].vds[1].lagLoadBalancing).replace(" ","_")).toUpper()
+                    'lacpTimeoutMode' = ($instanceObject.vsphereClusters[0].vds[1].lagTimeout).toUpper()
+                    'uplinksCount' = $instanceObject.vsphereClusters[0].vds[1].uplinkCount -as [INT]
+                }
+                $vdsSpecObject[1] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
             }
         }
         elseif ($instanceObject.vsphereClusters[0].vdsProfile -eq "NSX Traffic Separation")
         {
-            $vdsObject += [pscustomobject]@{
+            ##### VDS 1 #####
+            $vdsSpecObject += [pscustomobject]@{
                 'name'         = $instanceObject.vsphereClusters[0].vds[0].vdsName
                 'mtu' = $vdsMtu
                 'portGroupSpecs' = $portgroupObject | Where-Object {$_.transportType -in "MANAGEMENT","VMOTION","VSAN","VSAN_EXTERNAL"}
             }
-            $vdsObject += [pscustomobject]@{
+            If ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
+            {
+                $lagSpecsObject = @()
+                $lagSpecsObject += [pscustomobject]@{
+                    'name' = $instanceObject.vsphereClusters[0].vds[0].lagName
+                    'lacpMode' = ($instanceObject.vsphereClusters[0].vds[0].lagMode).toUpper()
+                    'loadBalancingMode' = (($instanceObject.vsphereClusters[0].vds[0].lagLoadBalancing).replace(" ","_")).toUpper()
+                    'lacpTimeoutMode' = ($instanceObject.vsphereClusters[0].vds[0].lagTimeout).toUpper()
+                    'uplinksCount' = $instanceObject.vsphereClusters[0].vds[0].uplinkCount -as [INT]
+                }
+                $vdsSpecObject[0] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
+            }
+            
+            ##### VDS 2 #####
+            #Figure out nsxtSwitchConfig
+            $nsxtSwitchConfigObject = New-Object -type psobject
+            $vlanTransportZone = [pscustomobject]@{
+                'name'          = "nsx-vlan-transportzone-0"
+                'transportType' = "VLAN"
+            }
+            $transportZoneArray = @()
+            $transportZoneArray += $vlanTransportZone
+            $transportZoneArray += $overlayTransportZone
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZoneArray
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
+            $vdsSpecObject += [pscustomobject]@{
                 'name'         = $instanceObject.vsphereClusters[0].vds[1].vdsName
                 'mtu' = $vdsMtu
                 'nsxtSwitchConfig' = $nsxtSwitchConfigObject
+            }
+            If ($instanceObject.vsphereClusters[0].vds[1].type -eq "VDS LAG")
+            {
+                $lagSpecsObject = @()
+                $lagSpecsObject += [pscustomobject]@{
+                    'name' = $instanceObject.vsphereClusters[0].vds[1].lagName
+                    'lacpMode' = ($instanceObject.vsphereClusters[0].vds[1].lagMode).toUpper()
+                    'loadBalancingMode' = (($instanceObject.vsphereClusters[0].vds[1].lagLoadBalancing).replace(" ","_")).toUpper()
+                    'lacpTimeoutMode' = ($instanceObject.vsphereClusters[0].vds[1].lagTimeout).toUpper()
+                    'uplinksCount' = $instanceObject.vsphereClusters[0].vds[1].uplinkCount -as [INT]
+                }
+                $vdsSpecObject[1] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
             }
         }
         else
         {
-            $vdsObject += [pscustomobject]@{
+            ##### VDS 1 #####
+            $vdsSpecObject += [pscustomobject]@{
                 'name'         = $instanceObject.vsphereClusters[0].vds[0].vdsName
                 'mtu' = $vdsMtu
                 'portGroupSpecs' = $portgroupObject | Where-Object {$_.transportType -in "MANAGEMENT","VMOTION","VSAN_EXTERNAL"}
             }
-            $vdsObject += [pscustomobject]@{
+            If ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
+            {
+                $lagSpecsObject = @()
+                $lagSpecsObject += [pscustomobject]@{
+                    'name' = $instanceObject.vsphereClusters[0].vds[0].lagName
+                    'lacpMode' = ($instanceObject.vsphereClusters[0].vds[0].lagMode).toUpper()
+                    'loadBalancingMode' = (($instanceObject.vsphereClusters[0].vds[0].lagLoadBalancing).replace(" ","_")).toUpper()
+                    'lacpTimeoutMode' = ($instanceObject.vsphereClusters[0].vds[0].lagTimeout).toUpper()
+                    'uplinksCount' = $instanceObject.vsphereClusters[0].vds[0].uplinkCount -as [INT]
+                }
+                $vdsSpecObject[0] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
+            }
+
+            ##### VDS 2 #####
+            $vdsSpecObject += [pscustomobject]@{
                 'name'         = $instanceObject.vsphereClusters[0].vds[1].vdsName
                 'mtu' = $vdsMtu
                 'portGroupSpecs' = @($portgroupObject | Where-Object {$_.transportType -in "VSAN"})
             }
-            $vdsObject += [pscustomobject]@{
+            If ($instanceObject.vsphereClusters[0].vds[1].type -eq "VDS LAG")
+            {
+                $lagSpecsObject = @()
+                $lagSpecsObject += [pscustomobject]@{
+                    'name' = $instanceObject.vsphereClusters[0].vds[1].lagName
+                    'lacpMode' = ($instanceObject.vsphereClusters[0].vds[1].lagMode).toUpper()
+                    'loadBalancingMode' = (($instanceObject.vsphereClusters[0].vds[1].lagLoadBalancing).replace(" ","_")).toUpper()
+                    'lacpTimeoutMode' = ($instanceObject.vsphereClusters[0].vds[1].lagTimeout).toUpper()
+                    'uplinksCount' = $instanceObject.vsphereClusters[0].vds[1].uplinkCount -as [INT]
+                }
+                $vdsSpecObject[1] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
+            }
+
+            ##### VDS 3 #####
+            #Figure out nsxtSwitchConfig
+            $nsxtSwitchConfigObject = New-Object -type psobject
+            $vlanTransportZone = [pscustomobject]@{
+                'name'          = "nsx-vlan-transportzone-0"
+                'transportType' = "VLAN"
+            }
+            $transportZoneArray = @()
+            $transportZoneArray += $vlanTransportZone
+            $transportZoneArray += $overlayTransportZone
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZoneArray
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
+            $vdsSpecObject += [pscustomobject]@{
                 'name'         = $instanceObject.vsphereClusters[0].vds[2].vdsName
                 'mtu' = $vdsMtu
                 'nsxtSwitchConfig' = $nsxtSwitchConfigObject
+            }
+            If ($instanceObject.vsphereClusters[0].vds[2].type -eq "VDS LAG")
+            {
+                $lagSpecsObject = @()
+                $lagSpecsObject += [pscustomobject]@{
+                    'name' = $instanceObject.vsphereClusters[0].vds[2].lagName
+                    'lacpMode' = ($instanceObject.vsphereClusters[0].vds[2].lagMode).toUpper()
+                    'loadBalancingMode' = (($instanceObject.vsphereClusters[0].vds[2].lagLoadBalancing).replace(" ","_")).toUpper()
+                    'lacpTimeoutMode' = ($instanceObject.vsphereClusters[0].vds[2].lagTimeout).toUpper()
+                    'uplinksCount' = $instanceObject.vsphereClusters[0].vds[2].uplinkCount -as [INT]
+                }
+                $vdsSpecObject[2] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
+            }
+        }
+
+        If ($instanceObject.vsphereClusters[0].vdsProfile -in "NSX Traffic Separation")
+        {
+            $vdsName = $instanceObject.vsphereClusters[0].vds[1].vdsName            
+            If ($instanceObject.vsphereClusters[0].vds[1].type -eq "VDS LAG")
+            {
+                $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[1].lagName)-0"
+                $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[1].lagName)-1"
+                $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[1].lagName)
+            }
+            else
+            {
+                $uplink1Name = "uplink1"
+                $uplink2Name = "uplink2"
+                $activeUplinksArray = @("uplink1","uplink2")
+            }
+        }
+        elseIf ($instanceObject.vsphereClusters[0].vdsProfile -in "Storage Traffic and NSX Traffic Separation")
+        {
+            $vdsName = $instanceObject.vsphereClusters[0].vds[2].vdsName
+            If ($instanceObject.vsphereClusters[0].vds[2].type -eq "VDS LAG")
+            {
+                $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[2].lagName)-0"
+                $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[2].lagName)-1"
+                $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[2].lagName)
+            }
+            else
+            {
+                $uplink1Name = "uplink1"
+                $uplink2Name = "uplink2"
+                $activeUplinksArray = @("uplink1","uplink2")
+            }
+        }
+        else
+        {
+            $vdsName = $instanceObject.vsphereClusters[0].vds[0].vdsName
+            If ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
+            {
+                $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[0].lagName)-0"
+                $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[0].lagName)-1"
+                $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[0].lagName)
+                $policy = "FAILOVER_ORDER"
+            }
+            else
+            {
+                $uplink1Name = "uplink1"
+                $uplink2Name = "uplink2"
+                $activeUplinksArray = @("uplink1","uplink2")
+                $policy = "LOADBALANCE_SRCID"
             }
         }
 
         $vdsUplinkToNsxUplinkArray = @()
         $vdsUplinkToNsxUplinkArray += [pscustomobject]@{
-            'nsxUplinkName' = "uplink1"
-            'vdsUplinkName' = "uplink1"
+            'nsxUplinkName' = $uplink1Name
+            'vdsUplinkName' = $uplink1Name
         }
         $vdsUplinkToNsxUplinkArray += [pscustomobject]@{
-            'nsxUplinkName' = "uplink2"
-            'vdsUplinkName' = "uplink2"
-        }
-
-        If ($instanceObject.vsphereClusters[0].vdsProfile -in "NSX Traffic Separation")
-        {
-            $vdsName = $instanceObject.vsphereClusters[0].vds[1].vdsName
-        }
-        elseIf ($instanceObject.vsphereClusters[0].vdsProfile -in "Storage Traffic and NSX Traffic Separation")
-        {
-            $vdsName = $instanceObject.vsphereClusters[0].vds[2].vdsName
-        }
-        else
-        {
-            $vdsName = $instanceObject.vsphereClusters[0].vds[0].vdsName
+            'nsxUplinkName' = $uplink2Name
+            'vdsUplinkName' = $uplink2Name
         }
 
         $rackArray = @(($instanceObject.az1 | Get-Member -type NoteProperty).name)
@@ -4862,7 +5157,7 @@ Function New-WorkloadDomainJsonFile
         $teamingsArray = @()
         $teamingsArray += [pscustomobject]@{
             'name' = "DEFAULT"
-            'policy' = "LOADBALANCE_SRCID"
+            'policy' = $policy
             'standByUplinks' = @()
             'activeUplinks' = $activeUplinksArray
         }
@@ -4893,7 +5188,7 @@ Function New-WorkloadDomainJsonFile
 
         $networkObject = @()
         $networkObject += [pscustomobject]@{
-            'vdsSpecs'       = $vdsObject
+            'vdsSpecs'       = $vdsSpecObject
             'networkProfiles' = @($networkProfilesArray | Select-Object)
             'nsxClusterSpec' = ($nsxClusterObject | Select-Object -Skip 0)
         }
