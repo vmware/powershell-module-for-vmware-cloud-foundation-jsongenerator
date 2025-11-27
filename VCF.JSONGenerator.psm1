@@ -2473,16 +2473,43 @@ Function New-WorkloadInstanceObject
             'vdsName' = $pnpWorkbook.Workbook.Names["wld_cl01_vds01_name"].Value
             'pNics' = $pnpWorkbook.Workbook.Names["wld_cl01_vds01_pnics"].Value
             'mtu' = $pnpWorkbook.Workbook.Names["wld_cl01_vds01_mtu"].Value -as [STRING]
+            'type' = $pnpWorkbook.Workbook.Names["wld_cl01_vds01_link_type_chosen"].Value
+        }
+        If ($vdsArray[0].type -eq "VDS LAG")
+        {
+            $vdsArray[0] | Add-Member -notePropertyName 'lagName' -notePropertyValue $pnpWorkbook.Workbook.Names["wld_cl01_vds01_lag_name"].Value
+            $vdsArray[0] | Add-Member -notePropertyName 'lagMode' -notePropertyValue $pnpWorkbook.Workbook.Names["wld_cl01_vds01_lacp_mode_chosen"].Value
+            $vdsArray[0] | Add-Member -notePropertyName 'lagLoadBalancing' -notePropertyValue $pnpWorkbook.Workbook.Names["wld_cl01_vds01_lag_lbt_chosen"].Value
+            $vdsArray[0] | Add-Member -notePropertyName 'lagTimeout' -notePropertyValue $pnpWorkbook.Workbook.Names["wld_cl01_vds01_lacp_timeout_chosen"].Value
+            $vdsArray[0] | Add-Member -notePropertyName 'uplinkCount' -notePropertyValue $pnpWorkbook.Workbook.Names["wld_cl01_vds01_uplink_count"].Value            
         }
         $vdsArray += [PSCustomObject]@{
             'vdsName' = $pnpWorkbook.Workbook.Names["wld_cl01_vds02_name"].Value
             'pNics' = $pnpWorkbook.Workbook.Names["wld_cl01_vds02_pnics"].Value
             'mtu' = $pnpWorkbook.Workbook.Names["wld_cl01_vds02_mtu"].Value -as [STRING]
+            'type' = $pnpWorkbook.Workbook.Names["wld_cl01_vds02_link_type_chosen"].Value
+        }
+        If ($vdsArray[1].type -eq "VDS LAG")
+        {
+            $vdsArray[1] | Add-Member -notePropertyName 'lagName' -notePropertyValue $pnpWorkbook.Workbook.Names["wld_cl01_vds02_lag_name"].Value
+            $vdsArray[1] | Add-Member -notePropertyName 'lagMode' -notePropertyValue $pnpWorkbook.Workbook.Names["wld_cl01_vds02_lacp_mode_chosen"].Value
+            $vdsArray[1] | Add-Member -notePropertyName 'lagLoadBalancing' -notePropertyValue $pnpWorkbook.Workbook.Names["wld_cl01_vds02_lag_lbt_chosen"].Value
+            $vdsArray[1] | Add-Member -notePropertyName 'lagTimeout' -notePropertyValue $pnpWorkbook.Workbook.Names["wld_cl01_vds02_lacp_timeout_chosen"].Value
+            $vdsArray[1] | Add-Member -notePropertyName 'uplinkCount' -notePropertyValue $pnpWorkbook.Workbook.Names["wld_cl01_vds02_uplink_count"].Value
         }
         $vdsArray += [PSCustomObject]@{
             'vdsName' = $pnpWorkbook.Workbook.Names["wld_cl01_vds03_name"].Value
             'pNics' = $pnpWorkbook.Workbook.Names["wld_cl01_vds03_pnics"].Value
             'mtu' = $pnpWorkbook.Workbook.Names["wld_cl01_vds03_mtu"].Value -as [STRING]
+            'type' = $pnpWorkbook.Workbook.Names["wld_cl01_vds03_link_type_chosen"].Value
+        }
+        If ($vdsArray[2].type -eq "VDS LAG")
+        {
+            $vdsArray[2] | Add-Member -notePropertyName 'lagName' -notePropertyValue $pnpWorkbook.Workbook.Names["wld_cl01_vds03_lag_name"].Value
+            $vdsArray[2] | Add-Member -notePropertyName 'lagMode' -notePropertyValue $pnpWorkbook.Workbook.Names["wld_cl01_vds03_lacp_mode_chosen"].Value
+            $vdsArray[2] | Add-Member -notePropertyName 'lagLoadBalancing' -notePropertyValue $pnpWorkbook.Workbook.Names["wld_cl01_vds03_lag_lbt_chosen"].Value
+            $vdsArray[2] | Add-Member -notePropertyName 'lagTimeout' -notePropertyValue $pnpWorkbook.Workbook.Names["wld_cl01_vds03_lacp_timeout_chosen"].Value
+            $vdsArray[2] | Add-Member -notePropertyName 'uplinkCount' -notePropertyValue $pnpWorkbook.Workbook.Names["wld_cl01_vds03_uplink_count"].Value
         }
 
         $az1PortGroups = New-Object -TypeName psobject
