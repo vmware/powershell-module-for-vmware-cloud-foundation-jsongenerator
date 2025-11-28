@@ -4246,7 +4246,7 @@ Function New-ManagementDomainJsonFile
             If  ($instanceObject.vsphereClusters[0].vds[2].type -eq "VDS LAG")
             {
                 $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[2].lagName)
-                $policy = "FAILOVER_ORDER"
+                $policy = "FAILOVER_ORDERf"
                 $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[2].lagName)-0"
                 $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[2].lagName)-1"
             }
@@ -5033,7 +5033,8 @@ Function New-WorkloadDomainJsonFile
 
         If ($instanceObject.vsphereClusters[0].vdsProfile -in "NSX Traffic Separation")
         {
-            $vdsName = $instanceObject.vsphereClusters[0].vds[1].vdsName            
+            $vdsNumber = 1
+            $vdsName = $instanceObject.vsphereClusters[0].vds[1].vdsName
             If ($instanceObject.vsphereClusters[0].vds[1].type -eq "VDS LAG")
             {
                 $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[1].lagName)-0"
@@ -5051,6 +5052,7 @@ Function New-WorkloadDomainJsonFile
         }
         elseIf ($instanceObject.vsphereClusters[0].vdsProfile -in "Storage Traffic and NSX Traffic Separation")
         {
+            $vdsNumber = 2
             $vdsName = $instanceObject.vsphereClusters[0].vds[2].vdsName
             If ($instanceObject.vsphereClusters[0].vds[2].type -eq "VDS LAG")
             {
@@ -5069,6 +5071,7 @@ Function New-WorkloadDomainJsonFile
         }
         else
         {
+            $vdsNumber = 0
             $vdsName = $instanceObject.vsphereClusters[0].vds[0].vdsName
             If ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
             {
@@ -5087,13 +5090,23 @@ Function New-WorkloadDomainJsonFile
         }
 
         $vdsUplinkToNsxUplinkArray = @()
-        $vdsUplinkToNsxUplinkArray += [pscustomobject]@{
-            'nsxUplinkName' = $uplink1Name
-            'vdsUplinkName' = $uplink1Name
+        If ($instanceObject.vsphereClusters[0].vds[$vdsNumber].type -eq "VDS LAG")
+        {
+            $vdsUplinkToNsxUplinkArray += [pscustomobject]@{
+                'nsxUplinkName' = $instanceObject.vsphereClusters[0].vds[$vdsNumber].lagName
+                'vdsUplinkName' =$instanceObject.vsphereClusters[0].vds[$vdsNumber].lagName
+            }    
         }
-        $vdsUplinkToNsxUplinkArray += [pscustomobject]@{
-            'nsxUplinkName' = $uplink2Name
-            'vdsUplinkName' = $uplink2Name
+        else
+        {
+            $vdsUplinkToNsxUplinkArray += [pscustomobject]@{
+                'nsxUplinkName' = $uplink1Name
+                'vdsUplinkName' = $uplink1Name
+            }
+            $vdsUplinkToNsxUplinkArray += [pscustomobject]@{
+                'nsxUplinkName' = $uplink2Name
+                'vdsUplinkName' = $uplink2Name
+            }    
         }
 
         $rackArray = @(($instanceObject.az1 | Get-Member -type NoteProperty).name)
