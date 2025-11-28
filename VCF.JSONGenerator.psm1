@@ -2555,7 +2555,7 @@ Function New-WorkloadInstanceObject
 
         $nsxtManagerObject = New-Object -TypeName psobject
         $nsxtManagerObject | Add-Member -notepropertyname 'hostname' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_nsxt_hostname"].Value
-        $nsxtManagerObject | Add-Member -notepropertyname 'ipAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_nsxt_ip"].Value
+        $nsxtManagerObject | Add-Member -notepropertyname 'ipAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_nsxt_vip_ip"].Value
         $nsxtManagerObject | Add-Member -notepropertyname 'fqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_nsxt_vip_fqdn"].Value
         $nsxtManagerObject | Add-Member -notepropertyname 'adminUser' -notepropertyvalue "admin"
         $nsxtManagerObject | Add-Member -notepropertyname 'adminPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_nsxt_lm_admin_password"].Value
