@@ -5039,12 +5039,14 @@ Function New-WorkloadDomainJsonFile
                 $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[1].lagName)-0"
                 $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[1].lagName)-1"
                 $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[1].lagName)
+                $policy = "FAILOVER_ORDER"
             }
             else
             {
                 $uplink1Name = "uplink1"
                 $uplink2Name = "uplink2"
                 $activeUplinksArray = @("uplink1","uplink2")
+                $policy = "LOADBALANCE_SRCID"
             }
         }
         elseIf ($instanceObject.vsphereClusters[0].vdsProfile -in "Storage Traffic and NSX Traffic Separation")
@@ -5055,12 +5057,14 @@ Function New-WorkloadDomainJsonFile
                 $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[2].lagName)-0"
                 $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[2].lagName)-1"
                 $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[2].lagName)
+                $policy = "FAILOVER_ORDER"
             }
             else
             {
                 $uplink1Name = "uplink1"
                 $uplink2Name = "uplink2"
                 $activeUplinksArray = @("uplink1","uplink2")
+                $policy = "LOADBALANCE_SRCID"
             }
         }
         else
