@@ -1,5 +1,10 @@
 # VCF.JSONGenerator
 
+[![PowerShell](https://img.shields.io/badge/PowerShell-7.2%2B-blue.svg)](https://github.com/PowerShell/PowerShell)
+[![Version](https://img.shields.io/badge/Version-v9.0.0.1010-orange.svg)](CHANGELOG.md)
+[![License](https://img.shields.io/badge/License-Broadcom-green.svg)](LICENSE.md)
+[![GitHub Clones](https://img.shields.io/badge/dynamic/json?color=success&label=Clone&query=count&url=https://gist.githubusercontent.com/nathanthaler/cd078a6cd4cc8bbf8bcf859ad2dd4f18/raw/clone.json&logo=github)](https://gist.githubusercontent.com/nathanthaler/cd078a6cd4cc8bbf8bcf859ad2dd4f18/raw/clone.json)
+
 ## Author
 Thank you for your interest in the project. Whether it's a bug report, enhancement, correction, or
 additional documentation, I greatly value feedback and contributions from our community.
