@@ -4246,7 +4246,7 @@ Function New-ManagementDomainJsonFile
             If  ($instanceObject.vsphereClusters[0].vds[2].type -eq "VDS LAG")
             {
                 $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[2].lagName)
-                $policy = "FAILOVER_ORDERf"
+                $policy = "FAILOVER_ORDER"
                 $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[2].lagName)-0"
                 $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[2].lagName)-1"
             }
