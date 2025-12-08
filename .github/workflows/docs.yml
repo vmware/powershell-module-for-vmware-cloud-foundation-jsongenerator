@@ -1,0 +1,28 @@
+---
+name: Publish Documentation
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish-docs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2.7.0
+        with:
+          fetch-depth: 0
+      - name: Setup Python
+        uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
+        with:
+          python-version: 3.x
+      - name: Install Dependencies
+        run: |
+          pip install mkdocs-material
+          pip install --requirement docs/requirements.txt
+      - name: Publish Documentation
+        run: |
+          mkdocs gh-deploy --force
+        if: ${{ success() }}
