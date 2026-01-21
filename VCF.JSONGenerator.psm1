@@ -1422,7 +1422,7 @@ Function Show-PnPFilesInFolder
     else
     {
         $Global:xlsxFilesExist = $false
-        Write-Host " ERROR: No files of type xlsx were found in the current folder. Please change to the correct directory or add files to this location"
+        Write-Host "  ERROR: No files of type xlsx were found in the current folder. Please change to the correct directory or add files to the current folder" -ForegroundColor Red
     }    
 }
 
