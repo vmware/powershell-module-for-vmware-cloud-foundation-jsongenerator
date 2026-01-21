@@ -515,7 +515,10 @@ Function Start-VCFJsonGeneration
                 1 {
                     Clear-Host; Write-Host `n " Version $utilityBuild > Load Planning & Preparation Workbook  > $menuItem01" -Foregroundcolor Cyan; Write-Host -Object ''
                     Show-PnPFilesInFolder
-                    Get-PnPInputFileInputs
+                    If ($Global:xlsxFilesExist -eq $true)
+                    {
+                        Get-PnPInputFileInputs
+                    }                    
                     anykey
                 }
                 2 {
@@ -1390,8 +1393,11 @@ Function Show-PnPFilesInFolder
     #Get All xlsx Files
     $xlsxFiles = (Get-ChildItem *.xlsx).name
 
-    #Select Source File
-    $Global:xlsxDisplayObject=@()
+    If ($xlsxFiles.count -ne 0)
+    {
+        $Global:xlsxFilesExist = $true
+        #Select Source File
+        $Global:xlsxDisplayObject=@()
         $xlsxIndex = 1
         $Global:xlsxDisplayObject += [pscustomobject]@{
                 'ID'    = "ID"
@@ -1410,8 +1416,14 @@ Function Show-PnPFilesInFolder
             $xlsxIndex++
         }
 
-    #Get Source File	
-    $xlsxDisplayObject | format-table -Property @{Expression=" "},id,FileName -autosize -HideTableHeaders | Out-String | ForEach-Object { $_.Trim("`r","`n") }
+        #Get Source File	
+        $xlsxDisplayObject | format-table -Property @{Expression=" "},id,FileName -autosize -HideTableHeaders | Out-String | ForEach-Object { $_.Trim("`r","`n") }
+    }
+    else
+    {
+        $Global:xlsxFilesExist = $false
+        Write-Host " ERROR: No files of type xlsx were found in the current folder. Please change to the correct directory or add files to this location"
+    }    
 }
 
 Function Get-PnPInputFileInputs
@@ -1482,146 +1494,150 @@ Function New-TransferExcelContents
 {    
     #Get Source File
     Show-PnPFilesInFolder
-    Do
+    If ($Global:xlsxFilesExist -eq $true)
     {
-        Write-Host ""; Write-Host " Choose the ID of the older VCF Planning & Preparation Workbook containing the source data (or C to cancel): " -ForegroundColor Yellow -nonewline
-        $sourceFile = Read-Host
-    } Until (($sourceFile -in $xlsxDisplayObject.ID) -OR ($sourceFile -eq "c"))
-    If ($sourceFile -eq "c") {Break}
-    $sourceXlsx = ($xlsxDisplayObject | Where-Object {$_.id -eq $sourceFile}).FileName
-
-    #Get Template File
-    Write-Host ""; Show-PnPFilesInFolder
-    Do
-    {
-        Write-Host ""; Write-Host " Choose the ID of the current VCF Planning & Preparation Workbook template to transfer data to (or C to cancel): " -ForegroundColor Yellow -nonewline
-        $templateFile = Read-Host
-    } Until (($templateFile -in $xlsxDisplayObject.ID) -OR ($templateFile -eq "c"))
-    If ($templateFile -eq "c") {Break}
-    $targetXlsx = ($xlsxDisplayObject | Where-Object {$_.id -eq $templateFile}).FileName
-
-    #Create New Target File from Template
-    $newBlankFile = "Updated-"+($sourceXlsx.split(".xlsx")[0])+".xlsx"
-    If (Test-Path -path $newBlankFile)
-    {
-        Remove-Item $newBlankFile
-    }
-    Copy-Item $targetXlsx $newBlankFile
-
-    #Open and Check Excel Files
-    $sourceWorkbook = Open-ExcelPackage -Path $sourceXlsx
-    $sourceWorkbookUserVersion = [INT](($sourceWorkbook.Workbook.Names["pnp_version_number"].Value).split("v",2)[1]).replace(".","")
-    If ($sourceWorkbookUserVersion -lt $baseSupportedUserVersion)
-    {
-        LogMessage -type ERROR -message "Source file $sourceXlsx is not supported for content transfer"
-        LogMessage -type ERROR -message "Source file is $($sourceWorkbook.Workbook.Names["pnp_version_number"].Value) but must be version v1.9.0.005 or higher"
-        anyKey
-        Break
-    }
-    else
-    {
-        LogMessage -type INFO -message "Source file $sourceXlsx is supported for content transfer"
-    }
-
-    $targetWorkbook = Open-ExcelPackage -Path $newBlankFile
-    $targetWorkbookAutomationVersion = [INT]($targetWorkbook.Workbook.Names["pnp_version_history"].Value)
-    If ($targetWorkbookAutomationVersion -eq $supportedAutomationVersion)
-    {
-        LogMessage -type INFO -message "Template file $targetXlsx is the correct version for VCF.JSONGenerator"
-        $changedNamesOld = @($targetWorkbook.Workbook.Names["change_control_old"].Value | Where-Object {$_ -ne $null})
-        $changedNamesNew = @($targetWorkbook.Workbook.Names["change_control_new"].Value | Where-Object {$_ -ne $null})
-    }
-    else
-    {
-        LogMessage -type ERROR -message "Template file $targetXlsx is the not correct version for VCF.JSONGenerator" 
-        LogMessage -type ERROR -message "Please source the latest version from the Broadcom website"
-        anyKey
-        Break
-    }
-    
-    #Get Named Cell Count in source workbook
-    $noOfNamedCells = $sourceWorkbook.Workbook.Names.Count
-
-    #Get Inputs
-    LogMessage -type INFO -message "Getting inputs from source file $sourceXlsx"
-    $inputsHash = @{}
-    $counter = 1
-    Do
-    {
-        $namedCellName = $sourceWorkbook.Workbook.Names[$counter].Name | Where-Object {$sourceWorkbook.Workbook.Names[$counter].Name -like "input*"}
-        $namedCellValue = $sourceWorkbook.Workbook.Names[$counter].Value | Where-Object {$sourceWorkbook.Workbook.Names[$counter].Name -like "input*"}
-        If ($namedCellName)
+        Do
         {
-            $inputsHash.Add($namedCellName, $namedCellValue)
-        }
-        $counter++
-    } Until ($counter -gt $noOfNamedCells)
+            Write-Host ""; Write-Host " Choose the ID of the older VCF Planning & Preparation Workbook containing the source data (or C to cancel): " -ForegroundColor Yellow -nonewline
+            $sourceFile = Read-Host
+        } Until (($sourceFile -in $xlsxDisplayObject.ID) -OR ($sourceFile -eq "c"))
+        If ($sourceFile -eq "c") {Break}
+        $sourceXlsx = ($xlsxDisplayObject | Where-Object {$_.id -eq $sourceFile}).FileName
 
-    #Get Choices
-    LogMessage -type INFO -message "Getting choices from source file $sourceXlsx"
-    $choicesHash = @{}
-    $counter = 1
-    Do
-    {
-        $namedCellName = $sourceWorkbook.Workbook.Names[$counter].Name | Where-Object {$sourceWorkbook.Workbook.Names[$counter].Name -like "*chosen"}
-        $namedCellValue = $sourceWorkbook.Workbook.Names[$counter].Value | Where-Object {$sourceWorkbook.Workbook.Names[$counter].Name -like "*chosen"}
-        If ($namedCellName)
+        #Get Template File
+        Write-Host ""; Show-PnPFilesInFolder
+        Do
         {
-            $choicesHash.Add($namedCellName, $namedCellValue)
-        }
-        $counter++
-    }Until ($counter -gt $noOfNamedCells)
+            Write-Host ""; Write-Host " Choose the ID of the current VCF Planning & Preparation Workbook template to transfer data to (or C to cancel): " -ForegroundColor Yellow -nonewline
+            $templateFile = Read-Host
+        } Until (($templateFile -in $xlsxDisplayObject.ID) -OR ($templateFile -eq "c"))
+        If ($templateFile -eq "c") {Break}
+        $targetXlsx = ($xlsxDisplayObject | Where-Object {$_.id -eq $templateFile}).FileName
 
-    Function insertValuesToExcelObject
-    {
-        Param(
-        [Parameter(mandatory=$true)][hashtable]$hash,
-        [Parameter(mandatory=$true)][array]$changedNamesOld,
-        [Parameter(mandatory=$true)][array]$changedNamesNew
-        )
-        foreach ($h in $hash.GetEnumerator()) {
-            If (($h.name -ne $null) -AND ($h.value -ne $null))
+        #Create New Target File from Template
+        $newBlankFile = "Updated-"+($sourceXlsx.split(".xlsx")[0])+".xlsx"
+        If (Test-Path -path $newBlankFile)
+        {
+            Remove-Item $newBlankFile
+        }
+        Copy-Item $targetXlsx $newBlankFile
+
+        #Open and Check Excel Files
+        $sourceWorkbook = Open-ExcelPackage -Path $sourceXlsx
+        $sourceWorkbookUserVersion = [INT](($sourceWorkbook.Workbook.Names["pnp_version_number"].Value).split("v",2)[1]).replace(".","")
+        If ($sourceWorkbookUserVersion -lt $baseSupportedUserVersion)
+        {
+            LogMessage -type ERROR -message "Source file $sourceXlsx is not supported for content transfer"
+            LogMessage -type ERROR -message "Source file is $($sourceWorkbook.Workbook.Names["pnp_version_number"].Value) but must be version v1.9.0.005 or higher"
+            anyKey
+            Break
+        }
+        else
+        {
+            LogMessage -type INFO -message "Source file $sourceXlsx is supported for content transfer"
+        }
+
+        $targetWorkbook = Open-ExcelPackage -Path $newBlankFile
+        $targetWorkbookAutomationVersion = [INT]($targetWorkbook.Workbook.Names["pnp_version_history"].Value)
+        If ($targetWorkbookAutomationVersion -eq $supportedAutomationVersion)
+        {
+            LogMessage -type INFO -message "Template file $targetXlsx is the correct version for VCF.JSONGenerator"
+            $changedNamesOld = @($targetWorkbook.Workbook.Names["change_control_old"].Value | Where-Object {$_ -ne $null})
+            $changedNamesNew = @($targetWorkbook.Workbook.Names["change_control_new"].Value | Where-Object {$_ -ne $null})
+        }
+        else
+        {
+            LogMessage -type ERROR -message "Template file $targetXlsx is the not correct version for VCF.JSONGenerator" 
+            LogMessage -type ERROR -message "Please source the latest version from the Broadcom website"
+            anyKey
+            Break
+        }
+        
+        #Get Named Cell Count in source workbook
+        $noOfNamedCells = $sourceWorkbook.Workbook.Names.Count
+
+        #Get Inputs
+        LogMessage -type INFO -message "Getting inputs from source file $sourceXlsx"
+        $inputsHash = @{}
+        $counter = 1
+        Do
+        {
+            $namedCellName = $sourceWorkbook.Workbook.Names[$counter].Name | Where-Object {$sourceWorkbook.Workbook.Names[$counter].Name -like "input*"}
+            $namedCellValue = $sourceWorkbook.Workbook.Names[$counter].Value | Where-Object {$sourceWorkbook.Workbook.Names[$counter].Name -like "input*"}
+            If ($namedCellName)
             {
-                If ($targetWorkbook.Workbook.Names[$h.name])
+                $inputsHash.Add($namedCellName, $namedCellValue)
+            }
+            $counter++
+        } Until ($counter -gt $noOfNamedCells)
+
+        #Get Choices
+        LogMessage -type INFO -message "Getting choices from source file $sourceXlsx"
+        $choicesHash = @{}
+        $counter = 1
+        Do
+        {
+            $namedCellName = $sourceWorkbook.Workbook.Names[$counter].Name | Where-Object {$sourceWorkbook.Workbook.Names[$counter].Name -like "*chosen"}
+            $namedCellValue = $sourceWorkbook.Workbook.Names[$counter].Value | Where-Object {$sourceWorkbook.Workbook.Names[$counter].Name -like "*chosen"}
+            If ($namedCellName)
+            {
+                $choicesHash.Add($namedCellName, $namedCellValue)
+            }
+            $counter++
+        }Until ($counter -gt $noOfNamedCells)
+
+        Function insertValuesToExcelObject
+        {
+            Param(
+            [Parameter(mandatory=$true)][hashtable]$hash,
+            [Parameter(mandatory=$true)][array]$changedNamesOld,
+            [Parameter(mandatory=$true)][array]$changedNamesNew
+            )
+            foreach ($h in $hash.GetEnumerator()) {
+                If (($h.name -ne $null) -AND ($h.value -ne $null))
                 {
-                    $targetWorkbook.Workbook.Names[$h.name].Value = $h.value
-                }
-                else
-                {
-                    If ($h.name -in $changedNamesOld)
+                    If ($targetWorkbook.Workbook.Names[$h.name])
                     {
-                        $oldName = $h.name
-                        Do{            
-                            $index = [array]::IndexOf($changedNamesOld, $oldName)
-                            $newName = $changedNamesNew[$index]
-                            $oldName = $newName
-                        }Until ($newname -notin $changedNamesOld)
-                        LogMessage -type INFO -message "$($h.name) was remapped to $($newName)"
-                        If ($targetWorkbook.Workbook.Names[$newName])
-                        {
-                            $targetWorkbook.Workbook.Names[$newName].Value = $h.value
-                        }
-                        else
-                        {
-                            LogMessage -type ERROR -message "Failed to remap $($h.name) to $($newName) as could not find target cell"
-                            LogMessage -type ERROR -message "Please report bug on Planning & Preparation Workbook"
-                        }                    
+                        $targetWorkbook.Workbook.Names[$h.name].Value = $h.value
                     }
                     else
                     {
-                        LogMessage -type INFO -message "$($h.name) was deprecated"
+                        If ($h.name -in $changedNamesOld)
+                        {
+                            $oldName = $h.name
+                            Do{            
+                                $index = [array]::IndexOf($changedNamesOld, $oldName)
+                                $newName = $changedNamesNew[$index]
+                                $oldName = $newName
+                            }Until ($newname -notin $changedNamesOld)
+                            LogMessage -type INFO -message "$($h.name) was remapped to $($newName)"
+                            If ($targetWorkbook.Workbook.Names[$newName])
+                            {
+                                $targetWorkbook.Workbook.Names[$newName].Value = $h.value
+                            }
+                            else
+                            {
+                                LogMessage -type ERROR -message "Failed to remap $($h.name) to $($newName) as could not find target cell"
+                                LogMessage -type ERROR -message "Please report bug on Planning & Preparation Workbook"
+                            }                    
+                        }
+                        else
+                        {
+                            LogMessage -type INFO -message "$($h.name) was deprecated"
+                        }
                     }
                 }
             }
         }
-    }
-    LogMessage -type INFO -message "Injecting inputs into target file $newBlankFile"
-    insertValuesToExcelObject -hash $inputsHash -changedNamesOld $changedNamesOld -changedNamesNew $changedNamesNew
-    LogMessage -type INFO -message "Injecting choices into target file $newBlankFile"
-    insertValuesToExcelObject -hash $choicesHash -changedNamesOld $changedNamesOld -changedNamesNew $changedNamesNew
-    Close-ExcelPackage $targetWorkbook -calculate
-    LogMessage -type NOTE -message "Transfer to $newBlankFile complete"
-    LogMessage -type WARNING -message "Review updated file and populate fields that are new/unique to the latest workbook version"
+        LogMessage -type INFO -message "Injecting inputs into target file $newBlankFile"
+        insertValuesToExcelObject -hash $inputsHash -changedNamesOld $changedNamesOld -changedNamesNew $changedNamesNew
+        LogMessage -type INFO -message "Injecting choices into target file $newBlankFile"
+        insertValuesToExcelObject -hash $choicesHash -changedNamesOld $changedNamesOld -changedNamesNew $changedNamesNew
+        Close-ExcelPackage $targetWorkbook -calculate
+        LogMessage -type NOTE -message "Transfer to $newBlankFile complete"
+        LogMessage -type WARNING -message "Review updated file and populate fields that are new/unique to the latest workbook version"
+    } 
+    
 }
 
 
