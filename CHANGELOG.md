@@ -5,6 +5,7 @@
 - [Added] Support for onboard change control to increase range of versions the workbook content transfer process can support
 - [Added] Ability to transparently handle versions of P&P that do not impact automation
 - [Added] Support for LAG in VCF Installer Management Domain Bringup File
+- [Changed] Altered logic to handle situations where no excel files are present in folder more elegantly
 - [Fixed] Appliance size retrieval from P&P
 - [Fixed] References to outdated named cells
 - [Fixed] Workload datacenter name for workload domain deployment now calculated vs using Day-N configuration value
