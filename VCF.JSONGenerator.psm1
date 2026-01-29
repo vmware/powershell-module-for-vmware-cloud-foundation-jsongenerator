@@ -5502,6 +5502,10 @@ Function New-RackBasedHostCommissioning
             $azs = @("az1")
         }
     }
+    else
+    {
+        $azs = @($az)
+    }
     
     Foreach ($az in $azs)
     {
