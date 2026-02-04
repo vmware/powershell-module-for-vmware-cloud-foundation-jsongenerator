@@ -1,7 +1,7 @@
 # Release History
 
 ## [v9.0.0.1011]
-> Release Date: 2025-11-xx
+> Release Date: 2026-02-04
 - [Added] Support for onboard change control to increase range of versions the workbook content transfer process can support
 - [Added] Ability to transparently handle versions of P&P that do not impact automation
 - [Added] Support for LAG in VCF Installer Management Domain Bringup File
