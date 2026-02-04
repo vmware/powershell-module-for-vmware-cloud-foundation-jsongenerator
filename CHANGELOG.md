@@ -9,6 +9,7 @@
 - [Fixed] Appliance size retrieval from P&P
 - [Fixed] References to outdated named cells
 - [Fixed] Workload datacenter name for workload domain deployment now calculated vs using Day-N configuration value
+- [Fixed] Issue in multi-az host commissioning
 
 ## [v9.0.0.1010]
 > Release Date: 2025-11-12
