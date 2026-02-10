@@ -7559,13 +7559,17 @@ Function New-DecodedPassword
 Function New-EdgeJSONFile
 {
     Param (
-        [Parameter (Mandatory = $true)] [Object]$instanceObject
+        [Parameter (Mandatory = $true)] [Object]$instanceObject,
+        [Parameter (Mandatory = $false)] [switch]$interactiveBypass
     )
-    Do
+    If (!$interactiveEnabled)
     {
-        LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve Transport Zone, Host Switch Profile and Target Infrastructure IDs from NSX Manager/vCenter? (Y/N): " -skipnewline
-        $interactiveEnabled = Read-Host    
-    } Until ($interactiveEnabled -in "Y","N")
+        Do
+        {
+            LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve Transport Zone, Host Switch Profile and Target Infrastructure IDs from NSX Manager/vCenter? (Y/N): " -skipnewline
+            $interactiveEnabled = Read-Host    
+        } Until ($interactiveEnabled -in "Y","N")    
+    }
     $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""
     If ($interactiveEnabled -eq "Y")
     {
