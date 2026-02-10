@@ -7606,9 +7606,9 @@ Function New-EdgeJSONFile
     }
     else 
     {
-        $nsxtManagerFqdn = $instanceObject.nsx
-        $nsxtManagerAdminUser = 
-        $decodedNsxPassword = 
+        $nsxtManagerFqdn = $instanceObject.nsxtManager.fqdn
+        $nsxtManagerAdminUser = $instanceObject.nsxtManager.adminUser
+        $decodedNsxPassword = $instanceObject.nsxtManager.adminPassword
         $interactiveEnabled = "Y"
     }
 
