@@ -2257,7 +2257,7 @@ Function New-ManagementInstanceObject
             $edgeNode1Object | Add-Member -NotePropertyName 'hostGroupName' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_ec01_en01_host_group_affinity_rule_name"].value
             $edgeNode1Object | Add-Member -NotePropertyName 'clusterName' -NotePropertyValue $vsphereClusterArray[0].clusterName
             $edgeNode1Object | Add-Member -NotePropertyName 'datastoreName' -NotePropertyValue $vsphereClusterArray[0].vsanDatastore
-            $edgeNode1Object | Add-Member -NotePropertyName 'vmManagementPorgroupName' -NotePropertyValue $vsphereClusterArray[0].portGroupNames.az1.mgmtVm
+            $edgeNode1Object | Add-Member -NotePropertyName 'vmManagementPortgroupName' -NotePropertyValue $vsphereClusterArray[0].portGroupNames.az1.mgmtVm
             $edgeNode1Object | Add-Member -NotePropertyName 'name' -NotePropertyValue ($pnpWorkbook.Workbook.Names["mgmt_az1_en1_fqdn"].value).split(".",2)[0]
             $edgeNode1Object | Add-Member -NotePropertyName 'hostname' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_az1_en1_fqdn"].value
             $edgeNode1Object | Add-Member -NotePropertyName 'mgmtAddress' -NotePropertyValue ($pnpWorkbook.Workbook.Names["mgmt_az1_en1_mgmt_cidr"].value).split("/",2)[0]
@@ -2278,7 +2278,7 @@ Function New-ManagementInstanceObject
             $edgeNode2Object | Add-Member -NotePropertyName 'hostGroupName' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_ec01_en02_host_group_affinity_rule_name"].value
             $edgeNode2Object | Add-Member -NotePropertyName 'clusterName' -NotePropertyValue $vsphereClusterArray[0].clusterName
             $edgeNode2Object | Add-Member -NotePropertyName 'datastoreName' -NotePropertyValue $vsphereClusterArray[0].vsanDatastore
-            $edgeNode2Object | Add-Member -NotePropertyName 'vmManagementPorgroupName' -NotePropertyValue $vsphereClusterArray[0].portGroupNames.az1.mgmtVm
+            $edgeNode2Object | Add-Member -NotePropertyName 'vmManagementPortgroupName' -NotePropertyValue $vsphereClusterArray[0].portGroupNames.az1.mgmtVm
             $edgeNode2Object | Add-Member -NotePropertyName 'name' -NotePropertyValue ($pnpWorkbook.Workbook.Names["mgmt_az1_en2_fqdn"].value).split(".",2)[0]
             $edgeNode2Object | Add-Member -NotePropertyName 'hostname' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_az1_en2_fqdn"].value
             $edgeNode2Object | Add-Member -NotePropertyName 'mgmtAddress' -NotePropertyValue ($pnpWorkbook.Workbook.Names["mgmt_az1_en2_mgmt_cidr"].value).split("/",2)[0]
@@ -2817,7 +2817,7 @@ Function New-WorkloadInstanceObject
             $edgeNode1Object | Add-Member -NotePropertyName 'hostGroupName' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_ec01_en01_host_group_affinity_rule_name"].value
             $edgeNode1Object | Add-Member -NotePropertyName 'clusterName' -NotePropertyValue $vsphereClusterArray[0].clusterName
             $edgeNode1Object | Add-Member -NotePropertyName 'datastoreName' -NotePropertyValue $vsphereClusterArray[0].vsanDatastore
-            $edgeNode1Object | Add-Member -NotePropertyName 'vmManagementPorgroupName' -NotePropertyValue $vsphereClusterArray[0].portGroupNames.az1.mgmtVm
+            $edgeNode1Object | Add-Member -NotePropertyName 'vmManagementPortgroupName' -NotePropertyValue $vsphereClusterArray[0].portGroupNames.az1.mgmtVm
             $edgeNode1Object | Add-Member -NotePropertyName 'name' -NotePropertyValue ($pnpWorkbook.Workbook.Names["wld_az1_en1_fqdn"].value).split(".",2)[0]
             $edgeNode1Object | Add-Member -NotePropertyName 'hostname' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_az1_en1_fqdn"].value
             $edgeNode1Object | Add-Member -NotePropertyName 'mgmtAddress' -NotePropertyValue ($pnpWorkbook.Workbook.Names["wld_az1_en1_mgmt_cidr"].value).split("/",2)[0]
@@ -2838,7 +2838,7 @@ Function New-WorkloadInstanceObject
             $edgeNode2Object | Add-Member -NotePropertyName 'hostGroupName' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_ec01_en02_host_group_affinity_rule_name"].value
             $edgeNode2Object | Add-Member -NotePropertyName 'clusterName' -NotePropertyValue $vsphereClusterArray[0].clusterName
             $edgeNode2Object | Add-Member -NotePropertyName 'datastoreName' -NotePropertyValue $vsphereClusterArray[0].vsanDatastore
-            $edgeNode2Object | Add-Member -NotePropertyName 'vmManagementPorgroupName' -NotePropertyValue $vsphereClusterArray[0].portGroupNames.az1.mgmtVm
+            $edgeNode2Object | Add-Member -NotePropertyName 'vmManagementPortgroupName' -NotePropertyValue $vsphereClusterArray[0].portGroupNames.az1.mgmtVm
             $edgeNode2Object | Add-Member -NotePropertyName 'name' -NotePropertyValue ($pnpWorkbook.Workbook.Names["wld_az1_en2_fqdn"].value).split(".",2)[0]
             $edgeNode2Object | Add-Member -NotePropertyName 'hostname' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_az1_en2_fqdn"].value
             $edgeNode2Object | Add-Member -NotePropertyName 'mgmtAddress' -NotePropertyValue ($pnpWorkbook.Workbook.Names["wld_az1_en2_mgmt_cidr"].value).split("/",2)[0]
@@ -7624,8 +7624,8 @@ Function New-EdgeJSONFile
         $storageId2 = (Get-Cluster -name $instanceObject.edgeCluster.nodes.node2.clusterName | Get-Datastore | Where-Object {$_.name -eq $instanceObject.edgeCluster.nodes.node2.datastoreName}).id.split("Datastore-")[1]
         $edgeTrunk01PortgroupId = (Get-VDPortGroup -name $instanceObject.edgeCluster.edgeTrunk01PortgroupName).key
         $edgeTrunk02PortgroupId = (Get-VDPortGroup -name $instanceObject.edgeCluster.edgeTrunk02PortgroupName).key
-        $mgmtPortGroupID1 = (Get-VDPortGroup -name $instanceObject.edgeCluster.nodes.node1.vmManagementPorgroupName).key
-        $mgmtPortGroupID2 = (Get-VDPortGroup -name $instanceObject.edgeCluster.nodes.node2.vmManagementPorgroupName).key
+        $mgmtPortGroupID1 = (Get-VDPortGroup -name $instanceObject.edgeCluster.nodes.node1.vmManagementPortgroupName).key
+        $mgmtPortGroupID2 = (Get-VDPortGroup -name $instanceObject.edgeCluster.nodes.node2.vmManagementPortgroupName).key
     }
     else
     {
