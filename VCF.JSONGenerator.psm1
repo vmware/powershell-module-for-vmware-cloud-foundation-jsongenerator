@@ -7562,47 +7562,54 @@ Function New-EdgeJSONFile
         [Parameter (Mandatory = $true)] [Object]$instanceObject,
         [Parameter (Mandatory = $false)] [switch]$interactiveBypass
     )
-    If (!$interactiveEnabled)
+    If (!$interactiveBypass)
     {
         Do
         {
             LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve Transport Zone, Host Switch Profile and Target Infrastructure IDs from NSX Manager/vCenter? (Y/N): " -skipnewline
             $interactiveEnabled = Read-Host    
-        } Until ($interactiveEnabled -in "Y","N")    
+        } Until ($interactiveEnabled -in "Y","N")
+        $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""
+        If ($interactiveEnabled -eq "Y")
+        {
+            Do
+            {
+                LogMessage -type INFO -message "NSX Manager FQDN: " -skipnewline
+                $nsxtManagerFqdn = Read-Host
+                LogMessage -type INFO -message "NSX Manager Administrator: " -skipnewline
+                $nsxtManagerAdminUser = Read-Host
+                LogMessage -type INFO -message "NSX Manager Administrator password: " -skipnewline
+                $nsxtManagerPassword = Read-Host -AsSecureString
+                $decodedNsxPassword = New-DecodedPassword -securePassword $nsxtManagerPassword
+                $overlayTransportZoneId = (Get-NsxTransportZones -nsxtManagerFqdn $nsxtManagerFqdn -nsxtusername $nsxtManagerAdminUser -nsxtpassword $decodedNsxPassword | Where-Object {$_.tz_type -in "OVERLAY_STANDARD","OVERLAY_BACKED" -and $_.is_default -eq "True"}).nsx_id
+                If (!($overlayTransportZoneId))
+                {
+                    LogMessage -type ERROR -message "Failed to connect to successfully read information from $nsxtManagerFqdn. Please check details and try again"
+                }
+            } Until ($overlayTransportZoneId)
+            Do
+            {
+                LogMessage -type INFO -message "vCenter FQDN: " -skipnewline
+                $vCenterFqdn = Read-Host
+                LogMessage -type INFO -message "vCenter Administrator: " -skipnewline
+                $vCenterAdminUser = Read-Host
+                LogMessage -type INFO -message "vCenter Administrator password: " -skipnewline
+                $vCenterPassword = Read-Host -AsSecureString
+                $decodedVcenterPassword = New-DecodedPassword -securePassword $vCenterPassword
+                $vCenterConnection = Connect-VIServer -server $vCenterFQDN -user $vCenterAdminUser -password $decodedvCenterPassword -errorAction SilentlyContinue
+                If (!($vCenterConnection))
+                {
+                    LogMessage -type ERROR -message "Failed to connect to successfully read information from $vCenterFqdn. Please check details and try again"
+                }
+            } Until ($vCenterConnection)
+        }
     }
-    $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""
-    If ($interactiveEnabled -eq "Y")
+    else 
     {
-        Do
-        {
-            LogMessage -type INFO -message "NSX Manager FQDN: " -skipnewline
-            $nsxtManagerFqdn = Read-Host
-            LogMessage -type INFO -message "NSX Manager Administrator: " -skipnewline
-            $nsxtManagerAdminUser = Read-Host
-            LogMessage -type INFO -message "NSX Manager Administrator password: " -skipnewline
-            $nsxtManagerPassword = Read-Host -AsSecureString
-            $decodedNsxPassword = New-DecodedPassword -securePassword $nsxtManagerPassword
-            $overlayTransportZoneId = (Get-NsxTransportZones -nsxtManagerFqdn $nsxtManagerFqdn -nsxtusername $nsxtManagerAdminUser -nsxtpassword $decodedNsxPassword | Where-Object {$_.tz_type -in "OVERLAY_STANDARD","OVERLAY_BACKED" -and $_.is_default -eq "True"}).nsx_id
-            If (!($overlayTransportZoneId))
-            {
-                LogMessage -type ERROR -message "Failed to connect to successfully read information from $nsxtManagerFqdn. Please check details and try again"
-            }
-        } Until ($overlayTransportZoneId)
-        Do
-        {
-            LogMessage -type INFO -message "vCenter FQDN: " -skipnewline
-            $vCenterFqdn = Read-Host
-            LogMessage -type INFO -message "vCenter Administrator: " -skipnewline
-            $vCenterAdminUser = Read-Host
-            LogMessage -type INFO -message "vCenter Administrator password: " -skipnewline
-            $vCenterPassword = Read-Host -AsSecureString
-            $decodedVcenterPassword = New-DecodedPassword -securePassword $vCenterPassword
-            $vCenterConnection = Connect-VIServer -server $vCenterFQDN -user $vCenterAdminUser -password $decodedvCenterPassword -errorAction SilentlyContinue
-            If (!($vCenterConnection))
-            {
-                LogMessage -type ERROR -message "Failed to connect to successfully read information from $vCenterFqdn. Please check details and try again"
-            }
-        } Until ($vCenterConnection)
+        $nsxtManagerFqdn = $instanceObject.nsx
+        $nsxtManagerAdminUser = 
+        $decodedNsxPassword = 
+        $interactiveEnabled = "Y"
     }
 
     If ($interactiveEnabled -eq "Y")
