@@ -5,7 +5,7 @@
 
 $Global:version = ((Get-InstalledModule VCF.JSONGenerator).version -as [STRING])
 $Global:baseSupportedUserVersion = [INT]("190005")
-$Global:supportedAutomationVersion = [INT]("1822")
+$Global:supportedAutomationVersion = [INT]("1825")
 If ($PSEdition -eq 'Core') {
     #$PSDefaultParameterValues.Add("Invoke-RestMethod:SkipCertificateCheck",$true)
     $Script:PSDefaultParameterValues = @{
