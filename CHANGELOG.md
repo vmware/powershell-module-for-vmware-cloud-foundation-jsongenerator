@@ -1,8 +1,9 @@
 # Release History
 
 ## [v9.0.0.1012]
-> Release Date: 2026-xx-xx
-- [Added] ability to bypass interactive questions on New-EdgeJSONFile for automation purposes
+> Release Date: 2026-02-20
+- [Added] Ability to bypass interactive questions on New-EdgeJSONFile for automation purposes
+- [Changed] Supported P&P File updaated to match current published version
 
 ## [v9.0.0.1011]
 > Release Date: 2026-02-04
