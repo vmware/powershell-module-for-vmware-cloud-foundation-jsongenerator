@@ -7610,6 +7610,7 @@ Function New-EdgeJSONFile
         $nsxtManagerAdminUser = $instanceObject.nsxtManager.adminUser
         $decodedNsxPassword = $instanceObject.nsxtManager.adminPassword
         $interactiveEnabled = "Y"
+        $jumpboxName = hostname
     }
 
     If ($interactiveEnabled -eq "Y")
@@ -8274,7 +8275,14 @@ Function New-EdgeJSONFile
     $singleApiObject = New-Object -type psobject
     $singleApiObject | Add-Member -NotePropertyName 'resource_type' -NotePropertyValue "OrgRoot"
     $singleApiObject | Add-Member -NotePropertyName 'children' -NotePropertyValue $singleApiChildrenArray
-    LogMessage -Type INFO -Message "Exporting the Edge Deployment JSON to edgeDeploymentSpec-$($instanceObject.edgeCluster.name).json"
+    If ($interactiveBypass)
+    {
+        LogMessage -Type INFO -Message "[$jumpboxName] Exporting the Edge Deployment JSON to edgeDeploymentSpec-$($instanceObject.edgeCluster.name).json"
+    }
+    else
+    {
+        LogMessage -Type INFO -Message "Exporting the Edge Deployment JSON to edgeDeploymentSpec-$($instanceObject.edgeCluster.name).json"
+    }    
     ConvertTo-Json $singleApiObject -depth 20 | Out-File "edgeDeploymentSpec-$($instanceObject.edgeCluster.name).json"
 }
 
