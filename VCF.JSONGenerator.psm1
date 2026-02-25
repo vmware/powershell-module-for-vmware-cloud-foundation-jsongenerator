@@ -8604,49 +8604,38 @@ Function New-DayNIdbJsonFile
 Function New-DayNLogsJsonFile
 {
     Param (
-        [Parameter (Mandatory = $true)] [Array]$sharedInstanceObject,
-        [Parameter (Mandatory = $false)] [switch]$interactiveBypass
+        [Parameter (Mandatory = $true)] [Array]$sharedInstanceObject
     )
-    If (!$interactiveBypass)
+
+    Do
+    {
+        LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve locker information from Fleet Manager? (Y/N): " -skipnewline
+        $interactiveEnabled = Read-Host    
+    } Until ($interactiveEnabled -in "Y","N")
+    $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""
+    If ($interactiveEnabled -eq "Y")
     {
         Do
         {
-            LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve locker information from Fleet Manager? (Y/N): " -skipnewline
-            $interactiveEnabled = Read-Host    
-        } Until ($interactiveEnabled -in "Y","N")
-        $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""
-        If ($interactiveEnabled -eq "Y")
-        {
-            Do
+            LogMessage -type INFO -message "Fleet Manager FQDN: " -skipnewline
+            $fleetManagerFqdn = Read-Host
+            LogMessage -type INFO -message "Fleet Manager Administrator: " -skipnewline
+            $fleetManagerAdminUser = Read-Host
+            LogMessage -type INFO -message "Fleet Manager Administrator password: " -skipnewline
+            $fleetManagerPassword = Read-Host -AsSecureString
+            $decodedFmPassword = New-DecodedPassword -securePassword $fleetManagerPassword
+            $uri = "https://$fleetManagerFqdn/lcmversion"
+            $fmHeaders = createBasicAuthHeader $fleetManagerAdminUser $decodedFmPassword
+            if ($PSEdition -eq 'Core') {
+                $fmResponse = Invoke-WebRequest -Method GET -Uri $uri -Headers $fmHeaders -SkipCertificateCheck -UseBasicParsing # PS Core has -SkipCertificateCheck implemented, PowerShell 5.x does not
+            } else {
+                $fmResponse = Invoke-WebRequest -Method GET -Uri $uri -Headers $fmHeaders -UseBasicParsing
+            }
+            If (!($fmResponse))
             {
-                LogMessage -type INFO -message "Fleet Manager FQDN: " -skipnewline
-                $fleetManagerFqdn = Read-Host
-                LogMessage -type INFO -message "Fleet Manager Administrator: " -skipnewline
-                $fleetManagerAdminUser = Read-Host
-                LogMessage -type INFO -message "Fleet Manager Administrator password: " -skipnewline
-                $fleetManagerPassword = Read-Host -AsSecureString
-                $decodedFmPassword = New-DecodedPassword -securePassword $fleetManagerPassword
-                $uri = "https://$fleetManagerFqdn/lcmversion"
-                $fmHeaders = createBasicAuthHeader $fleetManagerAdminUser $decodedFmPassword
-                if ($PSEdition -eq 'Core') {
-                    $fmResponse = Invoke-WebRequest -Method GET -Uri $uri -Headers $fmHeaders -SkipCertificateCheck -UseBasicParsing # PS Core has -SkipCertificateCheck implemented, PowerShell 5.x does not
-                } else {
-                    $fmResponse = Invoke-WebRequest -Method GET -Uri $uri -Headers $fmHeaders -UseBasicParsing
-                }
-                If (!($fmResponse))
-                {
-                    LogMessage -type ERROR -message "Failed to connect to successfully read information from $fleetManagerFqdn. Please check details and try again"
-                }
-            } Until ($fmResponse)
-        }
-    }
-    else 
-    {
-        $fleetManagerFqdn = $sharedInstanceObject.fleetManager.fqdn
-        $fleetManagerAdminUser = "admin@local"
-        $decodedFmPassword = $sharedInstanceObject.fleetManager.adminUserPassword
-        $interactiveEnabled = "Y"
-        $jumpboxName = hostname
+                LogMessage -type ERROR -message "Failed to connect to successfully read information from $fleetManagerFqdn. Please check details and try again"
+            }
+        } Until ($fmResponse)
     }
 
     
@@ -8831,14 +8820,7 @@ Function New-DayNLogsJsonFile
     $logsJsonObject | Add-Member -NotePropertyName 'requestId' -NotePropertyValue $null
     $logsJsonObject | Add-Member -NotePropertyName 'fleet' -NotePropertyValue $true
 
-    If ($interactiveBypass)
-    {
-        LogMessage -Type INFO -Message "[$jumpboxName] Exporting the Logs Deployment JSON to opsLogsDeploymentSpec-$(($sharedInstanceObject.logs.vipFqdn).split(".")[0]).json"
-    }
-    else
-    {
-        LogMessage -Type INFO -Message "Exporting the Logs Deployment JSON to opsLogsDeploymentSpec-$(($sharedInstanceObject.logs.vipFqdn).split(".")[0]).json"
-    }
+    LogMessage -Type INFO -Message "Exporting the Logs Deployment JSON to opsLogsDeploymentSpec-$(($sharedInstanceObject.logs.vipFqdn).split(".")[0]).json"
     ConvertTo-Json $logsJsonObject -depth 20 | Out-File "opsLogsDeploymentSpec-$(($sharedInstanceObject.logs.vipFqdn).split(".")[0]).json"
 }
 
