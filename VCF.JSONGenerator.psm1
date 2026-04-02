@@ -2587,7 +2587,7 @@ Function New-WorkloadInstanceObject
         $nsxtManagerObject | Add-Member -notepropertyname 'nodeCHostname' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_nsxt_mgrc_hostname"].Value
         $nsxtManagerObject | Add-Member -notepropertyname 'nodeCFQDN' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_nsxt_mgrc_fqdn"].Value
         $nsxtManagerObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_nsxt_mgrc_ip"].Value
-        $nsxtManagerObject | Add-Member -notepropertyname 'formFactor' -notepropertyvalue $pnpWorkbook.Workbook.Names["sizing_w01_nsxt_appliance_size"].Value
+        $nsxtManagerObject | Add-Member -notepropertyname 'formFactor' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_nsxt_appliance_size_chosen"].Value
 
         $hostCredentialsObject = New-Object -TypeName psobject
         $hostCredentialsObject | Add-Member -notepropertyname 'esxiPassword' -notepropertyvalue $pnpWorkbook.Workbook.names["wld_esx_root_password"].Value
