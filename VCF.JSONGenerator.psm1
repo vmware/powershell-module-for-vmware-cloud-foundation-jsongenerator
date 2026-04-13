@@ -1547,6 +1547,22 @@ Function New-TransferExcelContents
         $targetWorkbook = Open-ExcelPackage -Path $newBlankFile
         $targetWorkbookAutomationVersion = [INT]($targetWorkbook.Workbook.Names["pnp_version_history"].Value)
         $targetVcfVersionChosen = $targetWorkbook.Workbook.Names["vcf_version_chosen"].Value
+        $sourceVcfVersionChosen = $sourceWorkbook.Workbook.Names["vcf_version_chosen"].Value
+        
+        $targetVersionPrefix = ($Global:supportedAutomationVersions | Where-Object { $targetVcfVersionChosen.StartsWith($_.version) }).version
+        $sourceVersionPrefix = ($Global:supportedAutomationVersions | Where-Object { $sourceVcfVersionChosen.StartsWith($_.version) }).version
+        
+        If ($sourceVersionPrefix -ne $targetVersionPrefix)
+        {
+            LogMessage -type ERROR -message "Source and target workbooks must be for the same VCF version"
+            LogMessage -type ERROR -message "Source file is for VCF $sourceVcfVersionChosen but target file is for VCF $targetVcfVersionChosen"
+            LogMessage -type ERROR -message "Content transfer is only supported between workbooks of the same VCF version (e.g., 9.0 to 9.0 or 9.1 to 9.1)"
+            Close-ExcelPackage $sourceWorkbook -NoSave -ErrorAction SilentlyContinue
+            Close-ExcelPackage $targetWorkbook -NoSave -ErrorAction SilentlyContinue
+            anyKey
+            Break
+        }
+        
         $targetMatchingVersion = $Global:supportedAutomationVersions | Where-Object { $targetVcfVersionChosen.StartsWith($_.version) }
         If ($targetMatchingVersion -and ($targetWorkbookAutomationVersion -eq $targetMatchingVersion.supportedAutomationVersion))
         {
