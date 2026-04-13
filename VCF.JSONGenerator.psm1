@@ -5,7 +5,10 @@
 
 $Global:version = ((Get-InstalledModule VCF.JSONGenerator).version -as [STRING])
 $Global:baseSupportedUserVersion = [INT]("190005")
-$Global:supportedAutomationVersion = [INT]("1825")
+$Global:supportedAutomationVersions = @(
+    @{ version = "9.0"; supportedAutomationVersion = [INT]("90002") },
+    @{ version = "9.1"; supportedAutomationVersion = [INT]("91001") }
+)
 If ($PSEdition -eq 'Core') {
     #$PSDefaultParameterValues.Add("Invoke-RestMethod:SkipCertificateCheck",$true)
     $Script:PSDefaultParameterValues = @{
@@ -1445,7 +1448,10 @@ Function Get-PnPInputFileInputs
     {
         $Global:WarningPreference = "Continue"
     }
-    If ($pnpWorkbook.Workbook.Names["pnp_version_history"].Value -eq $Global:supportedAutomationVersion)
+    $vcfVersionChosen = $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
+    $pnpVersionHistory = $pnpWorkbook.Workbook.Names["pnp_version_history"].Value
+    $matchingVersion = $Global:supportedAutomationVersions | Where-Object { $vcfVersionChosen.StartsWith($_.version) }
+    If ($matchingVersion -and ($pnpVersionHistory -eq $matchingVersion.supportedAutomationVersion))
     {
         Remove-Variable workbookProfile -scope Global -ErrorAction SilentlyContinue
         Remove-Variable chosenWorkBook -scope Global -ErrorAction SilentlyContinue
@@ -1485,7 +1491,7 @@ Function Get-PnPInputFileInputs
         }
     }
     else{
-        LogMessage -type ERROR -message "The Planning & Preparation Workbook version you supplied is not the version supported by this version of VCF.JSONGenerator"
+        LogMessage -type ERROR -message "The Planning & Preparation Workbook version you supplied is not the version supported for $vcfVersionChosen by this version of VCF.JSONGenerator"
         LogMessage -type ERROR -message "Please source the latest version from the Broadcom website"
     }
     Close-ExcelPackage $pnpWorkbook -NoSave -ErrorAction SilentlyContinue
@@ -1540,7 +1546,9 @@ Function New-TransferExcelContents
 
         $targetWorkbook = Open-ExcelPackage -Path $newBlankFile
         $targetWorkbookAutomationVersion = [INT]($targetWorkbook.Workbook.Names["pnp_version_history"].Value)
-        If ($targetWorkbookAutomationVersion -eq $supportedAutomationVersion)
+        $targetVcfVersionChosen = $targetWorkbook.Workbook.Names["vcf_version_chosen"].Value
+        $targetMatchingVersion = $Global:supportedAutomationVersions | Where-Object { $targetVcfVersionChosen.StartsWith($_.version) }
+        If ($targetMatchingVersion -and ($targetWorkbookAutomationVersion -eq $targetMatchingVersion.supportedAutomationVersion))
         {
             LogMessage -type INFO -message "Template file $targetXlsx is the correct version for VCF.JSONGenerator"
             $changedNamesOld = @($targetWorkbook.Workbook.Names["change_control_old"].Value | Where-Object {$_ -ne $null})
