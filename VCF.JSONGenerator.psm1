@@ -2249,6 +2249,65 @@ Function New-ManagementInstanceObject
             {
                 $skipAutomation = "N"
             }
+
+            $vcfVersion = $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
+            If ($vcfVersion -like "9.0*")
+            {
+                If ($fleetManagementTiming -eq "bringup")
+                {
+                    $vcfManagementNetworkModel = "SharedManagement"
+                }
+                else
+                {
+                    If ($pnpWorkbook.Workbook.Names["flt_custom_network_chosen"].Value -eq "Dedicated Management Network")
+                    {
+                        $vcfManagementNetworkModel = "DedicatedManagement"
+                    }
+                    elseIf ($pnpWorkbook.Workbook.Names["flt_custom_network_chosen"].Value -eq "NSX Overlay Segment")
+                    {
+                        $vcfManagementNetworkModel = "Overlay"
+                    }
+                    elseIf ($pnpWorkbook.Workbook.Names["flt_custom_network_chosen"].Value -eq "Shared Management Network")
+                    {
+                        $vcfManagementNetworkModel = "SharedManagement"
+                    }
+                    else
+                    {
+                        $vcfManagementNetworkModel = "nsxVlan"
+                    }
+                }
+            }
+            else
+            {
+                If ($pnpWorkbook.Workbook.Names["mgmt_vcf_management_network_chosen"].Value -eq "Use VM management network")
+                {
+                    $vcfmsNetworkModel = "SharedManagement"
+                }
+                else
+                {
+                    $vcfmsNetworkModel = "DedicatedManagement"
+                }
+
+                If ($fleetManagementTiming -eq "bringup")
+                {
+                    $vcfManagementNetworkModel = $vcfmsNetworkModel
+                }
+                else
+                {
+                    If ($pnpWorkbook.Workbook.Names["flt_custom_network_chosen"].Value -eq "Dedicated Management Network")
+                    {
+                        $vcfManagementNetworkModel = "DedicatedManagement"
+                    }
+                    elseIf ($pnpWorkbook.Workbook.Names["flt_custom_network_chosen"].Value -eq "NSX Overlay Segment")
+                    {
+                        $vcfManagementNetworkModel = "Overlay"
+                    }
+                    elseIf ($pnpWorkbook.Workbook.Names["flt_custom_network_chosen"].Value -eq "Shared Management Network")
+                    {
+                        $vcfManagementNetworkModel = "SharedManagement"
+                    }
+                }
+            }
             
             $deploymentProfileObject = New-Object -TypeName psobject
             $deploymentProfileObject | Add-Member -notepropertyname 'singleNSXTManager' -notepropertyvalue $singleNSXTManager
@@ -2256,6 +2315,11 @@ Function New-ManagementInstanceObject
             $deploymentProfileObject | Add-Member -notepropertyname 'joinFleet' -notepropertyvalue $joinFleet
             $deploymentProfileObject | Add-Member -notepropertyname 'fleetManagementDeploymentModel' -notepropertyvalue $fleetManagementDeploymentModel
             $deploymentProfileObject | Add-Member -notepropertyname 'fleetManagementTiming' -notepropertyvalue $fleetManagementTiming
+            $deploymentProfileObject | Add-Member -notepropertyname 'vcfManagementNetworkModel' -notepropertyvalue $vcfManagementNetworkModel
+            If ($vcfVersion -notlike "9.0*")
+            {
+                $deploymentProfileObject | Add-Member -notepropertyname 'vcfmsNetworkModel' -notepropertyvalue $vcfmsNetworkModel
+            }
         }
         #  End Rack Specific Stuff
 
