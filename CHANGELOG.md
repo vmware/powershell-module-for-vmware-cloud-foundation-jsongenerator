@@ -2,7 +2,7 @@
 
 ## [v9.0.0.1013]
 > Release Date: 2026-03-xx
-- [Added] Ability to bypass interactive questions on New-EdgeJSONFile for automation purposes
+- [Added] Fixed WLD Sizing References
 
 ## [v9.0.0.1012]
 > Release Date: 2026-02-20
