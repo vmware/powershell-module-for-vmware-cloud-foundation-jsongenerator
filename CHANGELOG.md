@@ -2,10 +2,11 @@
 
 ## [v9.1.0.1000]
 > Release Date: 2026-xx-xx
+- [Added] Support for dual P&P Versions
 
 ## [v9.0.0.1013]
 > Release Date: 2026-03-xx
-- [Added] Fixed WLD Sizing References
+- [Fixed] WLD Sizing References
 
 ## [v9.0.0.1012]
 > Release Date: 2026-02-20
