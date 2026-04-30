@@ -1679,10 +1679,10 @@ Function New-SharedInstanceObject
         LogMessage -type INFO -message "Extracting data common to Management and Workload Domains"
 
         $dnsObject = New-Object -TypeName psobject
+        $dnsObject | Add-Member -notepropertyname 'roodDnsDomain' -notepropertyvalue $pnpWorkbook.Workbook.names["parent_dns_zone"].Value
+        $dnsObject | Add-Member -notepropertyname 'childDnsDomain' -notepropertyvalue $pnpWorkbook.Workbook.names["child_dns_zone"].Value
         $dnsObject | Add-Member -notepropertyname 'dnsServer1' -notepropertyvalue $pnpWorkbook.Workbook.names["region_dns1_ip"].Value
         $dnsObject | Add-Member -notepropertyname 'dnsServer2' -notepropertyvalue $pnpWorkbook.Workbook.names["region_dns2_ip"].Value
-        $dnsObject | Add-Member -notepropertyname 'parentDnsDomain' -notepropertyvalue $pnpWorkbook.Workbook.names["parent_dns_zone"].Value
-        $dnsObject | Add-Member -notepropertyname 'childDnsDomain' -notepropertyvalue $pnpWorkbook.Workbook.names["child_dns_zone"].Value
         
         $ntpObject = New-Object -TypeName psobject
         $ntpObject | Add-Member -notepropertyname 'ntpServer1' -notepropertyvalue $pnpWorkbook.Workbook.Names["region_ntp1_server"].Value
@@ -1692,9 +1692,10 @@ Function New-SharedInstanceObject
         $ssoObject | Add-Member -notepropertyname 'domain' -notepropertyvalue $pnpWorkbook.Workbook.names["mgmt_sso_domain"].Value 
         $ssoObject | Add-Member -notepropertyname 'adminPassword' -notepropertyvalue $pnpWorkbook.Workbook.names["administrator_vsphere_local_password"].Value 
         
+        $vcfOperationsObject = New-Object -TypeName psobject
+        $vcfAutomationObject = New-Object -TypeName psobject
         If ($workbookProfile.opsAutomationDayNDeployment -eq "Unselected")
         {
-            $vcfOperationsObject = New-Object -TypeName psobject
             $vcfOperationsObject | Add-Member -notepropertyname 'nodeAFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_nodea_fqdn"].Value
             $vcfOperationsObject | Add-Member -notepropertyname 'nodeBFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_nodeb_fqdn"].Value
             $vcfOperationsObject | Add-Member -notepropertyname 'nodeCFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_nodec_fqdn"].Value
@@ -1705,7 +1706,7 @@ Function New-SharedInstanceObject
             $vcfOperationsObject | Add-Member -notepropertyname 'opsCollectorFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_collector_fqdn"].Value
             $vcfOperationsObject | Add-Member -notepropertyname 'opsCollectorRootUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_collector_root_password"].Value
 
-            $vcfAutomationObject = New-Object -TypeName psobject
+
             $vcfAutomationObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodea_ip"].Value
             $vcfAutomationObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodeb_ip"].Value
             $vcfAutomationObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodec_ip"].Value
@@ -1719,11 +1720,9 @@ Function New-SharedInstanceObject
             $vcfFleetManagerObject | Add-Member -notepropertyname 'fqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrslcm_fqdn"].Value
             $vcfFleetManagerObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["vrslcm_admin_password"].Value
             $vcfFleetManagerObject | Add-Member -notepropertyname 'rootUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["vrslcm_root_password"].Value
-    
         }
         else
         {
-            $vcfOperationsObject = New-Object -TypeName psobject
             $vcfOperationsObject | Add-Member -notepropertyname 'nodeAFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_nodea_fqdn"].Value
             $vcfOperationsObject | Add-Member -notepropertyname 'nodeBFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_nodeb_fqdn"].Value
             $vcfOperationsObject | Add-Member -notepropertyname 'nodeCFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_nodec_fqdn"].Value
@@ -1750,8 +1749,6 @@ Function New-SharedInstanceObject
                 $vcfOperationsObject | Add-Member -notepropertyname 'useExisting' -notepropertyvalue $true
             } 
             
-            
-            $vcfAutomationObject = New-Object -TypeName psobject
             $vcfAutomationObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_nodea_ip"].Value
             $vcfAutomationObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_nodeb_ip"].Value
             $vcfAutomationObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_nodec_ip"].Value
@@ -1873,6 +1870,26 @@ Function New-SharedInstanceObject
         $vcfNetworksObject | Add-Member -notepropertyname 'fipsMode' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_fips_mode_chosen"].Value
         $vcfNetworksObject | Add-Member -notepropertyname 'configureAffinity' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_affinty_rule_chosen"].Value
 
+        $vcfLicenseServerObject = New-Object -TypeName psobject
+        $vcfLicenseServerObject | Add-Member -notepropertyname 'fqdn' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_lc_fqdn"].Value
+
+        $vspObject = New-Object -TypeName psobject
+        $vspObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_sr_fqdn"].Value
+        $vspObject | Add-Member -notepropertyname 'instanceFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_ic_fqdn"].Value
+        $vspObject | Add-Member -notepropertyname 'fleetFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_fc_fqdn"].Value
+        $vspObject | Add-Member -notepropertyname 'systemUserPassword' -notepropertyvalue $infrastructureSettings.environment.commonComplexPassword
+        If ($pnpWorkbook.Workbook.Names["mgmt_domain_vcf_operations_ha_mode_chosen"].Value -eq "High Availability (Three-node)")
+        {
+            $vspObject | Add-Member -notepropertyname 'size' -notepropertyvalue "medium"
+        }
+        else 
+        {
+            $vspObject | Add-Member -notepropertyname 'size' -notepropertyvalue "small"
+        }        
+        $vspObject | Add-Member -notepropertyname 'internalClusterCidrIpv4' -notepropertyvalue "198.18.0.0/15"
+        $vspObject | Add-Member -notepropertyname 'startIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_vcfms_node_pool_start_ip"].Value
+        $vspObject | Add-Member -notepropertyname 'endIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_vcfms_node_pool_end_ip"].Value
+
         $sharedInstanceObject = New-Object -TypeName psobject
         $sharedInstanceObject | Add-Member -notepropertyname 'version' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
         $sharedInstanceObject | Add-Member -notepropertyname 'dns' -notepropertyvalue $dnsObject
@@ -1884,6 +1901,8 @@ Function New-SharedInstanceObject
         $sharedInstanceObject | Add-Member -notepropertyname 'logs' -notepropertyvalue $vcfLogsObject
         $sharedInstanceObject | Add-Member -notepropertyname 'networks' -notepropertyvalue $vcfNetworksObject
         $sharedInstanceObject | Add-Member -notepropertyname 'fleetManager' -notepropertyvalue $vcfFleetManagerObject
+        $sharedInstanceObject | Add-Member -notepropertyname 'vsp' -notepropertyvalue $vspObject
+        $sharedInstanceObject | Add-Member -notepropertyname 'licenseServer' -notepropertyvalue $vcfLicenseServerObject
         $sharedInstanceObject | Add-Member -notepropertyname 'subscriptionLicensing' -notepropertyvalue "NotApplicable"
         Return $sharedInstanceObject
     }
@@ -3515,7 +3534,7 @@ Function New-ManagementDomainJsonFile
         $dnsObject = @()
         $dnsObject += [pscustomobject]@{
             'nameservers'         = $nameServers
-            'subdomain'           = $sharedInstanceObject.dns.parentDnsDomain
+            'subdomain'           = $sharedInstanceObject.dns.roodDnsDomain
         }
 
         #ntpServers
