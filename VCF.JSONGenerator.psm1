@@ -1671,13 +1671,17 @@ Function New-TransferExcelContents
 Function New-SharedInstanceObject
 {
     Param (
-        [Parameter (Mandatory = $true)] [Object]$pnpWorkbook
+        [Parameter (Mandatory = $true)] [Object]$pnpWorkbook,
+        [Parameter (Mandatory = $true)] [Switch]$silent
     )
 
     Try {
-        LogMessage -type NOTE -message "Planning & Preparation Workbook to $($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value) discovered"
-        LogMessage -type INFO -message "Extracting data common to Management and Workload Domains"
-
+        If (!$silent)
+        {
+            LogMessage -type NOTE -message "Planning & Preparation Workbook to $($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value) discovered"
+            LogMessage -type INFO -message "Extracting data common to Management and Workload Domains"    
+        }
+        
         $dnsObject = New-Object -TypeName psobject
         $dnsObject | Add-Member -notepropertyname 'roodDnsDomain' -notepropertyvalue $pnpWorkbook.Workbook.names["parent_dns_zone"].Value
         $dnsObject | Add-Member -notepropertyname 'childDnsDomain' -notepropertyvalue $pnpWorkbook.Workbook.names["child_dns_zone"].Value
