@@ -1672,7 +1672,7 @@ Function New-SharedInstanceObject
 {
     Param (
         [Parameter (Mandatory = $true)] [Object]$pnpWorkbook,
-        [Parameter (Mandatory = $true)] [Switch]$silent
+        [Parameter (Mandatory = $false)] [Switch]$silent
     )
 
     Try {
@@ -1919,12 +1919,19 @@ Function New-SharedInstanceObject
 Function New-ManagementInstanceObject
 {
     Param (
-        [Parameter (Mandatory = $true)] [Object]$pnpWorkbook
-    )
+        [Parameter (Mandatory = $true)] [Object]$pnpWorkbook,
+        [Parameter (Mandatory = $false)] [Switch]$silent,
+        [Parameter (Mandatory = $false)] [INT]$totalRackCount,
+        [Parameter (Mandatory = $false)] [String]$vcfVersion
+        )
 
     Try {
-        LogMessage -type INFO -message "Extracting data specific to Management Domain Creation"
-        $totalRackCount = 1
+        If (!$silent)
+        {
+            LogMessage -type INFO -message "Extracting data specific to Management Domain Creation"
+        }
+        
+        If (!$totalRackCount)  { $totalRackCount = 1}
         $vcfInstanceName = $pnpWorkbook.Workbook.Names["vcf_instance_name"].Value
 
         $domainName = $pnpWorkbook.Workbook.Names["mgmt_sddc_domain"].Value
@@ -2155,15 +2162,25 @@ Function New-ManagementInstanceObject
             $az1RackNetworkObject | Add-Member -notepropertyname 'vsanPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)vsan_pool_start_ip"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'vsanPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)vsan_pool_end_ip"].Value
 
-            $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)secondary_storage_vlan"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)secondary_storage_gateway_ip"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)secondary_storage_cidr"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)secondary_storage_network"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetmask' -notepropertyvalue  $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)secondary_storage_mask"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)secondary_storage_mtu"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)secondary_storage_pool_start_ip"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)secondary_storage_pool_end_ip"].Value
+            If ($rack -eq "rack1")
+            {
+                $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)secondary_storage_vlan"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)secondary_storage_gateway_ip"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)secondary_storage_cidr"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)secondary_storage_network"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetmask' -notepropertyvalue  $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)secondary_storage_mask"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)secondary_storage_mtu"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)secondary_storage_pool_start_ip"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)secondary_storage_pool_end_ip"].Value
 
+                $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_dtgw_vlan"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_dtgw_gateway_ip"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_dtgw_mtu"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_dtgw_cidr"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_dtgw_network"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_dtgw_mask"].Value    
+            }
+            
             $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)host_overlay_vlan"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)host_overlay_mask"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)host_overlay_mtu"].Value
@@ -2178,6 +2195,13 @@ Function New-ManagementInstanceObject
             $az1RackNetworkObject | Add-Member -notepropertyname 'hostIpAddressPoolName' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)host_overlay_network_pool_name"].Value 
             $az1RackNetworkObject | Add-Member -notepropertyname 'hostIpAddressPoolDesc' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)host_overlay_network_pool_description"].Value 
             $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayAddressing' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_host_overlay_addressing_chosen"].Value
+            
+            $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_management_vlan"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_management_gateway_ip"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_management_mtu"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_management_cidr"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_management_network"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_management_mask"].Value
 
             $az2RackNetworkObject = New-Object -TypeName psobject
             #VMs
@@ -2254,10 +2278,12 @@ Function New-ManagementInstanceObject
             If ($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value -eq "First Instance")
             {
                 $joinFleet = "N"
+                $instance = "InstanceA"
             }
             else
             {
                 $joinFleet = "Y"
+                $instance = "InstanceB"
             }
 
             If ($pnpWorkbook.Workbook.Names["mgmt_domain_vcf_operations_ha_mode_chosen"].Value -eq "High Availability (Three-node)")
@@ -2271,6 +2297,7 @@ Function New-ManagementInstanceObject
                 $fleetManagementDeploymentModel = "single"
             }
             
+            #get fleet management deployment timing
             If ($pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value -eq "Selected")
             {
                 $fleetManagementTiming = "later"
@@ -2289,7 +2316,10 @@ Function New-ManagementInstanceObject
                 $skipAutomation = "N"
             }
 
-            $vcfVersion = $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
+            If (!$vcfVersion)
+            {
+                $vcfVersion = $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
+            }
             If ($vcfVersion -like "9.0*")
             {
                 If ($fleetManagementTiming -eq "bringup")
@@ -2469,7 +2499,7 @@ Function New-ManagementInstanceObject
 
         $managementInstanceObject = New-Object -TypeName psobject
         $managementInstanceObject | Add-Member -notepropertyname 'version' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
-        $managementInstanceObject | Add-Member -notepropertyname 'instance' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value
+        $managementInstanceObject | Add-Member -notepropertyname 'instance' -notepropertyvalue $instance
         $managementInstanceObject | Add-Member -notepropertyname 'vcfInstanceName' -notepropertyvalue $vcfInstanceName
         $managementInstanceObject | Add-Member -notepropertyname 'deploymentProfile' -notepropertyvalue $deploymentProfileObject
         $managementInstanceObject | Add-Member -notepropertyname 'domainType' -notepropertyvalue "Management"
@@ -3464,7 +3494,7 @@ Function New-ManagementDomainJsonFile
         $singleNSXTManager = $instanceObject.deploymentProfile.singleNSXTManager
         $joinFleet = $instanceObject.deploymentProfile.joinFleet
         $skipAutomation = $instanceObject.deploymentProfile.skipAutomation
-        If (($joinFleet -eq "Y") -and ($instanceObject.instance -eq "Additional Instance"))
+        If (($joinFleet -eq "Y") -and ($instanceObject.instance -eq "InstanceB"))
         {
             LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve fingerprints for ESX hosts plus existing Operations and Automation components? (Y/N): " -skipnewline
         }
@@ -3478,7 +3508,7 @@ Function New-ManagementDomainJsonFile
         } Until ($interactiveEnabled -in "Y","N")
         $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""
             
-        If (($joinFleet -eq "Y") -and ($instanceObject.instance -eq "Additional Instance"))
+        If (($joinFleet -eq "Y") -and ($instanceObject.instance -eq "InstanceB"))
         {            
             If ($interactiveEnabled -eq "Y")
             {
@@ -3669,7 +3699,7 @@ Function New-ManagementDomainJsonFile
         #vcfOperationsSpec
         $vcfOpsNodesObject = @()
 
-        If ($instanceObject.instance -eq "First Instance")
+        If ($instanceObject.instance -eq "InstanceA")
         {
             If ($instanceObject.deploymentProfile.fleetManagementDeploymentModel -eq "single")
             {
@@ -4555,7 +4585,7 @@ Function New-ManagementDomainJsonFile
         $managementDomainObject = New-Object -TypeName psobject
         $managementDomainObject | Add-Member -notepropertyname 'sddcId' -notepropertyvalue $instanceObject.domainName
         $managementDomainObject | Add-Member -notepropertyname 'vcfInstanceName' -notepropertyvalue $instanceObject.vcfInstanceName
-        If ($instanceObject.instance -eq "First Instance")
+        If ($instanceObject.instance -eq "InstanceA")
         {
             $managementDomainObject | Add-Member -notepropertyname 'workflowType' -notepropertyvalue "VCF"
         }
@@ -4574,10 +4604,10 @@ Function New-ManagementDomainJsonFile
         $managementDomainObject | Add-Member -notepropertyname 'clusterSpec' -notepropertyvalue ($clusterObject | Select-Object -Skip 0)
         $managementDomainObject | Add-Member -notepropertyname 'datastoreSpec' -notepropertyvalue ($datastoreSpecObject | Select-Object -Skip 0)
         $managementDomainObject | Add-Member -notepropertyname 'nsxtSpec' -notepropertyvalue $nsxtObject
-        If (($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and (($instanceObject.instance -eq "First Instance") -OR (($instanceObject.instance -eq "Additional Instance") -AND ($joinFleet -eq "Y")))){$managementDomainObject | Add-Member -notepropertyname 'vcfOperationsSpec' -notepropertyvalue $vcfOperationsSpecObject}
-        If (($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and (($instanceObject.instance -eq "First Instance") -OR (($instanceObject.instance -eq "Additional Instance") -AND ($joinFleet -eq "Y")))) {$managementDomainObject | Add-Member -notepropertyname 'vcfOperationsFleetManagementSpec' -notepropertyvalue $vcfOperationsManagementSpecObject}
-        If (($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and (($instanceObject.instance -eq "First Instance") -OR (($instanceObject.instance -eq "Additional Instance") -AND ($joinFleet -eq "Y")))) {$managementDomainObject | Add-Member -notepropertyname 'vcfOperationsCollectorSpec' -notepropertyvalue $vcfOperationsCloudProxySpecObject}
-        If ((($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and ($instanceObject.instance -eq "First Instance") -AND ($skipAutomation -ne 'Y')) -or (($instanceObject.instance -eq "Additional Instance") -and ($joinFleet -eq "Y") -AND ($skipAutomation -ne 'Y'))) {$managementDomainObject | Add-Member -notepropertyname 'vcfAutomationSpec' -notepropertyvalue $vcfAutomationSpecObjectObject}
+        If (($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and (($instanceObject.instance -eq "InstanceA") -OR (($instanceObject.instance -eq "InstanceB") -AND ($joinFleet -eq "Y")))){$managementDomainObject | Add-Member -notepropertyname 'vcfOperationsSpec' -notepropertyvalue $vcfOperationsSpecObject}
+        If (($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and (($instanceObject.instance -eq "InstanceA") -OR (($instanceObject.instance -eq "InstanceB") -AND ($joinFleet -eq "Y")))) {$managementDomainObject | Add-Member -notepropertyname 'vcfOperationsFleetManagementSpec' -notepropertyvalue $vcfOperationsManagementSpecObject}
+        If (($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and (($instanceObject.instance -eq "InstanceA") -OR (($instanceObject.instance -eq "InstanceB") -AND ($joinFleet -eq "Y")))) {$managementDomainObject | Add-Member -notepropertyname 'vcfOperationsCollectorSpec' -notepropertyvalue $vcfOperationsCloudProxySpecObject}
+        If ((($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and ($instanceObject.instance -eq "InstanceA") -AND ($skipAutomation -ne 'Y')) -or (($instanceObject.instance -eq "InstanceB") -and ($joinFleet -eq "Y") -AND ($skipAutomation -ne 'Y'))) {$managementDomainObject | Add-Member -notepropertyname 'vcfAutomationSpec' -notepropertyvalue $vcfAutomationSpecObjectObject}
         $managementDomainObject | Add-Member -notepropertyname 'hostSpecs' -notepropertyvalue $hostObject
         $managementDomainObject | Add-Member -notepropertyname 'networkSpecs' -notepropertyvalue $networkObject
         $managementDomainObject | Add-Member -notepropertyname 'dvsSpecs' -notepropertyvalue $dvsObject
