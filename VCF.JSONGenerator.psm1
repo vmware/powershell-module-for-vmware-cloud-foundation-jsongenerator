@@ -1710,15 +1710,19 @@ Function New-SharedInstanceObject
             $vcfOperationsObject | Add-Member -notepropertyname 'opsCollectorFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_collector_fqdn"].Value
             $vcfOperationsObject | Add-Member -notepropertyname 'opsCollectorRootUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_collector_root_password"].Value
 
-
+            $vcfAutomationObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_auto_sr_fqdn"].Value        
             $vcfAutomationObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodea_ip"].Value
             $vcfAutomationObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodeb_ip"].Value
             $vcfAutomationObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodec_ip"].Value
+            $vcfAutomationObject | Add-Member -notepropertyname 'nodeDIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_noded_ip"].Value
+            $vcfAutomationObject | Add-Member -notepropertyname 'nodeEIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodee_ip"].Value
+            $vcfAutomationObject | Add-Member -notepropertyname 'nodeFIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodef_ip"].Value
             $vcfAutomationObject | Add-Member -notepropertyname 'extraNodeIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_noded_ip"].Value
             $vcfAutomationObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_virtual_fqdn"].Value
             $vcfAutomationObject | Add-Member -notepropertyname 'internalClusterCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_k8s_cluster_cidr_chosen"].Value
             $vcfAutomationObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_admin_password"].Value
             $vcfAutomationObject | Add-Member -notepropertyname 'vcfaNodePrefix' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_prefix"].Value
+            $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue "small"
 
             $vcfFleetManagerObject = New-Object -TypeName psobject
             $vcfFleetManagerObject | Add-Member -notepropertyname 'fqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrslcm_fqdn"].Value
@@ -1753,9 +1757,13 @@ Function New-SharedInstanceObject
                 $vcfOperationsObject | Add-Member -notepropertyname 'useExisting' -notepropertyvalue $true
             } 
             
+            $vcfAutomationObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_auto_sr_fqdn"].Value     
             $vcfAutomationObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_nodea_ip"].Value
             $vcfAutomationObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_nodeb_ip"].Value
             $vcfAutomationObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_nodec_ip"].Value
+            $vcfAutomationObject | Add-Member -notepropertyname 'nodeDIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_noded_ip"].Value
+            $vcfAutomationObject | Add-Member -notepropertyname 'nodeEIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_nodee_ip"].Value
+            $vcfAutomationObject | Add-Member -notepropertyname 'nodeFIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_nodef_ip"].Value            
             $vcfAutomationObject | Add-Member -notepropertyname 'extraNodeIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_noded_ip"].Value
             $vcfAutomationObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_vip_fqdn"].Value
             $vcfAutomationObject | Add-Member -notepropertyname 'internalClusterCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_cluster_cidr_chosen"].Value
@@ -1768,6 +1776,7 @@ Function New-SharedInstanceObject
             $vcfAutomationObject | Add-Member -notepropertyname 'collectorMgmtSubnetMask' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_mask"].Value
             $vcfAutomationObject | Add-Member -notepropertyname 'collectorMgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_gateway_ip"].Value
             $vcfAutomationObject | Add-Member -notepropertyname 'fleetManagementDeploymentModel' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ha_mode_chosen"].Value
+            $vcfAutomationObject | Add-Member -notepropertyname 'size'  -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_size_chosen"].Value
 
             $vcfFleetManagerObject = New-Object -TypeName psobject
             $vcfFleetManagerObject | Add-Member -notepropertyname 'fqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_flt_fqdn"].Value
