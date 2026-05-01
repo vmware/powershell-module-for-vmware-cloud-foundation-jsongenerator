@@ -2081,7 +2081,10 @@ Function New-ManagementInstanceObject
 
         #Define AZs for the domain
         $az1Object = New-Object -TypeName psobject
-        $az2Object = New-Object -TypeName psobject
+        If ($pnpWorkbook.Workbook.Names["mgmt_stretched_cluster_chosen"].Value -eq "Include")
+        {
+            $az2Object = New-Object -TypeName psobject
+        }
 
         # Start Rack Specific Stuff
         $rackIDArray = @()
@@ -2111,20 +2114,23 @@ Function New-ManagementInstanceObject
                 $az1RackHostsObject += $az1RackHostObject           
             }
 
-            $az2RackHostNames = @(($pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_hostnames"].Value) | Where-Object {$_ -notin "Value Missing","Not Required"})
-            $az2RackHostMgmtIps = @(($pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_mgmt_ips"].Value) | Where-Object {$_ -notin "Value Missing","Not Required"})
-            $az2RackHostFqdns = @(($pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_fqdns"].Value) | Where-Object {$_ -notin "Value Missing","Not Required" -and $_ -ne ""})
-            
-            $az2RackHostsObject = @()
-            Foreach ($az2RackHost in $az2RackHostFqdns)
+            If ($pnpWorkbook.Workbook.Names["mgmt_stretched_cluster_chosen"].Value -eq "Include")
             {
-                $az2RackHostObject = [pscustomobject]@{
-                    'mgmtIp'   = $az2RackHostMgmtIps[$az2RackHostFqdns.indexof($az2RackHost)]
-                    'hostname' = $az2RackHostNames[$az2RackHostFqdns.indexof($az2RackHost)]
-                    'fqdn'     = $az2RackHostFqdns[$az2RackHostFqdns.indexof($az2RackHost)]
+                $az2RackHostNames = @(($pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_hostnames"].Value) | Where-Object {$_ -notin "Value Missing","Not Required"})
+                $az2RackHostMgmtIps = @(($pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_mgmt_ips"].Value) | Where-Object {$_ -notin "Value Missing","Not Required"})
+                $az2RackHostFqdns = @(($pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_fqdns"].Value) | Where-Object {$_ -notin "Value Missing","Not Required" -and $_ -ne ""})
+                
+                $az2RackHostsObject = @()
+                Foreach ($az2RackHost in $az2RackHostFqdns)
+                {
+                    $az2RackHostObject = [pscustomobject]@{
+                        'mgmtIp'   = $az2RackHostMgmtIps[$az2RackHostFqdns.indexof($az2RackHost)]
+                        'hostname' = $az2RackHostNames[$az2RackHostFqdns.indexof($az2RackHost)]
+                        'fqdn'     = $az2RackHostFqdns[$az2RackHostFqdns.indexof($az2RackHost)]
+                    }
+                    $az2RackHostsObject += $az2RackHostObject
                 }
-                $az2RackHostsObject += $az2RackHostObject
-            }
+            }            
                 
             $az1RackNetworkObject = New-Object -TypeName psobject
             
@@ -2203,77 +2209,80 @@ Function New-ManagementInstanceObject
             $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_management_network"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_management_mask"].Value
 
-            $az2RackNetworkObject = New-Object -TypeName psobject
-            #VMs
-            $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVmVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_vlan"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVmGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_gateway_ip"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVmMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_mtu"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVmCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_cidr"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVmNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_network"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVmNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_mask"].Value
-            
-            #Hosts
-            $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)mgmt_vlan"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)mgmt_gateway_ip"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)mgmt_mtu"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)mgmt_cidr"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)mgmt_network"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)mgmt_mask"].Value
-
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vmotion_vlan"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vmotion_gateway_ip"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vmotion_cidr"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vmotion_network"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vmotion_mask"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vmotion_mtu"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vmotion_pool_start_ip"].Value        
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vmotion_pool_end_ip"].Value
-
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vsan_vlan"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vsan_gateway_ip"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vsan_cidr"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vsan_network"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vsan_mask"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vsan_mtu"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vsan_pool_start_ip"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vsan_pool_end_ip"].Value
-
-            $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)secondary_storage_vlan"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)secondary_storage_gateway_ip"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)secondary_storage_cidr"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)secondary_storage_network"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)secondary_storage_mask"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)secondary_storage_mtu"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)secondary_storage_pool_start_ip"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)secondary_storage_pool_end_ip"].Value
-
-            $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_vlan"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_mask"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_mtu"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_gateway_ip"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_cidr"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_network"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_pool_start_ip"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_pool_end_ip"].Value
-
-            $az2RackNetworkObject | Add-Member -notepropertyname 'uplinkProfileName' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_uplink_profile_name"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'networkProfileName' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_network_profile_name"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vcfNetworkPoolName' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)pool_name"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'hostIpAddressPoolName' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_network_pool_name"].Value 
-            $az2RackNetworkObject | Add-Member -notepropertyname 'hostIpAddressPoolDesc' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_network_pool_description"].Value 
-            $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayAddressing' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_host_overlay_addressing_chosen"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'reuseExistingVcfNetworkPool' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)reuse_vcf_networkpool_chosen"].Value
-            $az2RackNetworkObject | Add-Member -NotePropertyName 'reuseExistingStaticIpPool' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_new_pool_chosen"].Value
-
             $az1RackObject = New-Object -TypeName psobject
             $az1RackObject | Add-Member -notepropertyname 'hosts' -notepropertyvalue $az1RackHostsObject
             $az1RackObject | Add-Member -notepropertyname 'network' -notepropertyvalue $az1RackNetworkObject
             $az1Object | Add-Member -notepropertyname $rack -notepropertyvalue $az1RackObject
 
-            $az2RackObject = New-Object -TypeName psobject
-            $az2RackObject | Add-Member -notepropertyname 'hosts' -notepropertyvalue $az2RackHostsObject
-            $az2RackObject | Add-Member -notepropertyname 'network' -notepropertyvalue $az2RackNetworkObject
-            $az2Object | Add-Member -notepropertyname $rack -notepropertyvalue $az2RackObject
+            If ($pnpWorkbook.Workbook.Names["mgmt_stretched_cluster_chosen"].Value -eq "Include")
+            {
+                $az2RackNetworkObject = New-Object -TypeName psobject
+                #VMs
+                $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVmVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_vlan"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVmGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_gateway_ip"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVmMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_mtu"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVmCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_cidr"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVmNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_network"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVmNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_mask"].Value
+                
+                #Hosts
+                $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)mgmt_vlan"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)mgmt_gateway_ip"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)mgmt_mtu"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)mgmt_cidr"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)mgmt_network"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)mgmt_mask"].Value
+    
+                $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vmotion_vlan"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vmotion_gateway_ip"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vmotion_cidr"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vmotion_network"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vmotion_mask"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vmotion_mtu"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vmotion_pool_start_ip"].Value        
+                $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vmotion_pool_end_ip"].Value
+    
+                $az2RackNetworkObject | Add-Member -notepropertyname 'vsanVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vsan_vlan"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vsan_gateway_ip"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vsan_cidr"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vsan_network"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vsan_mask"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'vsanMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vsan_mtu"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'vsanPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vsan_pool_start_ip"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'vsanPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vsan_pool_end_ip"].Value
+    
+                $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)secondary_storage_vlan"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)secondary_storage_gateway_ip"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)secondary_storage_cidr"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)secondary_storage_network"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)secondary_storage_mask"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)secondary_storage_mtu"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)secondary_storage_pool_start_ip"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)secondary_storage_pool_end_ip"].Value
+    
+                $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_vlan"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_mask"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_mtu"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_gateway_ip"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_cidr"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_network"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_pool_start_ip"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_pool_end_ip"].Value
+    
+                $az2RackNetworkObject | Add-Member -notepropertyname 'uplinkProfileName' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_uplink_profile_name"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'networkProfileName' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_network_profile_name"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'vcfNetworkPoolName' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)pool_name"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'hostIpAddressPoolName' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_network_pool_name"].Value 
+                $az2RackNetworkObject | Add-Member -notepropertyname 'hostIpAddressPoolDesc' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_network_pool_description"].Value 
+                $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayAddressing' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_host_overlay_addressing_chosen"].Value
+                $az2RackNetworkObject | Add-Member -notepropertyname 'reuseExistingVcfNetworkPool' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)reuse_vcf_networkpool_chosen"].Value
+                $az2RackNetworkObject | Add-Member -NotePropertyName 'reuseExistingStaticIpPool' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_new_pool_chosen"].Value
+
+                $az2RackObject = New-Object -TypeName psobject
+                $az2RackObject | Add-Member -notepropertyname 'hosts' -notepropertyvalue $az2RackHostsObject
+                $az2RackObject | Add-Member -notepropertyname 'network' -notepropertyvalue $az2RackNetworkObject
+                $az2Object | Add-Member -notepropertyname $rack -notepropertyvalue $az2RackObject    
+            }
 
             If ($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value -eq "First Instance")
             {
@@ -2505,7 +2514,10 @@ Function New-ManagementInstanceObject
         $managementInstanceObject | Add-Member -notepropertyname 'domainType' -notepropertyvalue "Management"
         $managementInstanceObject | Add-Member -notepropertyname 'domainName' -notepropertyvalue $domainName
         $managementInstanceObject | Add-Member -notepropertyname 'az1' -notepropertyvalue $az1Object
-        $managementInstanceObject | Add-Member -notepropertyname 'az2' -notepropertyvalue $az2Object
+        If ($pnpWorkbook.Workbook.Names["mgmt_stretched_cluster_chosen"].Value -eq "Include")
+        {
+            $managementInstanceObject | Add-Member -notepropertyname 'az2' -notepropertyvalue $az2Object
+        }        
         $managementInstanceObject | Add-Member -notepropertyname 'autoGeneratedPasswords' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_domain_password_creation_chosen"].Value
         $managementInstanceObject | Add-Member -notepropertyname 'hostCredentials' -notepropertyvalue $hostCredentialsObject
         $managementInstanceObject | Add-Member -notepropertyname 'sddcManager' -notepropertyvalue $sddcManagerObject
