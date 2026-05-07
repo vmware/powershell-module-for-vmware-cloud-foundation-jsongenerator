@@ -970,6 +970,62 @@ Function catchWriter
     LogMessage -Type EXCEPTION -Message "Error Message: $errorMessage"
 }
 
+Function Get-SslFingerprint {
+    Param ([String]$fqdn, [Int]$port = 443)
+    
+    Try {
+        If ([System.Environment]::OSVersion.Platform -eq 'Win32NT') {
+            $fingerprint = (Write-Output "Q" | openssl.exe s_client -connect "${fqdn}:${port}" -showcerts 2>$null | Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
+        } else {
+            $fingerprint = (Write-Output "Q" | openssl s_client -connect "${fqdn}:${port}" -showcerts 2>$null | Filter-X509 | openssl x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
+        }
+        return $fingerprint
+    } Catch {
+        return $null
+    }
+}
+
+Function Get-UplinkConfiguration {
+    Param (
+        [Object]$vdsConfig
+    )
+    
+    If ($vdsConfig.type -eq "VDS LAG") {
+        return @{
+            activeUplinks = @($vdsConfig.lagName)
+            policy = "FAILOVER_ORDER"
+            uplink1Name = "$($vdsConfig.lagName)-0"
+            uplink2Name = "$($vdsConfig.lagName)-1"
+            teamingPolicy = "failover_explicit"
+        }
+    } else {
+        return @{
+            activeUplinks = @("uplink1", "uplink2")
+            policy = "LOADBALANCE_SRCID"
+            uplink1Name = "uplink1"
+            uplink2Name = "uplink2"
+            teamingPolicy = "loadbalance_loadbased"
+        }
+    }
+}
+
+Function New-LagSpec {
+    Param (
+        [Object]$vdsConfig
+    )
+    
+    If ($vdsConfig.type -eq "VDS LAG") {
+        return [PSCustomObject]@{
+            name              = $vdsConfig.lagName
+            lacpMode          = ($vdsConfig.lagMode).ToUpper()
+            loadBalancingMode = (($vdsConfig.lagLoadBalancing).Replace(" ", "_")).ToUpper()
+            lacpTimeoutMode   = ($vdsConfig.lagTimeout).ToUpper()
+            uplinksCount      = $vdsConfig.uplinkCount -as [INT]
+        }
+    }
+    return $null
+}
+
 Function Get-InstalledSoftware
 {
     $software = @()
@@ -4637,6 +4693,889 @@ Function New-ManagementDomainJsonFile
         LogMessage -Type INFO -Message "Exporting the Management Domain JSON to managementDomainSpec-$($instanceObject.domainName).json"
         $managementDomainObject | ConvertTo-Json -Depth 12 | Out-File -Encoding UTF8 -FilePath "managementDomainSpec-$($instanceObject.domainName).json"
         LogMessage -Type NOTE -Message "Completed the Process of Generating the Management Domain JSON"
+    }
+    Catch {
+        catchWriter -object $_
+    }
+}
+
+Function New-ManagementDomainJsonFileV2 {
+    <#
+    .SYNOPSIS
+        Generates a VCF Management Domain JSON specification file.
+    
+    .DESCRIPTION
+        Creates the JSON specification file required for VCF Management Domain deployment.
+        This function produces the same output as New-ManagementDomainJsonFile but uses
+        a cleaner, more readable structure based on PSCustomObject declarations.
+    
+    .PARAMETER instanceObject
+        The instance configuration object containing domain-specific settings.
+    
+    .PARAMETER sharedInstanceObject
+        The shared instance configuration object containing common settings across instances.
+    
+    .EXAMPLE
+        New-ManagementDomainJsonFileV2 -instanceObject $instanceObj -sharedInstanceObject $sharedObj
+    #>
+    
+    Param (
+        [Parameter (Mandatory = $true)] [Array]$instanceObject,
+        [Parameter (Mandatory = $true)] [Array]$sharedInstanceObject
+    )
+
+    Try {
+        LogMessage -type INFO -message "Generating Management Domain JSON"
+
+        #region Parameter Resolution
+        $singleNSXTManager = $instanceObject.deploymentProfile.singleNSXTManager
+        $joinFleet = $instanceObject.deploymentProfile.joinFleet
+        $skipAutomation = $instanceObject.deploymentProfile.skipAutomation
+        #endregion
+
+        #region Interactive Mode Selection
+        If (($joinFleet -eq "Y") -and ($instanceObject.instance -eq "InstanceB")) {
+            LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve fingerprints for ESX hosts plus existing Operations and Automation components? (Y/N): " -skipnewline
+        } else {
+            LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve fingerprints for ESX hosts? (Y/N): " -skipnewline
+        }
+        Do {
+            $interactiveEnabled = Read-Host
+        } Until ($interactiveEnabled -in "Y", "N")
+        $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""
+        #endregion
+
+        #region Fleet Fingerprints (for instanceB joining fleet)
+        $ops01fingerprint = $null
+        $fm01fingerprint = $null
+        $auto01fingerprint = $null
+
+        If (($joinFleet -eq "Y") -and ($instanceObject.instance -eq "InstanceB")) {
+            If ($interactiveEnabled -eq "Y") {
+                $fm01fingerprint = Get-SslFingerprint -fqdn $sharedInstanceObject.fleetManager.fqdn
+                $ops01fingerprint = Get-SslFingerprint -fqdn $sharedInstanceObject.operations.nodeAFqdn
+
+                If ($skipAutomation -ne "Y") {
+                    $auto01fingerprint = Get-SslFingerprint -fqdn $sharedInstanceObject.automation.vipFqdn
+                    If ((-not $fm01fingerprint) -or (-not $ops01fingerprint) -or (-not $auto01fingerprint)) {
+                        LogMessage -type ERROR -message "One or more of $($sharedInstanceObject.fleetManager.fqdn), $($sharedInstanceObject.operations.nodeAFqdn) or $($sharedInstanceObject.automation.vipFqdn) are not reachable. Unable to Join Fleet"
+                        anykey
+                        Break
+                    }
+                } else {
+                    If ((-not $fm01fingerprint) -or (-not $ops01fingerprint)) {
+                        LogMessage -type ERROR -message "One or more of $($sharedInstanceObject.fleetManager.fqdn) or $($sharedInstanceObject.operations.nodeAFqdn) are not reachable. Unable to Join Fleet"
+                        anykey
+                        Break
+                    }
+                }
+            } else {
+                $fm01fingerprint = '<--ENTER-FLEET-MANAGER-FINGERPRINT-HERE-->'
+                $ops01fingerprint = '<--ENTER-VCF-OPS-FINGERPRINT-HERE-->'
+                $auto01fingerprint = '<--ENTER-VCF-AUTO-FINGERPRINT-HERE-->'
+            }
+        }
+        #endregion
+
+        #region DNS Spec
+        $nameServers = If ($sharedInstanceObject.dns.dnsServer2 -in "n/a", "Value Missing") {
+            @($sharedInstanceObject.dns.dnsServer1)
+        } else {
+            @($sharedInstanceObject.dns.dnsServer1, $sharedInstanceObject.dns.dnsServer2)
+        }
+
+        $dnsSpec = [PSCustomObject]@{
+            nameservers = $nameServers
+            subdomain   = $sharedInstanceObject.dns.roodDnsDomain
+        }
+        #endregion
+
+        #region NTP Servers
+        $ntpServers = If ($sharedInstanceObject.ntp.ntpServer2 -in "n/a", "Value Missing") {
+            @($sharedInstanceObject.ntp.ntpserver1)
+        } else {
+            @($sharedInstanceObject.ntp.ntpserver1, $sharedInstanceObject.ntp.ntpServer2)
+        }
+        #endregion
+
+        #region vCenter Spec
+        $vcenterSpec = [PSCustomObject]@{
+            vcenterHostname       = $instanceObject.vcenterServer.fqdn
+            vmSize                = $instanceObject.vcenterServer.vcSize.ToLower()
+            storageSize           = 'lstorage'
+            ssoDomain             = $sharedInstanceObject.sso.domain
+            useExistingDeployment = $instanceObject.vcenterServer.useExisting
+        }
+
+        If ($instanceObject.autoGeneratedPasswords -ne "Selected") {
+            $vcenterSpec | Add-Member -NotePropertyName 'rootVcenterPassword' -NotePropertyValue $instanceObject.vcenterServer.rootPassword
+            $vcenterSpec | Add-Member -NotePropertyName 'adminUserSsoPassword' -NotePropertyValue $instanceObject.vcenterServer.adminPassword
+        }
+        #endregion
+
+        #region Cluster Spec
+        $clusterSpec = [PSCustomObject]@{
+            clusterName    = $instanceObject.vsphereClusters[0].clusterName
+            datacenterName = $instanceObject.vcenterServer.datacenter
+        }
+        #endregion
+
+        #region vSAN Spec / Datastore Spec
+        $esaEnabled = $instanceObject.vsphereClusters[0].storageModel -eq "VSAN-ESA"
+
+        $esaConfig = [PSCustomObject]@{
+            enabled = $esaEnabled
+        }
+
+        $vsanSpec = [PSCustomObject]@{
+            datastoreName = $instanceObject.vsphereClusters[0].vsanDatastore
+            esaConfig     = $esaConfig
+        }
+
+        If ($instanceObject.vsphereClusters[0].storageModel -eq "VSAN-OSA") {
+            $vsanDedup = $instanceObject.vsphereClusters[0].vsanDedup -eq "Selected"
+            $vsanSpec | Add-Member -NotePropertyName 'vsanDedup' -NotePropertyValue $vsanDedup
+            $vsanSpec | Add-Member -NotePropertyName 'failuresToTolerate' -NotePropertyValue ($instanceObject.vsphereClusters[0].vsanftt -as [INT])
+        }
+
+        $datastoreSpec = [PSCustomObject]@{
+            vsanSpec = $vsanSpec
+        }
+        #endregion
+
+        #region NSX-T Spec
+        $nsxtManagers = @([PSCustomObject]@{ hostname = $instanceObject.nsxtManager.nodeAFqdn })
+
+        If ($singleNSXTManager -eq "N") {
+            $nsxtManagers += [PSCustomObject]@{ hostname = $instanceObject.nsxtManager.nodeBFqdn }
+            $nsxtManagers += [PSCustomObject]@{ hostname = $instanceObject.nsxtManager.nodeCFqdn }
+        }
+
+        $nsxtSpec = [PSCustomObject]@{
+            nsxtManagerSize                     = $instanceObject.nsxtManager.mgrFormfactor.ToLower()
+            nsxtManagers                        = $nsxtManagers
+            vipFqdn                             = $instanceObject.nsxtManager.fqdn
+            useExistingDeployment               = $instanceObject.nsxtManager.useExisting
+            skipNsxOverlayOverManagementNetwork = $true
+            transportVlanId                     = [int]$instanceObject.az1.rack1.network.hostOverlayVlanID
+            rootLoginEnabledForNsxtManager      = "true"
+            sshEnabledForNsxtManager            = "true"
+        }
+
+        If ($instanceObject.autoGeneratedPasswords -ne "Selected") {
+            $nsxtSpec | Add-Member -NotePropertyName 'nsxtAdminPassword' -NotePropertyValue $instanceObject.nsxtManager.adminPassword
+            $nsxtSpec | Add-Member -NotePropertyName 'nsxtAuditPassword' -NotePropertyValue $instanceObject.nsxtManager.auditPassword
+            $nsxtSpec | Add-Member -NotePropertyName 'rootNsxtManagerPassword' -NotePropertyValue $instanceObject.nsxtManager.rootPassword
+        }
+
+        # Add IP Address Pool Spec if using IP Pool addressing
+        If ($instanceObject.az1.rack1.network.hostOverlayAddressing -eq "IP Pool") {
+            $ipAddressPoolSpec = [PSCustomObject]@{
+                name        = $instanceObject.az1.rack1.network.hostIpAddressPoolName
+                description = $instanceObject.az1.rack1.network.hostIpAddressPoolDesc
+                subnets     = @([PSCustomObject]@{
+                    cidr              = $instanceObject.az1.rack1.network.hostOverlayCidr
+                    gateway           = $instanceObject.az1.rack1.network.hostOverlayGw
+                    ipAddressPoolRanges = @([PSCustomObject]@{
+                        start = $instanceObject.az1.rack1.network.hostOverlayPoolStartIP
+                        end   = $instanceObject.az1.rack1.network.hostOverlayPoolEndIP
+                    })
+                })
+            }
+            $nsxtSpec | Add-Member -NotePropertyName 'ipAddressPoolSpec' -NotePropertyValue $ipAddressPoolSpec
+        } else {
+            $nsxtSpec | Add-Member -NotePropertyName 'ipAddressPoolSpec' -NotePropertyValue $null
+        }
+        #endregion
+
+        #region VCF Operations Spec
+        $vcfOpsNodes = @()
+
+        If ($instanceObject.instance -eq "InstanceA") {
+            If ($instanceObject.deploymentProfile.fleetManagementDeploymentModel -eq "single") {
+                $vcfOpsNodeA = [PSCustomObject]@{
+                    hostname = $sharedInstanceObject.operations.nodeAFqdn
+                    type     = 'master'
+                }
+                If ($instanceObject.autoGeneratedPasswords -ne "Selected") {
+                    $vcfOpsNodeA | Add-Member -NotePropertyName 'rootUserPassword' -NotePropertyValue $sharedInstanceObject.operations.rootUserPassword
+                }
+                $vcfOpsNodes += $vcfOpsNodeA
+            } elseIf ($instanceObject.deploymentProfile.fleetManagementDeploymentModel -eq "highlyAvailable") {
+                $vcfOpsNodeA = [PSCustomObject]@{
+                    hostname = $sharedInstanceObject.operations.nodeAFqdn
+                    type     = 'master'
+                }
+                $vcfOpsNodeB = [PSCustomObject]@{
+                    hostname = $sharedInstanceObject.operations.nodeBFqdn
+                    type     = 'replica'
+                }
+                $vcfOpsNodeC = [PSCustomObject]@{
+                    hostname = $sharedInstanceObject.operations.nodeCFqdn
+                    type     = 'data'
+                }
+                If ($instanceObject.autoGeneratedPasswords -ne "Selected") {
+                    $vcfOpsNodeA | Add-Member -NotePropertyName 'rootUserPassword' -NotePropertyValue $sharedInstanceObject.operations.rootUserPassword
+                    $vcfOpsNodeB | Add-Member -NotePropertyName 'rootUserPassword' -NotePropertyValue $sharedInstanceObject.operations.rootUserPassword
+                    $vcfOpsNodeC | Add-Member -NotePropertyName 'rootUserPassword' -NotePropertyValue $sharedInstanceObject.operations.rootUserPassword
+                }
+                $vcfOpsNodes += $vcfOpsNodeA
+                $vcfOpsNodes += $vcfOpsNodeB
+                $vcfOpsNodes += $vcfOpsNodeC
+            }
+        } else {
+            $vcfOpsNodes += [PSCustomObject]@{
+                hostname      = $sharedInstanceObject.operations.nodeAFqdn
+                type          = 'master'
+                sslThumbprint = $ops01fingerprint
+            }
+        }
+
+        $vcfOperationsSpec = [PSCustomObject]@{
+            nodes = $vcfOpsNodes
+        }
+
+        If ($instanceObject.autoGeneratedPasswords -ne "Selected") {
+            $vcfOperationsSpec | Add-Member -NotePropertyName 'adminUserPassword' -NotePropertyValue $sharedInstanceObject.operations.adminUserPassword
+        }
+
+        If ($joinFleet -eq "N") {
+            $vcfOperationsSpec | Add-Member -NotePropertyName 'applianceSize' -NotePropertyValue $sharedInstanceObject.operations.applianceSize
+            $vcfOperationsSpec | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue $sharedInstanceObject.operations.useExisting
+        } else {
+            $vcfOperationsSpec | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue $true
+        }
+
+        If ($instanceObject.deploymentProfile.fleetManagementDeploymentModel -eq "highlyAvailable") {
+            $vcfOperationsSpec | Add-Member -NotePropertyName 'loadBalancerFqdn' -NotePropertyValue $sharedInstanceObject.operations.useExisting
+        }
+        #endregion
+
+        #region VCF Operations Fleet Management Spec
+        $vcfOperationsFleetManagementSpec = [PSCustomObject]@{
+            hostname = $sharedInstanceObject.fleetManager.fqdn
+        }
+
+        If ($instanceObject.autoGeneratedPasswords -ne "Selected") {
+            $vcfOperationsFleetManagementSpec | Add-Member -NotePropertyName 'rootUserPassword' -NotePropertyValue $sharedInstanceObject.fleetManager.rootUserPassword
+            $vcfOperationsFleetManagementSpec | Add-Member -NotePropertyName 'adminUserPassword' -NotePropertyValue $sharedInstanceObject.fleetManager.adminUserPassword
+        }
+
+        If ($joinFleet -eq "N") {
+            $vcfOperationsFleetManagementSpec | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue $false
+        } else {
+            $vcfOperationsFleetManagementSpec | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue $true
+            $vcfOperationsFleetManagementSpec | Add-Member -NotePropertyName 'sslThumbprint' -NotePropertyValue $fm01fingerprint
+        }
+        #endregion
+
+        #region VCF Operations Collector Spec
+        $vcfOperationsCollectorSpec = [PSCustomObject]@{
+            hostname              = $sharedInstanceObject.operations.opsCollectorFqdn
+            useExistingDeployment = $false
+        }
+
+        If ($instanceObject.autoGeneratedPasswords -ne "Selected") {
+            $vcfOperationsCollectorSpec | Add-Member -NotePropertyName 'rootUserPassword' -NotePropertyValue $sharedInstanceObject.operations.opsCollectorRootUserPassword
+        }
+        #endregion
+
+        #region VCF Automation Spec
+        $ipPoolForAutomation = @(
+            $sharedInstanceObject.automation.nodeAIpAddress,
+            $sharedInstanceObject.automation.nodeBIpAddress
+        )
+
+        If ($instanceObject.deploymentProfile.fleetManagementDeploymentModel -eq "highlyAvailable") {
+            $ipPoolForAutomation += $sharedInstanceObject.automation.nodeCIpAddress
+            $ipPoolForAutomation += $sharedInstanceObject.automation.extraNodeIpAddress
+        }
+
+        $vcfAutomationSpec = [PSCustomObject]@{
+            hostname   = $sharedInstanceObject.automation.vipFqdn
+            nodePrefix = $sharedInstanceObject.automation.vcfaNodePrefix
+        }
+
+        If ($instanceObject.autoGeneratedPasswords -ne "Selected") {
+            $vcfAutomationSpec | Add-Member -NotePropertyName 'adminUserPassword' -NotePropertyValue $sharedInstanceObject.automation.adminUserPassword
+        }
+
+        If ($joinFleet -eq "N") {
+            $vcfAutomationSpec | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue $false
+            $vcfAutomationSpec | Add-Member -NotePropertyName 'ipPool' -NotePropertyValue $ipPoolForAutomation
+            $vcfAutomationSpec | Add-Member -NotePropertyName 'internalClusterCidr' -NotePropertyValue $sharedInstanceObject.automation.internalClusterCidr
+        } else {
+            $vcfAutomationSpec | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue $true
+            $vcfAutomationSpec | Add-Member -NotePropertyName 'sslThumbprint' -NotePropertyValue $auto01fingerprint
+        }
+        #endregion
+
+        #region Host Specs
+        $hostCredentials = [PSCustomObject]@{
+            username = $instanceObject.hostcredentials.esxiUsername
+            password = $instanceObject.hostcredentials.esxiPassword
+        }
+
+        $hostSpecs = @()
+        Foreach ($hostInstance in $instanceObject.az1.rack1.hosts) {
+            If ($interactiveEnabled -eq "Y") {
+                $fingerprint = Get-SslFingerprint -fqdn $hostInstance.fqdn
+                If ($fingerprint) {
+                    LogMessage -Type INFO -Message "Obtaining fingerprint for host $($hostInstance.fqdn): Found"
+                    $fingerprintText = $fingerprint
+                } else {
+                    LogMessage -Type ERROR -Message "Obtaining fingerprint for host $($hostInstance.fqdn): Not found. Adding placeholder to JSON File"
+                    $fingerprintText = "<--ENTER-ESX-THUMBPRINT-HERE-->"
+                }
+            } else {
+                LogMessage -Type INFO -Message "Adding fingerprint placeholder for host $($hostInstance.fqdn) to JSON File"
+                $fingerprintText = "<--ENTER-ESX-THUMBPRINT-HERE-->"
+            }
+
+            $hostSpecs += [PSCustomObject]@{
+                hostname      = $hostInstance.fqdn
+                credentials   = $hostCredentials
+                sslThumbprint = $fingerprintText
+            }
+        }
+        #endregion
+
+        #region Network Specs
+        $vmotionMtu = [int]$instanceObject.az1.rack1.network.vmotionMtu
+        $vsanMtu = [int]$instanceObject.az1.rack1.network.vsanMtu
+        $vdsMtu = [int]$instanceObject.vsphereClusters[0].vds[0].mtu
+
+        $networks = @("MANAGEMENT", "VMOTION", "VSAN", "VM_MANAGEMENT")
+
+        $vmotionIpRange = [PSCustomObject]@{
+            startIpAddress = $instanceObject.az1.rack1.network.vmotionPoolStartIP
+            endIpAddress   = $instanceObject.az1.rack1.network.vmotionPoolEndIP
+        }
+
+        $vsanIpRange = [PSCustomObject]@{
+            startIpAddress = $instanceObject.az1.rack1.network.vsanPoolStartIP
+            endIpAddress   = $instanceObject.az1.rack1.network.vsanPoolEndIP
+        }
+
+        # Get default uplink configuration for network specs (will be updated per-network later)
+        $defaultUplinkConfig = Get-UplinkConfiguration -vdsConfig $instanceObject.vsphereClusters[0].vds[0]
+
+        $networkSpecs = @(
+            [PSCustomObject]@{
+                networkType            = "VM_MANAGEMENT"
+                subnet                 = $instanceObject.az1.rack1.network.mgmtVmCidr
+                gateway                = $instanceObject.az1.rack1.network.mgmtVmGw
+                subnetMask             = $null
+                includeIpAddress       = $null
+                includeIpAddressRanges = $null
+                vlanId                 = [int]$instanceObject.az1.rack1.network.mgmtVmVlanID
+                mtu                    = [int]$instanceObject.az1.rack1.network.mgmtVmMtu
+                teamingPolicy          = 'loadbalance_loadbased'
+                activeUplinks          = $defaultUplinkConfig.activeUplinks
+                standbyUplinks         = $null
+                portGroupKey           = $instanceObject.vsphereClusters[0].portgroupNames.az1.mgmtVm
+            },
+            [PSCustomObject]@{
+                networkType            = "MANAGEMENT"
+                subnet                 = $instanceObject.az1.rack1.network.mgmtCidr
+                gateway                = $instanceObject.az1.rack1.network.mgmtGw
+                subnetMask             = $null
+                includeIpAddress       = $null
+                includeIpAddressRanges = $null
+                vlanId                 = [int]$instanceObject.az1.rack1.network.mgmtVlanID
+                mtu                    = [int]$instanceObject.az1.rack1.network.mgmtMtu
+                teamingPolicy          = 'loadbalance_loadbased'
+                activeUplinks          = $defaultUplinkConfig.activeUplinks
+                standbyUplinks         = $null
+                portGroupKey           = $instanceObject.vsphereClusters[0].portgroupNames.az1.mgmt
+            },
+            [PSCustomObject]@{
+                networkType            = "VMOTION"
+                subnet                 = $instanceObject.az1.rack1.network.vmotionCidr
+                gateway                = $instanceObject.az1.rack1.network.vmotionGw
+                subnetMask             = $null
+                includeIpAddress       = $null
+                includeIpAddressRanges = @($vmotionIpRange)
+                vlanId                 = [int]$instanceObject.az1.rack1.network.vmotionVlanID
+                mtu                    = $vmotionMtu
+                teamingPolicy          = 'loadbalance_loadbased'
+                activeUplinks          = $defaultUplinkConfig.activeUplinks
+                standbyUplinks         = $null
+                portGroupKey           = $instanceObject.vsphereClusters[0].portgroupNames.az1.vmotion
+            },
+            [PSCustomObject]@{
+                networkType            = "VSAN"
+                subnet                 = $instanceObject.az1.rack1.network.vsanCidr
+                gateway                = $instanceObject.az1.rack1.network.vsanGw
+                subnetMask             = $null
+                includeIpAddress       = $null
+                includeIpAddressRanges = @($vsanIpRange)
+                vlanId                 = [int]$instanceObject.az1.rack1.network.vsanVlanID
+                mtu                    = $vsanMtu
+                teamingPolicy          = 'loadbalance_loadbased'
+                activeUplinks          = $defaultUplinkConfig.activeUplinks
+                standbyUplinks         = $null
+                portGroupKey           = $instanceObject.vsphereClusters[0].portgroupNames.az1.vsan
+            }
+        )
+        #endregion
+
+        #region DVS Specs
+        # Determine NSX operation mode
+        $operationMode = If ($instanceObject.vsphereClusters[0].nsxOperationDefaultMode -eq "Selected") {
+            "ENS_INTERRUPT"
+        } elseIf ($instanceObject.vsphereClusters[0].nsxOperationSelectedMode -eq "Standard") {
+            "STANDARD"
+        } elseIf ($instanceObject.vsphereClusters[0].nsxOperationSelectedMode -eq "Enhanced Datapath Standard") {
+            "ENS_INTERRUPT"
+        } else {
+            "ENS"
+        }
+
+        $overlayTransportZone = [PSCustomObject]@{
+            name          = "overlay-tz-$($instanceObject.nsxtManager.hostname)"
+            transportType = "OVERLAY"
+        }
+
+        $dvsSpecs = @()
+
+        Switch ($instanceObject.vsphereClusters[0].vdsProfile) {
+            "Default" {
+                #region VDS 1 - Default Profile
+                $vds0Config = Get-UplinkConfiguration -vdsConfig $instanceObject.vsphereClusters[0].vds[0]
+                
+                $vlanTransportZone = [PSCustomObject]@{
+                    name          = "nsx-vlan-transportzone-0"
+                    transportType = "VLAN"
+                }
+
+                $nsxtSwitchConfig = [PSCustomObject]@{
+                    transportZones            = @($vlanTransportZone, $overlayTransportZone)
+                    hostSwitchOperationalMode = $operationMode
+                }
+
+                $nsxTeamings = @([PSCustomObject]@{
+                    policy         = $vds0Config.policy
+                    standByUplinks = @()
+                    activeUplinks  = $vds0Config.activeUplinks
+                })
+
+                $vmnicToUplinks = @(
+                    [PSCustomObject]@{ id = $instanceObject.vsphereClusters[0].vds[0].pnics.split(",")[0]; uplink = $vds0Config.uplink1Name },
+                    [PSCustomObject]@{ id = $instanceObject.vsphereClusters[0].vds[0].pnics.split(",")[1]; uplink = $vds0Config.uplink2Name }
+                )
+
+                $dvsSpec = [PSCustomObject]@{
+                    dvsName          = $instanceObject.vsphereClusters[0].vds[0].vdsName
+                    networks         = $networks
+                    mtu              = $vdsMtu
+                    vmnicsToUplinks  = $vmnicToUplinks
+                    nsxtSwitchConfig = $nsxtSwitchConfig
+                    nsxTeamings      = $nsxTeamings
+                }
+
+                $lagSpec = New-LagSpec -vdsConfig $instanceObject.vsphereClusters[0].vds[0]
+                If ($lagSpec) {
+                    $dvsSpec | Add-Member -NotePropertyName 'lagSpecs' -NotePropertyValue @($lagSpec)
+                }
+
+                $dvsSpecs += $dvsSpec
+                #endregion
+            }
+            "Storage Traffic Separation" {
+                #region VDS 1 - Storage Separation
+                $vds0Config = Get-UplinkConfiguration -vdsConfig $instanceObject.vsphereClusters[0].vds[0]
+
+                $vlanTransportZone0 = [PSCustomObject]@{
+                    name          = "nsx-vlan-transportzone-0"
+                    transportType = "VLAN"
+                }
+
+                $nsxtSwitchConfig0 = [PSCustomObject]@{
+                    transportZones            = @($vlanTransportZone0, $overlayTransportZone)
+                    hostSwitchOperationalMode = $operationMode
+                }
+
+                $nsxTeamings0 = @([PSCustomObject]@{
+                    policy         = $vds0Config.policy
+                    standByUplinks = @()
+                    activeUplinks  = $vds0Config.activeUplinks
+                })
+
+                $vmnicToUplinks0 = @(
+                    [PSCustomObject]@{ id = $instanceObject.vsphereClusters[0].vds[0].pnics.split(",")[0]; uplink = $vds0Config.uplink1Name },
+                    [PSCustomObject]@{ id = $instanceObject.vsphereClusters[0].vds[0].pnics.split(",")[1]; uplink = $vds0Config.uplink2Name }
+                )
+
+                $dvsSpec0 = [PSCustomObject]@{
+                    dvsName          = $instanceObject.vsphereClusters[0].vds[0].vdsName
+                    networks         = $networks | Where-Object { $_ -in "MANAGEMENT", "VM_MANAGEMENT", "VMOTION" }
+                    mtu              = $vdsMtu
+                    vmnicsToUplinks  = $vmnicToUplinks0
+                    nsxtSwitchConfig = $nsxtSwitchConfig0
+                    nsxTeamings      = $nsxTeamings0
+                }
+
+                $lagSpec0 = New-LagSpec -vdsConfig $instanceObject.vsphereClusters[0].vds[0]
+                If ($lagSpec0) {
+                    $dvsSpec0 | Add-Member -NotePropertyName 'lagSpecs' -NotePropertyValue @($lagSpec0)
+                }
+
+                $dvsSpecs += $dvsSpec0
+                #endregion
+
+                #region VDS 2 - Storage Separation
+                $vds1Config = Get-UplinkConfiguration -vdsConfig $instanceObject.vsphereClusters[0].vds[1]
+
+                $vlanTransportZone1 = [PSCustomObject]@{
+                    name          = "nsx-vlan-transportzone-1"
+                    transportType = "VLAN"
+                }
+
+                $nsxtSwitchConfig1 = [PSCustomObject]@{
+                    transportZones            = @($vlanTransportZone1)
+                    hostSwitchOperationalMode = $operationMode
+                }
+
+                $nsxTeamings1 = @([PSCustomObject]@{
+                    policy         = $vds1Config.policy
+                    standByUplinks = @()
+                    activeUplinks  = $vds1Config.activeUplinks
+                })
+
+                $vmnicToUplinks1 = @(
+                    [PSCustomObject]@{ id = $instanceObject.vsphereClusters[0].vds[1].pnics.split(",")[0]; uplink = $vds1Config.uplink1Name },
+                    [PSCustomObject]@{ id = $instanceObject.vsphereClusters[0].vds[1].pnics.split(",")[1]; uplink = $vds1Config.uplink2Name }
+                )
+
+                $dvsSpec1 = [PSCustomObject]@{
+                    dvsName         = $instanceObject.vsphereClusters[0].vds[1].vdsName
+                    networks        = @($networks | Where-Object { $_ -eq "VSAN" })
+                    mtu             = $vdsMtu
+                    vmnicsToUplinks = $vmnicToUplinks1
+                }
+
+                $lagSpec1 = New-LagSpec -vdsConfig $instanceObject.vsphereClusters[0].vds[1]
+                If ($lagSpec1) {
+                    If ($instanceObject.version -in "9.0.0.0", "9.0.1.0") {
+                        $dvsSpec1 | Add-Member -NotePropertyName 'nsxtSwitchConfig' -NotePropertyValue $nsxtSwitchConfig1
+                        $dvsSpec1 | Add-Member -NotePropertyName 'nsxTeamings' -NotePropertyValue $nsxTeamings1
+                    }
+                    $dvsSpec1 | Add-Member -NotePropertyName 'lagSpecs' -NotePropertyValue @($lagSpec1)
+                }
+
+                $dvsSpecs += $dvsSpec1
+                #endregion
+            }
+            "NSX Traffic Separation" {
+                #region VDS 1 - NSX Separation
+                $vds0Config = Get-UplinkConfiguration -vdsConfig $instanceObject.vsphereClusters[0].vds[0]
+
+                $vlanTransportZone0 = [PSCustomObject]@{
+                    name          = "nsx-vlan-transportzone-0"
+                    transportType = "VLAN"
+                }
+
+                $nsxtSwitchConfig0 = [PSCustomObject]@{
+                    transportZones            = @($vlanTransportZone0, $overlayTransportZone)
+                    hostSwitchOperationalMode = $operationMode
+                }
+
+                $nsxTeamings0 = @([PSCustomObject]@{
+                    policy         = $vds0Config.policy
+                    standByUplinks = @()
+                    activeUplinks  = $vds0Config.activeUplinks
+                })
+
+                $vmnicToUplinks0 = @(
+                    [PSCustomObject]@{ id = $instanceObject.vsphereClusters[0].vds[0].pnics.split(",")[0]; uplink = $vds0Config.uplink1Name },
+                    [PSCustomObject]@{ id = $instanceObject.vsphereClusters[0].vds[0].pnics.split(",")[1]; uplink = $vds0Config.uplink2Name }
+                )
+
+                $dvsSpec0 = [PSCustomObject]@{
+                    dvsName         = $instanceObject.vsphereClusters[0].vds[0].vdsName
+                    networks        = $networks | Where-Object { $_ -in "MANAGEMENT", "VM_MANAGEMENT", "VMOTION", "VSAN" }
+                    mtu             = $vdsMtu
+                    vmnicsToUplinks = $vmnicToUplinks0
+                }
+
+                $lagSpec0 = New-LagSpec -vdsConfig $instanceObject.vsphereClusters[0].vds[0]
+                If ($lagSpec0) {
+                    $dvsSpec0 | Add-Member -NotePropertyName 'nsxtSwitchConfig' -NotePropertyValue $nsxtSwitchConfig0
+                    $dvsSpec0 | Add-Member -NotePropertyName 'nsxTeamings' -NotePropertyValue $nsxTeamings0
+                    $dvsSpec0 | Add-Member -NotePropertyName 'lagSpecs' -NotePropertyValue @($lagSpec0)
+                }
+
+                $dvsSpecs += $dvsSpec0
+                #endregion
+
+                #region VDS 2 - NSX Separation
+                $vds1Config = Get-UplinkConfiguration -vdsConfig $instanceObject.vsphereClusters[0].vds[1]
+
+                $vlanTransportZone1 = [PSCustomObject]@{
+                    name          = "nsx-vlan-transportzone-1"
+                    transportType = "VLAN"
+                }
+
+                $nsxtSwitchConfig1 = [PSCustomObject]@{
+                    transportZones            = @($vlanTransportZone1, $overlayTransportZone)
+                    hostSwitchOperationalMode = $operationMode
+                }
+
+                $nsxTeamings1 = @([PSCustomObject]@{
+                    policy         = $vds1Config.policy
+                    standByUplinks = @()
+                    activeUplinks  = $vds1Config.activeUplinks
+                })
+
+                $vmnicToUplinks1 = @(
+                    [PSCustomObject]@{ id = $instanceObject.vsphereClusters[0].vds[1].pnics.split(",")[0]; uplink = $vds1Config.uplink1Name },
+                    [PSCustomObject]@{ id = $instanceObject.vsphereClusters[0].vds[1].pnics.split(",")[1]; uplink = $vds1Config.uplink2Name }
+                )
+
+                $dvsSpec1 = [PSCustomObject]@{
+                    dvsName          = $instanceObject.vsphereClusters[0].vds[1].vdsName
+                    mtu              = $vdsMtu
+                    vmnicsToUplinks  = $vmnicToUplinks1
+                    nsxtSwitchConfig = $nsxtSwitchConfig1
+                    nsxTeamings      = $nsxTeamings1
+                }
+
+                $lagSpec1 = New-LagSpec -vdsConfig $instanceObject.vsphereClusters[0].vds[1]
+                If ($lagSpec1) {
+                    $dvsSpec1 | Add-Member -NotePropertyName 'lagSpecs' -NotePropertyValue @($lagSpec1)
+                }
+
+                $dvsSpecs += $dvsSpec1
+                #endregion
+            }
+            default {
+                #region VDS 1 - Full Separation
+                $vds0Config = Get-UplinkConfiguration -vdsConfig $instanceObject.vsphereClusters[0].vds[0]
+
+                $vlanTransportZone0 = [PSCustomObject]@{
+                    name          = "nsx-vlan-transportzone-0"
+                    transportType = "VLAN"
+                }
+
+                $nsxtSwitchConfig0 = [PSCustomObject]@{
+                    transportZones            = @($vlanTransportZone0)
+                    hostSwitchOperationalMode = $operationMode
+                }
+
+                $nsxTeamings0 = @([PSCustomObject]@{
+                    policy         = $vds0Config.policy
+                    standByUplinks = @()
+                    activeUplinks  = $vds0Config.activeUplinks
+                })
+
+                $vmnicToUplinks0 = @(
+                    [PSCustomObject]@{ id = $instanceObject.vsphereClusters[0].vds[0].pnics.split(",")[0]; uplink = $vds0Config.uplink1Name },
+                    [PSCustomObject]@{ id = $instanceObject.vsphereClusters[0].vds[0].pnics.split(",")[1]; uplink = $vds0Config.uplink2Name }
+                )
+
+                $dvsSpec0 = [PSCustomObject]@{
+                    dvsName         = $instanceObject.vsphereClusters[0].vds[0].vdsName
+                    networks        = $networks | Where-Object { $_ -in "MANAGEMENT", "VM_MANAGEMENT", "VMOTION" }
+                    mtu             = $vdsMtu
+                    vmnicsToUplinks = $vmnicToUplinks0
+                }
+
+                $lagSpec0 = New-LagSpec -vdsConfig $instanceObject.vsphereClusters[0].vds[0]
+                If ($lagSpec0) {
+                    $dvsSpec0 | Add-Member -NotePropertyName 'nsxtSwitchConfig' -NotePropertyValue $nsxtSwitchConfig0
+                    $dvsSpec0 | Add-Member -NotePropertyName 'nsxTeamings' -NotePropertyValue $nsxTeamings0
+                    $dvsSpec0 | Add-Member -NotePropertyName 'lagSpecs' -NotePropertyValue @($lagSpec0)
+                }
+
+                $dvsSpecs += $dvsSpec0
+                #endregion
+
+                #region VDS 2 - Full Separation
+                $vds1Config = Get-UplinkConfiguration -vdsConfig $instanceObject.vsphereClusters[0].vds[1]
+
+                $vlanTransportZone1 = [PSCustomObject]@{
+                    name          = "nsx-vlan-transportzone-1"
+                    transportType = "VLAN"
+                }
+
+                $nsxtSwitchConfig1 = [PSCustomObject]@{
+                    transportZones            = @($vlanTransportZone1)
+                    hostSwitchOperationalMode = $operationMode
+                }
+
+                $nsxTeamings1 = @([PSCustomObject]@{
+                    policy         = $vds1Config.policy
+                    standByUplinks = @()
+                    activeUplinks  = $vds1Config.activeUplinks
+                })
+
+                $vmnicToUplinks1 = @(
+                    [PSCustomObject]@{ id = $instanceObject.vsphereClusters[0].vds[1].pnics.split(",")[0]; uplink = $vds1Config.uplink1Name },
+                    [PSCustomObject]@{ id = $instanceObject.vsphereClusters[0].vds[1].pnics.split(",")[1]; uplink = $vds1Config.uplink2Name }
+                )
+
+                $dvsSpec1 = [PSCustomObject]@{
+                    dvsName         = $instanceObject.vsphereClusters[0].vds[1].vdsName
+                    networks        = @($networks | Where-Object { $_ -eq "VSAN" })
+                    mtu             = $vdsMtu
+                    vmnicsToUplinks = $vmnicToUplinks1
+                }
+
+                $lagSpec1 = New-LagSpec -vdsConfig $instanceObject.vsphereClusters[0].vds[1]
+                If ($lagSpec1) {
+                    If ($instanceObject.version -in "9.0.0.0", "9.0.1.0") {
+                        $dvsSpec1 | Add-Member -NotePropertyName 'nsxtSwitchConfig' -NotePropertyValue $nsxtSwitchConfig1
+                        $dvsSpec1 | Add-Member -NotePropertyName 'nsxTeamings' -NotePropertyValue $nsxTeamings1
+                    }
+                    $dvsSpec1 | Add-Member -NotePropertyName 'lagSpecs' -NotePropertyValue @($lagSpec1)
+                }
+
+                $dvsSpecs += $dvsSpec1
+                #endregion
+
+                #region VDS 3 - Full Separation
+                $vds2Config = Get-UplinkConfiguration -vdsConfig $instanceObject.vsphereClusters[0].vds[2]
+
+                If ($instanceObject.version -in "9.0.0.0", "9.0.1.0") {
+                    $vlanTransportZoneName = "nsx-vlan-transportzone-2"
+                } else {
+                    $vlanTransportZoneName = "nsx-vlan-transportzone-1"
+                }
+
+                $vlanTransportZone2 = [PSCustomObject]@{
+                    name          = $vlanTransportZoneName
+                    transportType = "VLAN"
+                }
+
+                $nsxtSwitchConfig2 = [PSCustomObject]@{
+                    transportZones            = @($vlanTransportZone2, $overlayTransportZone)
+                    hostSwitchOperationalMode = $operationMode
+                }
+
+                $nsxTeamings2 = @([PSCustomObject]@{
+                    policy         = $vds2Config.policy
+                    standByUplinks = @()
+                    activeUplinks  = $vds2Config.activeUplinks
+                })
+
+                $vmnicToUplinks2 = @(
+                    [PSCustomObject]@{ id = $instanceObject.vsphereClusters[0].vds[2].pnics.split(",")[0]; uplink = $vds2Config.uplink1Name },
+                    [PSCustomObject]@{ id = $instanceObject.vsphereClusters[0].vds[2].pnics.split(",")[1]; uplink = $vds2Config.uplink2Name }
+                )
+
+                $dvsSpec2 = [PSCustomObject]@{
+                    dvsName          = $instanceObject.vsphereClusters[0].vds[2].vdsName
+                    mtu              = $vdsMtu
+                    vmnicsToUplinks  = $vmnicToUplinks2
+                    nsxtSwitchConfig = $nsxtSwitchConfig2
+                    nsxTeamings      = $nsxTeamings2
+                }
+
+                $lagSpec2 = New-LagSpec -vdsConfig $instanceObject.vsphereClusters[0].vds[2]
+                If ($lagSpec2) {
+                    $dvsSpec2 | Add-Member -NotePropertyName 'lagSpecs' -NotePropertyValue @($lagSpec2)
+                }
+
+                $dvsSpecs += $dvsSpec2
+                #endregion
+            }
+        }
+
+        # Update network specs activeUplinks based on matching VDS LAG configuration
+        Foreach ($network in $networkSpecs) {
+            $networkType = $network.networkType
+            $matchingDvsSpec = $dvsSpecs | Where-Object { $networkType -in $_.networks } | Select-Object -First 1
+            $dvsName = $matchingDvsSpec.dvsName
+            $matchingVds = $instanceObject.vsphereClusters[0].vds | Where-Object { $_.vdsName -eq $dvsName } | Select-Object -First 1
+            If ($matchingVds.type -eq "VDS LAG") {
+                $network.activeUplinks = @($matchingVds.lagName)
+                $network.teamingPolicy = "failover_explicit"
+            } else {
+                $network.activeUplinks = @("uplink1", "uplink2")
+            }
+        }
+        #endregion
+
+        #region SDDC Manager Spec
+        $sddcManagerSpec = [PSCustomObject]@{
+            hostname              = $instanceObject.sddcManager.fqdn
+            useExistingDeployment = $false
+        }
+
+        If ($instanceObject.autoGeneratedPasswords -ne "Selected") {
+            $sddcManagerSpec | Add-Member -NotePropertyName 'rootPassword' -NotePropertyValue $instanceObject.sddcManager.rootPassword
+            $sddcManagerSpec | Add-Member -NotePropertyName 'sshPassword' -NotePropertyValue $instanceObject.sddcManager.vcfPassword
+            $sddcManagerSpec | Add-Member -NotePropertyName 'localUserPassword' -NotePropertyValue $instanceObject.sddcManager.localAdminPassword
+        }
+        #endregion
+
+        #region Final Management Domain Object
+        $ceipEnabled = If ($instanceObject.vcenterServer.ceipStatus -eq "Selected") { "$true" } else { "$false" }
+        $workflowType = If ($instanceObject.instance -eq "InstanceA") { "VCF" } else { "VCF_EXTEND" }
+
+        $managementDomainObject = [PSCustomObject]@{
+            sddcId             = $instanceObject.domainName
+            vcfInstanceName    = $instanceObject.vcfInstanceName
+            workflowType       = $workflowType
+            version            = $instanceObject.version
+            ceipEnabled        = $ceipEnabled
+            managementPoolName = "$($instanceObject.domainName)-network-pool-01"
+            dnsSpec            = $dnsSpec
+            ntpServers         = $ntpServers
+            vcenterSpec        = $vcenterSpec
+            clusterSpec        = $clusterSpec
+            datastoreSpec      = $datastoreSpec
+            nsxtSpec           = $nsxtSpec
+        }
+
+        # Conditionally add VCF Operations Spec
+        $addOpsSpec = ($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and
+                      (($instanceObject.instance -eq "InstanceA") -or
+                       (($instanceObject.instance -eq "InstanceB") -and ($joinFleet -eq "Y")))
+        If ($addOpsSpec) {
+            $managementDomainObject | Add-Member -NotePropertyName 'vcfOperationsSpec' -NotePropertyValue $vcfOperationsSpec
+        }
+
+        # Conditionally add VCF Operations Fleet Management Spec
+        $addFleetMgmtSpec = ($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and
+                            (($instanceObject.instance -eq "InstanceA") -or
+                             (($instanceObject.instance -eq "InstanceB") -and ($joinFleet -eq "Y")))
+        If ($addFleetMgmtSpec) {
+            $managementDomainObject | Add-Member -NotePropertyName 'vcfOperationsFleetManagementSpec' -NotePropertyValue $vcfOperationsFleetManagementSpec
+        }
+
+        # Conditionally add VCF Operations Collector Spec
+        $addCollectorSpec = ($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and
+                            (($instanceObject.instance -eq "InstanceA") -or
+                             (($instanceObject.instance -eq "InstanceB") -and ($joinFleet -eq "Y")))
+        If ($addCollectorSpec) {
+            $managementDomainObject | Add-Member -NotePropertyName 'vcfOperationsCollectorSpec' -NotePropertyValue $vcfOperationsCollectorSpec
+        }
+
+        # Conditionally add VCF Automation Spec
+        $addAutomationSpec = (($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and
+                              ($instanceObject.instance -eq "InstanceA") -and ($skipAutomation -ne 'Y')) -or
+                             (($instanceObject.instance -eq "InstanceB") -and ($joinFleet -eq "Y") -and ($skipAutomation -ne 'Y'))
+        If ($addAutomationSpec) {
+            $managementDomainObject | Add-Member -NotePropertyName 'vcfAutomationSpec' -NotePropertyValue $vcfAutomationSpec
+        }
+
+        # Add common specs
+        $managementDomainObject | Add-Member -NotePropertyName 'hostSpecs' -NotePropertyValue $hostSpecs
+        $managementDomainObject | Add-Member -NotePropertyName 'networkSpecs' -NotePropertyValue $networkSpecs
+        $managementDomainObject | Add-Member -NotePropertyName 'dvsSpecs' -NotePropertyValue $dvsSpecs
+        $managementDomainObject | Add-Member -NotePropertyName 'sddcManagerSpec' -NotePropertyValue $sddcManagerSpec
+        #endregion
+
+        #region Export JSON
+        $outputFileName = "managementDomainSpec-$($instanceObject.domainName).json"
+        LogMessage -Type INFO -Message "Exporting the Management Domain JSON to $outputFileName"
+        $managementDomainObject | ConvertTo-Json -Depth 12 | Out-File -Encoding UTF8 -FilePath $outputFileName
+        LogMessage -Type NOTE -Message "Completed the Process of Generating the Management Domain JSON"
+
+        return $managementDomainObject
+        #endregion
     }
     Catch {
         catchWriter -object $_
