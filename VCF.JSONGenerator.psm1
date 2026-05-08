@@ -5601,17 +5601,25 @@ Function New-ManagementDomainJsonFileV3 {
     .PARAMETER interactiveBypass
         If specified, skips interactive prompts and uses placeholder values for fingerprints.
 
+    .PARAMETER targetFilePath
+        If specified, saves the JSON output to exactly this path. If not specified, the file is saved
+        as managementDomainSpec-<domainName>.json in the current working directory.
+
     .EXAMPLE
         New-ManagementDomainJsonFileV3 -instanceObject $instanceObj -sharedInstanceObject $sharedObj
 
     .EXAMPLE
         New-ManagementDomainJsonFileV3 -instanceObject $instanceObj -sharedInstanceObject $sharedObj -interactiveBypass
+
+    .EXAMPLE
+        New-ManagementDomainJsonFileV3 -instanceObject $instanceObj -sharedInstanceObject $sharedObj -targetFilePath "C:\output\mgmt.json"
     #>
 
     Param (
         [Parameter (Mandatory = $true)] [Object]$instanceObject,
         [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
-        [Parameter (Mandatory = $false)] [Switch]$interactiveBypass
+        [Parameter (Mandatory = $false)] [Switch]$interactiveBypass,
+        [Parameter (Mandatory = $false)] [String]$targetFilePath
     )
 
     Try {
@@ -6621,12 +6629,16 @@ Function New-ManagementDomainJsonFileV3 {
         #endregion
 
         #region Export JSON
-        $outputFileName = "managementDomainSpec-$($instanceObject.domainName).json"
+        $outputFileName = If ($targetFilePath) {
+            $targetFilePath
+        } else {
+            "managementDomainSpec-$($instanceObject.domainName).json"
+        }
         LogMessage -Type INFO -Message "Exporting the Management Domain JSON to $outputFileName"
         $managementDomainObject | ConvertTo-Json -Depth 12 | Out-File -Encoding UTF8 -FilePath $outputFileName
         LogMessage -Type NOTE -Message "Completed the Process of Generating the Management Domain JSON (V3)"
 
-        return $managementDomainObject
+        #return $managementDomainObject
         #endregion
     }
     Catch {
