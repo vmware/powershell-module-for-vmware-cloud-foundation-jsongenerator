@@ -5650,7 +5650,7 @@ Function New-ManagementDomainJsonFileV3 {
             } Until ($interactiveEnabled -in "Y", "N")
             $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""
         } else {
-            $interactiveEnabled = "N"
+            $interactiveEnabled = "Y"
         }
         #endregion
 
