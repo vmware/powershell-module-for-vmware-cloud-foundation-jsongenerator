@@ -3587,6 +3587,10 @@ Function New-ManagementDomainJsonFileV3 {
         If specified, saves the JSON output to exactly this path. If not specified, the file is saved
         as managementDomainSpec-<domainName>.json in the current working directory.
 
+    .PARAMETER hostsToProcess
+        If specified, the provided host objects are used directly for host spec generation. If not
+        specified, all hosts in $instanceObject.az1.rack1.hosts are used.
+
     .EXAMPLE
         New-ManagementDomainJsonFileV3 -instanceObject $instanceObj -sharedInstanceObject $sharedObj
 
@@ -3602,7 +3606,8 @@ Function New-ManagementDomainJsonFileV3 {
         [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
         [Parameter (Mandatory = $false)] [Switch]$interactiveBypass,
         [Parameter (Mandatory = $false)] [Switch]$noHostFingerprints,
-        [Parameter (Mandatory = $false)] [String]$targetFilePath
+        [Parameter (Mandatory = $false)] [String]$targetFilePath,
+        [Parameter (Mandatory = $false)] [Object[]]$hostsToProcess
     )
 
     Try {
@@ -4017,10 +4022,8 @@ Function New-ManagementDomainJsonFileV3 {
         }
 
         $hostSpecs = @()
-        $hostsToProcess = If ($instanceObject.deploymentProfile.fleetManagementDeploymentModel -eq "highlyAvailable") {
-            $instanceObject.az1.rack1.hosts[0..7]
-        } else {
-            $instanceObject.az1.rack1.hosts[0..3]
+        If (-not $hostsToProcess) {
+            $hostsToProcess = $instanceObject.az1.rack1.hosts
         }
 
         Foreach ($hostInstance in $hostsToProcess) {
