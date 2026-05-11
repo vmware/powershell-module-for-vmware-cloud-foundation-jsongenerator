@@ -534,7 +534,8 @@ Function Start-VCFJsonGeneration
                     Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem10" -Foregroundcolor Cyan; Write-Host -Object ''
                     If ($managementObject -and $sharedInstanceObject)
                     {
-                        New-ManagementDomainJsonFile -instanceObject $managementObject -sharedInstanceObject $sharedInstanceObject
+                        #New-ManagementDomainJsonFile -instanceObject $managementObject -sharedInstanceObject $sharedInstanceObject
+                        New-ManagementDomainJsonFileV3 -instanceObject $managementObject -sharedInstanceObject $sharedInstanceObject                        
                     }
                     else
                     {
