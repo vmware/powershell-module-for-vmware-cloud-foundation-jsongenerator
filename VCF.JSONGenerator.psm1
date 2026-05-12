@@ -1758,7 +1758,8 @@ Function New-SharedInstanceObject
 {
     Param (
         [Parameter (Mandatory = $true)] [Object]$pnpWorkbook,
-        [Parameter (Mandatory = $false)] [Switch]$silent
+        [Parameter (Mandatory = $false)] [Switch]$silent,
+        [Parameter (Mandatory = $false)] [switch]$interactiveBypass
     )
 
     Try {
@@ -1976,7 +1977,15 @@ Function New-SharedInstanceObject
         $vspObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_sr_fqdn"].Value
         $vspObject | Add-Member -notepropertyname 'instanceFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_ic_fqdn"].Value
         $vspObject | Add-Member -notepropertyname 'fleetFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_fc_fqdn"].Value
-        $vspObject | Add-Member -notepropertyname 'systemUserPassword' -notepropertyvalue $infrastructureSettings.environment.commonComplexPassword
+        If ($interactiveBypass)
+        {
+            $vspObject | Add-Member -notepropertyname 'systemUserPassword' -notepropertyvalue $infrastructureSettings.environment.commonComplexPassword
+        }
+        else
+        {
+            $vspObject | Add-Member -notepropertyname 'systemUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcfms_system_password"].Value
+        }
+        
         If ($pnpWorkbook.Workbook.Names["mgmt_domain_vcf_operations_ha_mode_chosen"].Value -eq "High Availability (Three-node)")
         {
             $vspObject | Add-Member -notepropertyname 'size' -notepropertyvalue "medium"
