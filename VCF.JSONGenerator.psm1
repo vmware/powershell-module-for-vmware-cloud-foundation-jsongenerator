@@ -3134,10 +3134,18 @@ Function New-WorkloadInstanceObject
             }
         }
 
+        If ($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value -eq "First Instance")
+        {
+            $instance = "InstanceA"
+        }
+        else
+        {
+            $instance = "InstanceB"
+        }
         $workloadInstanceObject = New-Object -TypeName psobject
         $workloadInstanceObject | Add-Member -notepropertyname 'version' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
         $workloadInstanceObject | Add-Member -notepropertyname 'deploymentProfile' -notepropertyvalue $deploymentProfileObject
-        $workloadInstanceObject | Add-Member -notepropertyname 'instance' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value
+        $workloadInstanceObject | Add-Member -notepropertyname 'instance' -notepropertyvalue $instance
         $workloadInstanceObject | Add-Member -notepropertyname 'granularOperation' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_granular_option_chosen"].Value
         $workloadInstanceObject | Add-Member -notepropertyname 'domainType' -notepropertyvalue "Workload"
         $workloadInstanceObject | Add-Member -notepropertyname 'domainName' -notepropertyvalue $domainName
