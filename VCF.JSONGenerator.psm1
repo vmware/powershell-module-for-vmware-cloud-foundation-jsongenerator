@@ -2625,12 +2625,16 @@ Function New-ManagementInstanceObject
 Function New-WorkloadInstanceObject
 {   
     Param (
-        [Parameter (Mandatory = $true)] [Object]$pnpWorkbook
+        [Parameter (Mandatory = $true)] [Object]$pnpWorkbook,
+        [Parameter (Mandatory = $false)] [Switch]$silent
     )
 
     Try {
-        LogMessage -type INFO -message "Extracting data specific to Workload Domain Creation"
-
+        
+        If (!$silent)
+        {
+            LogMessage -type INFO -message "Extracting data specific to Workload Domain Creation"
+        }
         
         If ($pnpWorkbook.Workbook.Names["wld_domain_chosen"].Value -eq "Deploy Workload Domain with a Multi-Rack Layer 3 Cluster")
         {
