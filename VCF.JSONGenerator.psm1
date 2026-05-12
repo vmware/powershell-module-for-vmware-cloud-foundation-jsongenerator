@@ -1539,7 +1539,7 @@ Function Get-PnPInputFileInputs
     $vcfVersionChosen = $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
     $pnpVersionHistory = $pnpWorkbook.Workbook.Names["pnp_version_history"].Value
     $matchingVersion = $Global:supportedAutomationVersions | Where-Object { $vcfVersionChosen.StartsWith($_.version) }
-    If ($matchingVersion -and ($pnpVersionHistory -eq $matchingVersion.supportedAutomationVersion))
+    If ($matchingVersion -and ([int]$pnpVersionHistory -eq [int]$matchingVersion.supportedAutomationVersion))
     {
         Remove-Variable workbookProfile -scope Global -ErrorAction SilentlyContinue
         Remove-Variable chosenWorkBook -scope Global -ErrorAction SilentlyContinue
@@ -3065,64 +3065,130 @@ Function New-WorkloadInstanceObject
             #VMs
             #Hosts
             $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)mgmt_vlan"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)mgmt_gateway_ip"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)mgmt_mtu"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)mgmt_cidr"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)mgmt_network"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)mgmt_mask"].Value
+            If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+            {
+                $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)mgmt_gateway_ip"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)mgmt_cidr"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)mgmt_network"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)mgmt_mask"].Value
+            }
+            else
+            {
+                $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)mgmt_gateway_cidr"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtGw' -notepropertyvalue $networkDetails.gw
+                $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtCidr' -notepropertyvalue $networkDetails.cidr
+                $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtNetwork' -notepropertyvalue $networkDetails.network
+                $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtNetmask' -notepropertyvalue $networkDetails.netmask
+            }
 
             $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)vmotion_vlan"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)vmotion_gateway_ip"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)vmotion_cidr"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)vmotion_network"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)vmotion_mask"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)vmotion_mtu"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)vmotion_pool_start_ip"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)vmotion_pool_end_ip"].Value
+            If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+            {
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)vmotion_gateway_ip"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)vmotion_cidr"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)vmotion_network"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)vmotion_mask"].Value
+            }
+            else
+            {
+                $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)vmotion_gateway_cidr"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionGw' -notepropertyvalue $networkDetails.gw
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionCidr' -notepropertyvalue $networkDetails.cidr
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionNetwork' -notepropertyvalue $networkDetails.network
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionNetmask' -notepropertyvalue $networkDetails.netmask
+            }
             
             If ($pnpWorkbook.Workbook.Names["wld_secondary_storage_chosen"].Value -eq "vSAN Storage Client Network")
             {
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vsanVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_vlan"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_gateway_ip"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_cidr"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_network"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue  $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_mask"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vsanMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_mtu"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vsanPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_pool_start_ip"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vsanPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_pool_end_ip"].Value
+                If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+                {
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_gateway_ip"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_cidr"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_network"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_mask"].Value
+                }
+                else
+                {
+                    $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_gateway_cidr"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $networkDetails.gw
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $networkDetails.cidr
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $networkDetails.network
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $networkDetails.netmask
+                }
             }
             else
             {
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vsanVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_vlan"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_gateway_ip"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_cidr"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_network"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue  $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_mask"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vsanMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_mtu"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vsanPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_pool_start_ip"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vsanPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_pool_end_ip"].Value
+                If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+                {
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_gateway_ip"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_cidr"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_network"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_mask"].Value
+                }
+                else
+                {
+                    $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_gateway_cidr"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $networkDetails.gw
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $networkDetails.cidr
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $networkDetails.network
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $networkDetails.netmask
+                }
             }
     
             If ($rack -eq "rack1")
             {
                 $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_vlan"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_gateway_ip"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_cidr"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_network"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_mask"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_mtu"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_pool_start_ip"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_pool_end_ip"].Value
+                If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+                {
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_gateway_ip"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_cidr"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_network"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_mask"].Value
+                }
+                else
+                {
+                    $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_gateway_cidr"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageGw' -notepropertyvalue $networkDetails.gw
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageCidr' -notepropertyvalue $networkDetails.cidr
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetwork' -notepropertyvalue $networkDetails.network
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetmask' -notepropertyvalue $networkDetails.netmask
+                }
             }
 
             $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)host_overlay_vlan"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)host_overlay_mask"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)host_overlay_mtu"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)host_overlay_gateway_ip"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)host_overlay_cidr"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)host_overlay_Network"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)host_overlay_pool_start_ip"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)host_overlay_pool_end_ip"].Value
+            If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+            {
+                $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)host_overlay_gateway_ip"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)host_overlay_cidr"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)host_overlay_Network"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)host_overlay_mask"].Value
+            }
+            else
+            {
+                $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)host_overlay_gateway_cidr"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayGw' -notepropertyvalue $networkDetails.gw
+                $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayCidr' -notepropertyvalue $networkDetails.cidr
+                $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetwork' -notepropertyvalue $networkDetails.network
+                $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetmask' -notepropertyvalue $networkDetails.netmask
+            }
         
             $az1RackNetworkObject | Add-Member -notepropertyname 'vcfNetworkPoolName' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)pool_name"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'networkProfileName' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)host_overlay_network_profile_name"].Value
@@ -3145,61 +3211,127 @@ Function New-WorkloadInstanceObject
                 {
                     #Hosts
                     $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)mgmt_vlan"].Value
-                    $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)mgmt_gateway_ip"].Value
                     $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)mgmt_mtu"].Value
-                    $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)mgmt_cidr"].Value
-                    $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)mgmt_network"].Value
-                    $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)mgmt_mask"].Value
+                    If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+                    {
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)mgmt_gateway_ip"].Value
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)mgmt_cidr"].Value
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)mgmt_network"].Value
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)mgmt_mask"].Value
+                    }
+                    else
+                    {
+                        $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)mgmt_gateway_cidr"].Value
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtGw' -notepropertyvalue $networkDetails.gw
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtCidr' -notepropertyvalue $networkDetails.cidr
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtNetwork' -notepropertyvalue $networkDetails.network
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtNetmask' -notepropertyvalue $networkDetails.netmask
+                    }
     
                     $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)vmotion_vlan"].Value
-                    $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)vmotion_gateway_ip"].Value
-                    $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)vmotion_cidr"].Value
-                    $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)vmotion_network"].Value
-                    $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)vmotion_mask"].Value
                     $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)vmotion_mtu"].Value
                     $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)vmotion_pool_start_ip"].Value
                     $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)vmotion_pool_end_ip"].Value
+                    If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+                    {
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)vmotion_gateway_ip"].Value
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)vmotion_cidr"].Value
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)vmotion_network"].Value
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)vmotion_mask"].Value
+                    }
+                    else
+                    {
+                        $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)vmotion_gateway_cidr"].Value
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionGw' -notepropertyvalue $networkDetails.gw
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionCidr' -notepropertyvalue $networkDetails.cidr
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionNetwork' -notepropertyvalue $networkDetails.network
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionNetmask' -notepropertyvalue $networkDetails.netmask
+                    }
                     
                     If ($pnpWorkbook.Workbook.Names["wld_secondary_storage_chosen"].Value -eq "vSAN Storage Client Network")
                     {
                         $az2RackNetworkObject | Add-Member -notepropertyname 'vsanVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_vlan"].Value
-                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_gateway_ip"].Value
-                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_cidr"].Value
-                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_network"].Value
-                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_mask"].Value
                         $az2RackNetworkObject | Add-Member -notepropertyname 'vsanMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_mtu"].Value
                         $az2RackNetworkObject | Add-Member -notepropertyname 'vsanPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_pool_start_ip"].Value
                         $az2RackNetworkObject | Add-Member -notepropertyname 'vsanPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_pool_end_ip"].Value
+                        If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+                        {
+                            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_gateway_ip"].Value
+                            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_cidr"].Value
+                            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_network"].Value
+                            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_mask"].Value
+                        }
+                        else
+                        {
+                            $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_gateway_cidr"].Value
+                            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $networkDetails.gw
+                            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $networkDetails.cidr
+                            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $networkDetails.network
+                            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $networkDetails.netmask
+                        }
                     }
                     else 
                     {
                         $az2RackNetworkObject | Add-Member -notepropertyname 'vsanVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_vlan"].Value
-                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_gateway_ip"].Value
-                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_cidr"].Value
-                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_network"].Value
-                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_mask"].Value
                         $az2RackNetworkObject | Add-Member -notepropertyname 'vsanMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_mtu"].Value
                         $az2RackNetworkObject | Add-Member -notepropertyname 'vsanPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_pool_start_ip"].Value
-                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_pool_end_ip"].Value        
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_pool_end_ip"].Value
+                        If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+                        {
+                            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_gateway_ip"].Value
+                            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_cidr"].Value
+                            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_network"].Value
+                            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_mask"].Value
+                        }
+                        else
+                        {
+                            $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_gateway_cidr"].Value
+                            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $networkDetails.gw
+                            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $networkDetails.cidr
+                            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $networkDetails.network
+                            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $networkDetails.netmask
+                        }
                     }
                     
                     $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)secondary_storage_vlan"].Value
-                    $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)secondary_storage_gateway_ip"].Value
-                    $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)secondary_storage_cidr"].Value
-                    $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)secondary_storage_network"].Value
-                    $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)secondary_storage_mask"].Value
                     $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)secondary_storage_mtu"].Value
                     $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)secondary_storage_pool_start_ip"].Value
                     $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)secondary_storage_pool_end_ip"].Value
+                    If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+                    {
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)secondary_storage_gateway_ip"].Value
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)secondary_storage_cidr"].Value
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)secondary_storage_network"].Value
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)secondary_storage_mask"].Value
+                    }
+                    else
+                    {
+                        $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)secondary_storage_gateway_cidr"].Value
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageGw' -notepropertyvalue $networkDetails.gw
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageCidr' -notepropertyvalue $networkDetails.cidr
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetwork' -notepropertyvalue $networkDetails.network
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetmask' -notepropertyvalue $networkDetails.netmask
+                    }
     
                     $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_overlay_vlan"].Value
-                    $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_overlay_mask"].Value
                     $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_overlay_mtu"].Value
-                    $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_overlay_gateway_ip"].Value
-                    $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_overlay_cidr"].Value   
-                    $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_overlay_network"].Value   
                     $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_overlay_pool_start_ip"].Value
                     $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_overlay_pool_end_ip"].Value
+                    If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+                    {
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_overlay_gateway_ip"].Value
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_overlay_cidr"].Value
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_overlay_network"].Value
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_overlay_mask"].Value
+                    }
+                    else
+                    {
+                        $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_overlay_gateway_cidr"].Value
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayGw' -notepropertyvalue $networkDetails.gw
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayCidr' -notepropertyvalue $networkDetails.cidr
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetwork' -notepropertyvalue $networkDetails.network
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetmask' -notepropertyvalue $networkDetails.netmask
+                    }
             
                     $az2RackNetworkObject | Add-Member -notepropertyname 'vcfNetworkPoolName' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)pool_name"].Value
                     $az2RackNetworkObject | Add-Member -notepropertyname 'networkProfileName' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_overlay_network_profile_name"].Value
