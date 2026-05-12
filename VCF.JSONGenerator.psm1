@@ -3596,7 +3596,8 @@ Function New-ManagementDomainJsonFile {
         [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
         [Parameter (Mandatory = $false)] [Switch]$interactiveBypass,
         [Parameter (Mandatory = $false)] [Switch]$noHostFingerprints,
-        [Parameter (Mandatory = $false)] [String]$targetFilePath
+        [Parameter (Mandatory = $false)] [String]$targetFilePath,
+        [Parameter (Mandatory = $false)] [Object[]]$hostsToProcess
     )
 
     Try {
@@ -3676,7 +3677,7 @@ Function New-ManagementDomainJsonFile {
 
         $dnsSpec = [PSCustomObject]@{
             nameservers = $nameServers
-            subdomain   = $sharedInstanceObject.dns.childDnsDomain
+            subdomain   = $sharedInstanceObject.dns.rootDnsDomain
         }
         #endregion
 
@@ -4011,10 +4012,8 @@ Function New-ManagementDomainJsonFile {
         }
 
         $hostSpecs = @()
-        $hostsToProcess = If ($instanceObject.deploymentProfile.fleetManagementDeploymentModel -eq "highlyAvailable") {
-            $instanceObject.az1.rack1.hosts[0..7]
-        } else {
-            $instanceObject.az1.rack1.hosts[0..3]
+        If (-not $hostsToProcess) {
+            $hostsToProcess = $instanceObject.az1.rack1.hosts
         }
 
         Foreach ($hostInstance in $hostsToProcess) {
@@ -4630,7 +4629,8 @@ Function New-WorkloadDomainJsonFile
 {
     Param (
         [Parameter (Mandatory = $true)] [Array]$instanceObject,
-        [Parameter (Mandatory = $false)] [switch]$interactiveBypass
+        [Parameter (Mandatory = $false)] [switch]$interactiveBypass,
+        [Parameter (Mandatory = $false)] [String]$targetFilePath
     )
 
     Try 
@@ -5513,8 +5513,13 @@ Function New-WorkloadDomainJsonFile
         $workloadDomainObject[0] | Add-Member -NotePropertyName 'ssoDomainSpec' -NotePropertyValue ($ssoDomainSpecObject | Select-Object -Skip 0)
         $workloadDomainObject[0] | Add-Member -NotePropertyName 'deployWithoutLicenseKeys' -NotePropertyValue "true"
 
-        LogMessage -Type INFO -Message "Exporting the Workload Domain JSON to workloadDomainSpec-$($instanceObject.domainName).json"
-        $workloadDomainObject | ConvertTo-Json -Depth 12 | Out-File -Encoding UTF8 -FilePath "workloadDomainSpec-$($instanceObject.domainName).json"
+        $outputFileName = If ($targetFilePath) {
+            $targetFilePath
+        } else {
+            "workloadDomainSpec-$($instanceObject.domainName).json"
+        }
+        LogMessage -Type INFO -Message "Exporting the Workload Domain JSON to $outputFileName"
+        $workloadDomainObject | ConvertTo-Json -Depth 12 | Out-File -Encoding UTF8 -FilePath $outputFileName
         LogMessage -Type NOTE -Message "Completed the Process of Generating the Workload Domain JSON"
     }
     Catch 
