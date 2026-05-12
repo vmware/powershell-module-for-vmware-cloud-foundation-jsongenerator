@@ -2828,7 +2828,9 @@ Function New-WorkloadInstanceObject
 {   
     Param (
         [Parameter (Mandatory = $true)] [Object]$pnpWorkbook,
-        [Parameter (Mandatory = $false)] [Switch]$silent
+        [Parameter (Mandatory = $false)] [Switch]$silent,
+        [Parameter (Mandatory = $false)] [String]$vcfVersion,
+        [Parameter (Mandatory = $false)] [Switch]$interactiveBypass
     )
 
     Try {
@@ -2836,6 +2838,11 @@ Function New-WorkloadInstanceObject
         If (!$silent)
         {
             LogMessage -type INFO -message "Extracting data specific to Workload Domain Creation"
+        }
+
+        If (!$vcfVersion)
+        {
+            $vcfVersion = $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
         }
         
         If ($pnpWorkbook.Workbook.Names["wld_domain_chosen"].Value -eq "Deploy Workload Domain with a Multi-Rack Layer 3 Cluster")
