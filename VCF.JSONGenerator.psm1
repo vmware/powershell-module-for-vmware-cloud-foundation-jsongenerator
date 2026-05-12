@@ -2017,7 +2017,8 @@ Function New-ManagementInstanceObject
         [Parameter (Mandatory = $true)] [Object]$pnpWorkbook,
         [Parameter (Mandatory = $false)] [Switch]$silent,
         [Parameter (Mandatory = $false)] [INT]$totalRackCount,
-        [Parameter (Mandatory = $false)] [String]$vcfVersion
+        [Parameter (Mandatory = $false)] [String]$vcfVersion,
+        [Parameter (Mandatory = $false)] [switch]$interactiveBypass
         )
 
     Try {
