@@ -4587,8 +4587,8 @@ Function New-ManagementDomainJsonFile {
                     If ($instanceObject.version -like "9.0.*")
                     {
                         $dvsSpec0 | Add-Member -NotePropertyName 'nsxtSwitchConfig' -NotePropertyValue $nsxtSwitchConfig0
-                    }                    
-                    $dvsSpec0 | Add-Member -NotePropertyName 'nsxTeamings' -NotePropertyValue $nsxTeamings0
+                        $dvsSpec0 | Add-Member -NotePropertyName 'nsxTeamings' -NotePropertyValue $nsxTeamings0
+                    }
                     $dvsSpec0 | Add-Member -NotePropertyName 'lagSpecs' -NotePropertyValue @($lagSpec0)
                 }
 
@@ -4676,8 +4676,8 @@ Function New-ManagementDomainJsonFile {
                     If ($instanceObject.version -like "9.0.*")
                     {
                         $dvsSpec0 | Add-Member -NotePropertyName 'nsxtSwitchConfig' -NotePropertyValue $nsxtSwitchConfig0
-                    }  
-                    $dvsSpec0 | Add-Member -NotePropertyName 'nsxTeamings' -NotePropertyValue $nsxTeamings0
+                        $dvsSpec0 | Add-Member -NotePropertyName 'nsxTeamings' -NotePropertyValue $nsxTeamings0
+                    }
                     $dvsSpec0 | Add-Member -NotePropertyName 'lagSpecs' -NotePropertyValue @($lagSpec0)
                 }
 
