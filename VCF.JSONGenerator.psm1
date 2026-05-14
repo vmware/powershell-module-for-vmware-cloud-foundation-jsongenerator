@@ -2708,8 +2708,16 @@ Function New-ManagementInstanceObject
             $edgeClusterObject | Add-Member -NotePropertyName 'bgp' -NotePropertyValue $bgpObject
             $edgeClusterObject | Add-Member -NotePropertyName 'nodes' -NotePropertyValue $nodesObject
             $edgeClusterObject | Add-Member -NotePropertyName 'haMode' -NotePropertyValue (($pnpWorkbook.Workbook.Names["mgmt_tier0_ha_chosen"].value).ToUpper()).replace(" ","_")
-            $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_vpc_ext_ip_blocks"].value
-            $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_vpc_transit_gateway_ip_blocks"].value
+            If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+            {
+                $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_vpc_ext_ip_blocks"].value
+                $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_vpc_transit_gateway_ip_blocks"].value            
+            }
+            else
+            {
+                $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_vpc_ext_ip_blocks_cidr"].value
+                $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_vpc_transit_gateway_ip_blocks_cidr"].value
+            } 
             If ($pnpWorkbook.Workbook.Names["mgmt_az1_en1_edge_overlay_network_ip_allocation_chosen"].value -eq "Static IP List")
             {
                 $edgeClusterObject | Add-Member -NotePropertyName 'tepMode' -NotePropertyValue 'StaticIpv4List'
@@ -3340,8 +3348,16 @@ Function New-WorkloadInstanceObject
             $edgeClusterObject | Add-Member -NotePropertyName 'bgp' -NotePropertyValue $bgpObject
             $edgeClusterObject | Add-Member -NotePropertyName 'nodes' -NotePropertyValue $nodesObject
             $edgeClusterObject | Add-Member -NotePropertyName 'haMode' -NotePropertyValue (($pnpWorkbook.Workbook.Names["wld_tier0_ha_chosen"].value).ToUpper()).replace(" ","_")
-            $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_vpc_ext_ip_blocks"].value
-            $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_vpc_transit_gateway_ip_blocks"].value
+            If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+            {
+                $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_vpc_ext_ip_blocks"].value
+                $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_vpc_transit_gateway_ip_blocks"].value  
+            }
+            else
+            {
+                $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_vpc_ext_ip_blocks_cidr"].value
+                $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_vpc_transit_gateway_ip_blocks_cidr"].value
+            }            
             If ($pnpWorkbook.Workbook.Names["wld_az1_en1_edge_overlay_network_ip_allocation_chosen"].value -eq "Static IP List")
             {
                 $edgeClusterObject | Add-Member -NotePropertyName 'tepMode' -NotePropertyValue 'StaticIpv4List'
