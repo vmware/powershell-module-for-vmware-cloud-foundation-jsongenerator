@@ -4419,11 +4419,21 @@ Function New-ManagementDomainJsonFile {
                     transportType = "VLAN"
                 }
 
-                $nsxtSwitchConfig = [PSCustomObject]@{
-                    transportZones            = @($vlanTransportZone, $overlayTransportZone)
-                    hostSwitchOperationalMode = $operationMode
+                #work out if vlan transport zone is required
+                If ($instanceObject.version -notlike "9.0.*")
+                {
+                    $transportZones = @($overlayTransportZone)
+                }
+                else
+                {
+                    $transportZones = @($vlanTransportZone, $overlayTransportZone)
                 }
 
+                $nsxtSwitchConfig = [PSCustomObject]@{
+                    
+                    transportZones            = $transportZones
+                    hostSwitchOperationalMode = $operationMode
+                }
                 $nsxTeamings = @([PSCustomObject]@{
                     policy         = $vds0Config.policy
                     standByUplinks = @()
@@ -4459,8 +4469,17 @@ Function New-ManagementDomainJsonFile {
                     transportType = "VLAN"
                 }
 
+                #work out if vlan transport zone is required
+                If ($instanceObject.version -notlike "9.0.*")
+                {
+                    $transportZones = @($overlayTransportZone)
+                }
+                else
+                {
+                    $transportZones = @($vlanTransportZone0, $overlayTransportZone)
+                }
                 $nsxtSwitchConfig0 = [PSCustomObject]@{
-                    transportZones            = @($vlanTransportZone0, $overlayTransportZone)
+                    transportZones            = $transportZones
                     hostSwitchOperationalMode = $operationMode
                 }
 
@@ -4565,7 +4584,10 @@ Function New-ManagementDomainJsonFile {
 
                 $lagSpec0 = New-LagSpec -vdsConfig $instanceObject.vsphereClusters[0].vds[0]
                 If ($lagSpec0) {
-                    $dvsSpec0 | Add-Member -NotePropertyName 'nsxtSwitchConfig' -NotePropertyValue $nsxtSwitchConfig0
+                    If ($instanceObject.version -like "9.0.*")
+                    {
+                        $dvsSpec0 | Add-Member -NotePropertyName 'nsxtSwitchConfig' -NotePropertyValue $nsxtSwitchConfig0
+                    }                    
                     $dvsSpec0 | Add-Member -NotePropertyName 'nsxTeamings' -NotePropertyValue $nsxTeamings0
                     $dvsSpec0 | Add-Member -NotePropertyName 'lagSpecs' -NotePropertyValue @($lagSpec0)
                 }
@@ -4578,9 +4600,16 @@ Function New-ManagementDomainJsonFile {
                     name          = "nsx-vlan-transportzone-1"
                     transportType = "VLAN"
                 }
-
+                If ($instanceObject.version -notlike "9.0.*")
+                {
+                    $transportZones = @($overlayTransportZone)
+                }
+                else
+                {
+                    $transportZones = @($vlanTransportZone1, $overlayTransportZone)
+                }
                 $nsxtSwitchConfig1 = [PSCustomObject]@{
-                    transportZones            = @($vlanTransportZone1, $overlayTransportZone)
+                    transportZones            = $transportZones
                     hostSwitchOperationalMode = $operationMode
                 }
 
@@ -4644,7 +4673,10 @@ Function New-ManagementDomainJsonFile {
 
                 $lagSpec0 = New-LagSpec -vdsConfig $instanceObject.vsphereClusters[0].vds[0]
                 If ($lagSpec0) {
-                    $dvsSpec0 | Add-Member -NotePropertyName 'nsxtSwitchConfig' -NotePropertyValue $nsxtSwitchConfig0
+                    If ($instanceObject.version -like "9.0.*")
+                    {
+                        $dvsSpec0 | Add-Member -NotePropertyName 'nsxtSwitchConfig' -NotePropertyValue $nsxtSwitchConfig0
+                    }  
                     $dvsSpec0 | Add-Member -NotePropertyName 'nsxTeamings' -NotePropertyValue $nsxTeamings0
                     $dvsSpec0 | Add-Member -NotePropertyName 'lagSpecs' -NotePropertyValue @($lagSpec0)
                 }
@@ -4705,8 +4737,16 @@ Function New-ManagementDomainJsonFile {
                     transportType = "VLAN"
                 }
 
+                If ($instanceObject.version -notlike "9.0.*")
+                {
+                    $transportZones = @($overlayTransportZone)
+                }
+                else
+                {
+                    $transportZones = @($vlanTransportZone2, $overlayTransportZone)
+                }
                 $nsxtSwitchConfig2 = [PSCustomObject]@{
-                    transportZones            = @($vlanTransportZone2, $overlayTransportZone)
+                    transportZones            = $transportZones
                     hostSwitchOperationalMode = $operationMode
                 }
 
