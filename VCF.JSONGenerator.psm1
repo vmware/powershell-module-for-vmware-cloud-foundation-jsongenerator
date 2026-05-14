@@ -4840,7 +4840,7 @@ Function New-ManagementDomainJsonFile {
             $managementDomainObject | Add-Member -NotePropertyName 'vcfOperationsSpec' -NotePropertyValue $vcfOperationsSpec
         }
 
-        $addFleetMgmtSpec = ($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and
+        $addFleetMgmtSpec = ($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and ($instanceObject.version -like "9.0.*") -and
                             (($instanceObject.instance -eq "InstanceA") -or
                              (($instanceObject.instance -eq "InstanceB") -and ($joinFleet -eq "Y")))
         If ($addFleetMgmtSpec) {
@@ -4877,9 +4877,9 @@ Function New-ManagementDomainJsonFile {
                     $managementDomainObject | Add-Member -NotePropertyName 'vidbSpec' -NotePropertyValue $vidbSpec
                 }
                 If ($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") {
-                    If ($vcfOperationsLogsSpec) {
-                        $managementDomainObject | Add-Member -NotePropertyName 'vcfOperationsLogsSpec' -NotePropertyValue $vcfOperationsLogsSpec
-                    }
+                    #If ($vcfOperationsLogsSpec) {
+                        #$managementDomainObject | Add-Member -NotePropertyName 'vcfOperationsLogsSpec' -NotePropertyValue $vcfOperationsLogsSpec
+                    #}
                     If ($licenseServerSpec) {
                         $managementDomainObject | Add-Member -NotePropertyName 'licenseServerSpec' -NotePropertyValue $licenseServerSpec
                     }
