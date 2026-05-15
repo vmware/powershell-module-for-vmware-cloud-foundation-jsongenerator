@@ -1817,7 +1817,7 @@ Function New-SharedInstanceObject
                 If ($interactiveBypass)
                 {
                     $vcfOperationsObject | Add-Member -notepropertyname 'applianceSize' -notepropertyvalue ($pnpWorkbook.Workbook.Names["mgmt_vcfops_appliance_size_chosen"].Value).tolower()
-                    $vcfOperationsObject | Add-Member -notepropertyname 'collectorApplianceSize' -notepropertyvalue 'Standard'
+                    $vcfOperationsObject | Add-Member -notepropertyname 'collectorApplianceSize' -notepropertyvalue 'standard'
                 }
                 else
                 {
