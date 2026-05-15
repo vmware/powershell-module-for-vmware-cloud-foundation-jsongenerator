@@ -1759,7 +1759,8 @@ Function New-SharedInstanceObject
     Param (
         [Parameter (Mandatory = $true)] [Object]$pnpWorkbook,
         [Parameter (Mandatory = $false)] [Switch]$silent,
-        [Parameter (Mandatory = $false)] [switch]$interactiveBypass
+        [Parameter (Mandatory = $false)] [switch]$interactiveBypass,
+        [Parameter (Mandatory = $false)] [string]$vcfVersion
     )
 
     Try {
@@ -1767,6 +1768,11 @@ Function New-SharedInstanceObject
         {
             LogMessage -type NOTE -message "Planning & Preparation Workbook to $($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value) discovered"
             LogMessage -type INFO -message "Extracting data common to Management and Workload Domains"    
+        }
+        
+        If (!$vcfVersion)
+        {
+            $vcfVersion = $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
         }
         
         $dnsObject = New-Object -TypeName psobject
@@ -1791,7 +1797,16 @@ Function New-SharedInstanceObject
             $vcfOperationsObject | Add-Member -notepropertyname 'nodeBFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_nodeb_fqdn"].Value
             $vcfOperationsObject | Add-Member -notepropertyname 'nodeCFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_nodec_fqdn"].Value
             $vcfOperationsObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_virtual_fqdn"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'applianceSize' -notepropertyvalue ($pnpWorkbook.Workbook.Names["mgmt_vcfops_appliance_size_chosen"].Value).tolower()
+            If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+            {
+                $vcfOperationsObject | Add-Member -notepropertyname 'applianceSize' -notepropertyvalue ($pnpWorkbook.Workbook.Names["mgmt_vcfops_appliance_size_chosen"].Value).tolower()
+            }
+            else 
+            {
+                $vcfOperationsObject | Add-Member -notepropertyname 'applianceSize' -notepropertyvalue ($pnpWorkbook.Workbook.Names["mgmt_vcfops_appliance_size_result"].Value).tolower()
+                $vcfOperationsObject | Add-Member -notepropertyname 'collectorApplianceSize' -notepropertyvalue ($pnpWorkbook.Workbook.Names["mgmt_vcfops_collector_size_result"].Value).tolower()
+            }
+
             $vcfOperationsObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_admin_password"].Value
             $vcfOperationsObject | Add-Member -notepropertyname 'rootUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_root_password"].Value
             $vcfOperationsObject | Add-Member -notepropertyname 'opsCollectorFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_collector_fqdn"].Value
@@ -2074,7 +2089,17 @@ Function New-ManagementInstanceObject
         $vcenterServerObject | Add-Member -notepropertyname 'nsxRp' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsx_rp"].Value
         $vcenterServerObject | Add-Member -notepropertyname 'userEdgeRp' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_user_edge_rp"].Value
         $vcenterServerObject | Add-Member -notepropertyname 'userVmRp' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_user_vm_rp"].Value
-        $vcenterServerObject | Add-Member -notepropertyname 'vcSize' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_vcenter_appliance_size_chosen"].Value
+        If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+        {
+            $vcenterServerObject | Add-Member -notepropertyname 'vcSize' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_vcenter_appliance_size_chosen"].Value
+            $vcenterServerObject | Add-Member -notepropertyname 'vcStorage' -notepropertyvalue $pnpWorkbook.Workbook.Names["sizing_m01_vcenter_storage_size_chosen"].Value
+        }
+        else
+        {
+            $vcenterServerObject | Add-Member -notepropertyname 'vcSize' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_vcenter_appliance_size_result"].Value
+            $vcenterServerObject | Add-Member -notepropertyname 'vcStorage' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_vcenter_storage_size_result"].Value
+        }
+        
         If ($pnpWorkbook.Workbook.Names["mgmt_domain_existing_vcenter_chosen"].Value -eq 'Unselected')
         {
             $vcenterServerObject | Add-Member -notepropertyname 'useExisting' -notepropertyvalue $false
@@ -2133,6 +2158,7 @@ Function New-ManagementInstanceObject
         $az1PortGroups | Add-Member -notepropertyname 'mgmt' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_cl01_az1_mgmt_pg"].Value
         $az1PortGroups | Add-Member -notepropertyname 'vmotion' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_cl01_az1_vmotion_pg"].Value
         $az1PortGroups | Add-Member -notepropertyname 'vsan' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_cl01_az1_vsan_pg"].Value
+        $az1PortGroups | Add-Member -notepropertyname 'fleetMgmt' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_cl01_az1_vcf_mgmt_pg"].Value
         
         $az2PortGroups = New-Object -TypeName psobject
         $az2PortGroups | Add-Member -notepropertyname 'mgmtVm' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_cl01_az1_mgmt_vm_pg"].Value
@@ -2173,7 +2199,14 @@ Function New-ManagementInstanceObject
         $nsxtManagerObject | Add-Member -notepropertyname 'nodeAFQDN' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_mgra_fqdn"].Value
         $nsxtManagerObject | Add-Member -notepropertyname 'nodeBFQDN' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_mgrb_fqdn"].Value
         $nsxtManagerObject | Add-Member -notepropertyname 'nodeCFQDN' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_mgrc_fqdn"].Value
-        $nsxtManagerObject | Add-Member -notepropertyname 'mgrFormfactor' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_appliance_size_chosen"].Value
+        If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+        {
+            $nsxtManagerObject | Add-Member -notepropertyname 'mgrFormfactor' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_appliance_size_chosen"].Value
+        }
+        else
+        {
+            $nsxtManagerObject | Add-Member -notepropertyname 'mgrFormfactor' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_appliance_size_result"].Value
+        }
         If ($pnpWorkbook.Workbook.Names["mgmt_domain_existing_nsx_manager_chosen"].Value -eq 'Unselected')
         {
             $nsxtManagerObject | Add-Member -notepropertyname 'useExisting' -notepropertyvalue $false
@@ -3944,8 +3977,8 @@ Function New-ManagementDomainJsonFile {
         #region vCenter Spec
         $vcenterSpec = [PSCustomObject]@{
             vcenterHostname       = $instanceObject.vcenterServer.fqdn
-            vmSize                = $instanceObject.vcenterServer.vcSize.ToLower()
-            storageSize           = 'lstorage'
+            vmSize                = $instanceObject.vcenterServer.vcSize.ToLower()            
+            storageSize           = $instanceObject.vcenterServer.vcStorage.ToLower()
             ssoDomain             = $sharedInstanceObject.sso.domain
             useExistingDeployment = $instanceObject.vcenterServer.useExisting
         }
@@ -4199,6 +4232,11 @@ Function New-ManagementDomainJsonFile {
 
         If (-not $autoGenPasswords) {
             $vcfOperationsCollectorSpec | Add-Member -NotePropertyName 'rootUserPassword' -NotePropertyValue $sharedInstanceObject.operations.opsCollectorRootUserPassword
+        }
+        
+        If ($instanceObject.version -notlike "9.0.*")
+        {
+            $vcfOperationsCollectorSpec | Add-Member -NotePropertyName 'applianceSize' -NotePropertyValue $sharedInstanceObject.operations.collectorApplianceSize
         }
         #endregion
 
