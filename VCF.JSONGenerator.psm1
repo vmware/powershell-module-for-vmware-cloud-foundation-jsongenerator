@@ -3908,7 +3908,7 @@ Function New-ManagementDomainJsonFile {
         {
             LogMessage -type INFO -message "Generating Management Domain JSON (V3)"
         }
-        
+
         #region Parameter Resolution
         $singleNSXTManager = If ($instanceObject.deploymentProfile.singleNSXTManager -eq "Y") { "Y" } else { "N" }
         $joinFleet = If ($instanceObject.deploymentProfile.joinFleet) { $instanceObject.deploymentProfile.joinFleet } 
