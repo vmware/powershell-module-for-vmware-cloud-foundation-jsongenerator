@@ -1774,7 +1774,7 @@ Function New-SharedInstanceObject
         {
             $vcfVersion = $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
         }
-        
+       
         $dnsObject = New-Object -TypeName psobject
         $dnsObject | Add-Member -notepropertyname 'rootDnsDomain' -notepropertyvalue $pnpWorkbook.Workbook.names["parent_dns_zone"].Value
         $dnsObject | Add-Member -notepropertyname 'childDnsDomain' -notepropertyvalue $pnpWorkbook.Workbook.names["child_dns_zone"].Value
@@ -1789,6 +1789,17 @@ Function New-SharedInstanceObject
         $ssoObject | Add-Member -notepropertyname 'domain' -notepropertyvalue $pnpWorkbook.Workbook.names["mgmt_sso_domain"].Value 
         $ssoObject | Add-Member -notepropertyname 'adminPassword' -notepropertyvalue $pnpWorkbook.Workbook.names["administrator_vsphere_local_password"].Value 
         
+
+        # Enable branch logic in bypass mode
+        If ($interactiveBypass)
+        {
+            $workbookProfile = New-Object -type psobject
+            If ($workbookProfile.granularOperation -eq "Deploy a new VCF fleet")
+            {
+                $workbookProfile | Add-Member -NotePropertyName 'opsAutomationDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value
+            }
+        }
+
         $vcfOperationsObject = New-Object -TypeName psobject
         $vcfAutomationObject = New-Object -TypeName psobject
         If ($workbookProfile.opsAutomationDayNDeployment -eq "Unselected")
