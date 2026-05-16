@@ -1753,6 +1753,151 @@ Function New-TransferExcelContents
     
 }
 
+Function New-WorkbookDeploymentProfile
+{
+    Param (
+        [Parameter (Mandatory=$true)][ValidateNotNullOrEmpty()][object]$pnpWorkbook,
+        [Parameter (Mandatory=$true)][ValidateNotNullOrEmpty()][String]$vcfVersion,
+        [Parameter (Mandatory=$true)][ValidateNotNullOrEmpty()][ValidateSet("management", "workload")][String]$type
+    )
+
+    If ($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value -eq "First Instance")
+    {
+        $instance = "InstanceA"
+    }
+    else
+    {
+        $instance = "InstanceB"
+    }
+
+    If ($type -eq "workload")
+    {
+        If ($pnpWorkbook.Workbook.Names["wld_nsx_ha_mode_chosen"].Value -eq "High-Availbility")
+        {
+            $singleNSXTManager = "N"
+        }
+        else
+        {
+            $singleNSXTManager = "Y"
+        }
+    }
+    else
+    {
+        If ($instance -eq "InstanceA")
+        {
+            $joinFleet = "N"
+        }
+        else
+        {
+            $joinFleet = "Y"
+        }
+
+        If ($pnpWorkbook.Workbook.Names["mgmt_domain_vcf_operations_ha_mode_chosen"].Value -eq "High Availability (Three-node)")
+        {
+            $singleNSXTManager = "N"
+            $fleetManagementDeploymentModel = "highlyAvailable"
+        }
+        else
+        {
+            $singleNSXTManager = "Y"
+            $fleetManagementDeploymentModel = "single"
+        }
+        
+        #get fleet management deployment timing
+        If ($pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value -eq "Selected")
+        {
+            $fleetManagementTiming = "later"
+        }
+        else
+        {
+            $fleetManagementTiming = "bringup"
+        }
+    
+        If ($pnpWorkbook.Workbook.Names["mgmt_domain_vcf_automation_later_chosen"].Value -eq "Selected")
+        {
+            $skipAutomation = "Y"   
+        }
+        else
+        {
+            $skipAutomation = "N"
+        }
+    
+        If ($vcfVersion -like "9.0*")
+        {
+            If ($fleetManagementTiming -eq "bringup")
+            {
+                $vcfManagementNetworkModel = "SharedManagement"
+            }
+            else
+            {
+                If ($pnpWorkbook.Workbook.Names["flt_custom_network_chosen"].Value -eq "Dedicated Management Network")
+                {
+                    $vcfManagementNetworkModel = "DedicatedManagement"
+                }
+                elseIf ($pnpWorkbook.Workbook.Names["flt_custom_network_chosen"].Value -eq "NSX Overlay Segment")
+                {
+                    $vcfManagementNetworkModel = "Overlay"
+                }
+                elseIf ($pnpWorkbook.Workbook.Names["flt_custom_network_chosen"].Value -eq "Shared Management Network")
+                {
+                    $vcfManagementNetworkModel = "SharedManagement"
+                }
+                else
+                {
+                    $vcfManagementNetworkModel = "nsxVlan"
+                }
+            }
+        }
+        else
+        {
+            If ($pnpWorkbook.Workbook.Names["mgmt_vcf_management_network_chosen"].Value -eq "Use VM management network")
+            {
+                $vcfmsNetworkModel = "SharedManagement"
+            }
+            else
+            {
+                $vcfmsNetworkModel = "DedicatedManagement"
+            }
+    
+            If ($fleetManagementTiming -eq "bringup")
+            {
+                $vcfManagementNetworkModel = $vcfmsNetworkModel
+            }
+            else
+            {
+                If ($pnpWorkbook.Workbook.Names["flt_custom_network_chosen"].Value -eq "Dedicated Management Network")
+                {
+                    $vcfManagementNetworkModel = "DedicatedManagement"
+                }
+                elseIf ($pnpWorkbook.Workbook.Names["flt_custom_network_chosen"].Value -eq "NSX Overlay Segment")
+                {
+                    $vcfManagementNetworkModel = "Overlay"
+                }
+                elseIf ($pnpWorkbook.Workbook.Names["flt_custom_network_chosen"].Value -eq "Shared Management Network")
+                {
+                    $vcfManagementNetworkModel = "SharedManagement"
+                }
+            }
+        }
+    }
+    
+    $deploymentProfileObject = New-Object -TypeName psobject
+    $deploymentProfileObject | Add-Member -notepropertyname 'singleNSXTManager' -notepropertyvalue $singleNSXTManager
+    If ($type -eq 'managment')
+    {
+        $deploymentProfileObject | Add-Member -notepropertyname 'skipAutomation' -notepropertyvalue $skipAutomation
+        $deploymentProfileObject | Add-Member -notepropertyname 'joinFleet' -notepropertyvalue $joinFleet
+        $deploymentProfileObject | Add-Member -notepropertyname 'fleetManagementDeploymentModel' -notepropertyvalue $fleetManagementDeploymentModel
+        $deploymentProfileObject | Add-Member -notepropertyname 'fleetManagementTiming' -notepropertyvalue $fleetManagementTiming
+        $deploymentProfileObject | Add-Member -notepropertyname 'vcfManagementNetworkModel' -notepropertyvalue $vcfManagementNetworkModel
+        If ($vcfVersion -notlike "9.0*")
+        {
+            $deploymentProfileObject | Add-Member -notepropertyname 'vcfmsNetworkModel' -notepropertyvalue $vcfmsNetworkModel
+        }                
+    }
+    Return $deploymentProfileObject
+}
+
 # Generate Global Objects
 Function New-SharedInstanceObject
 {
@@ -1774,6 +1919,7 @@ Function New-SharedInstanceObject
         {
             $vcfVersion = $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
         }
+        $deploymentProfileObject = New-WorkbookDeploymentProfile -pnpWorkbook $pnpWorkbook -vcfVersion $vcfVersion -type management
        
         $dnsObject = New-Object -TypeName psobject
         $dnsObject | Add-Member -notepropertyname 'rootDnsDomain' -notepropertyvalue $pnpWorkbook.Workbook.names["parent_dns_zone"].Value
@@ -2033,6 +2179,7 @@ Function New-SharedInstanceObject
         $vspObject | Add-Member -notepropertyname 'endIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_vcfms_node_pool_end_ip"].Value
 
         $sharedInstanceObject = New-Object -TypeName psobject
+        $sharedInstanceObject | Add-Member -notepropertyname 'deploymentProfile' -notepropertyvalue $deploymentProfileObject
         $sharedInstanceObject | Add-Member -notepropertyname 'version' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
         $sharedInstanceObject | Add-Member -notepropertyname 'dns' -notepropertyvalue $dnsObject
         $sharedInstanceObject | Add-Member -notepropertyname 'ntp' -notepropertyvalue $ntpObject
@@ -2077,6 +2224,8 @@ Function New-ManagementInstanceObject
         {
             $vcfVersion = $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
         }
+
+        $deploymentProfileObject = New-WorkbookDeploymentProfile -pnpWorkbook $pnpWorkbook -vcfVersion $vcfVersion -type management
 
         $domainName = $pnpWorkbook.Workbook.Names["mgmt_sddc_domain"].Value
         $sddcManagerObject = New-Object -TypeName psobject
@@ -2557,117 +2706,6 @@ Function New-ManagementInstanceObject
                 $az2RackObject | Add-Member -notepropertyname 'hosts' -notepropertyvalue $az2RackHostsObject
                 $az2RackObject | Add-Member -notepropertyname 'network' -notepropertyvalue $az2RackNetworkObject
                 $az2Object | Add-Member -notepropertyname $rack -notepropertyvalue $az2RackObject    
-            }
-
-            If ($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value -eq "First Instance")
-            {
-                $joinFleet = "N"
-                $instance = "InstanceA"
-            }
-            else
-            {
-                $joinFleet = "Y"
-                $instance = "InstanceB"
-            }
-
-            If ($pnpWorkbook.Workbook.Names["mgmt_domain_vcf_operations_ha_mode_chosen"].Value -eq "High Availability (Three-node)")
-            {
-                $singleNSXTManager = "N"
-                $fleetManagementDeploymentModel = "highlyAvailable"
-            }
-            else
-            {
-                $singleNSXTManager = "Y"
-                $fleetManagementDeploymentModel = "single"
-            }
-            
-            #get fleet management deployment timing
-            If ($pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value -eq "Selected")
-            {
-                $fleetManagementTiming = "later"
-            }
-            else
-            {
-                $fleetManagementTiming = "bringup"
-            }
-
-            If ($pnpWorkbook.Workbook.Names["mgmt_domain_vcf_automation_later_chosen"].Value -eq "Selected")
-            {
-                $skipAutomation = "Y"   
-            }
-            else
-            {
-                $skipAutomation = "N"
-            }
-
-            If ($vcfVersion -like "9.0*")
-            {
-                If ($fleetManagementTiming -eq "bringup")
-                {
-                    $vcfManagementNetworkModel = "SharedManagement"
-                }
-                else
-                {
-                    If ($pnpWorkbook.Workbook.Names["flt_custom_network_chosen"].Value -eq "Dedicated Management Network")
-                    {
-                        $vcfManagementNetworkModel = "DedicatedManagement"
-                    }
-                    elseIf ($pnpWorkbook.Workbook.Names["flt_custom_network_chosen"].Value -eq "NSX Overlay Segment")
-                    {
-                        $vcfManagementNetworkModel = "Overlay"
-                    }
-                    elseIf ($pnpWorkbook.Workbook.Names["flt_custom_network_chosen"].Value -eq "Shared Management Network")
-                    {
-                        $vcfManagementNetworkModel = "SharedManagement"
-                    }
-                    else
-                    {
-                        $vcfManagementNetworkModel = "nsxVlan"
-                    }
-                }
-            }
-            else
-            {
-                If ($pnpWorkbook.Workbook.Names["mgmt_vcf_management_network_chosen"].Value -eq "Use VM management network")
-                {
-                    $vcfmsNetworkModel = "SharedManagement"
-                }
-                else
-                {
-                    $vcfmsNetworkModel = "DedicatedManagement"
-                }
-
-                If ($fleetManagementTiming -eq "bringup")
-                {
-                    $vcfManagementNetworkModel = $vcfmsNetworkModel
-                }
-                else
-                {
-                    If ($pnpWorkbook.Workbook.Names["flt_custom_network_chosen"].Value -eq "Dedicated Management Network")
-                    {
-                        $vcfManagementNetworkModel = "DedicatedManagement"
-                    }
-                    elseIf ($pnpWorkbook.Workbook.Names["flt_custom_network_chosen"].Value -eq "NSX Overlay Segment")
-                    {
-                        $vcfManagementNetworkModel = "Overlay"
-                    }
-                    elseIf ($pnpWorkbook.Workbook.Names["flt_custom_network_chosen"].Value -eq "Shared Management Network")
-                    {
-                        $vcfManagementNetworkModel = "SharedManagement"
-                    }
-                }
-            }
-            
-            $deploymentProfileObject = New-Object -TypeName psobject
-            $deploymentProfileObject | Add-Member -notepropertyname 'singleNSXTManager' -notepropertyvalue $singleNSXTManager
-            $deploymentProfileObject | Add-Member -notepropertyname 'skipAutomation' -notepropertyvalue $skipAutomation
-            $deploymentProfileObject | Add-Member -notepropertyname 'joinFleet' -notepropertyvalue $joinFleet
-            $deploymentProfileObject | Add-Member -notepropertyname 'fleetManagementDeploymentModel' -notepropertyvalue $fleetManagementDeploymentModel
-            $deploymentProfileObject | Add-Member -notepropertyname 'fleetManagementTiming' -notepropertyvalue $fleetManagementTiming
-            $deploymentProfileObject | Add-Member -notepropertyname 'vcfManagementNetworkModel' -notepropertyvalue $vcfManagementNetworkModel
-            If ($vcfVersion -notlike "9.0*")
-            {
-                $deploymentProfileObject | Add-Member -notepropertyname 'vcfmsNetworkModel' -notepropertyvalue $vcfmsNetworkModel
             }
         }
         #  End Rack Specific Stuff
@@ -3297,21 +3335,12 @@ Function New-WorkloadInstanceObject
                 }
             }
         }
-        If ($pnpWorkbook.Workbook.Names["wld_nsx_ha_mode_chosen"].Value -eq "High-Availbility")
-        {
-            $singleNSXTManager = "N"
-        }
-        else
-        {
-            $singleNSXTManager = "Y"
-        }
 
         $ssoObject = New-Object -TypeName psobject
         $ssoObject | Add-Member -notepropertyname 'domain' -notepropertyvalue $pnpWorkbook.Workbook.names["wld_sso_domain_name"].Value 
         $ssoObject | Add-Member -notepropertyname 'adminPassword' -notepropertyvalue $pnpWorkbook.Workbook.names["wld_administrator_vsphere_local_password"].Value 
 
-        $deploymentProfileObject = New-Object -TypeName psobject
-        $deploymentProfileObject | Add-Member -notepropertyname 'singleNSXTManager' -notepropertyvalue $singleNSXTManager
+        $deploymentProfileObject = New-WorkbookDeploymentProfile -pnpWorkbook $pnpWorkbook -vcfVersion $vcfVersion -type workload
 
         If ($pnpWorkbook.Workbook.Names["wld_bgp_chosen"].value -eq "Centralized Connectivity")
         {
