@@ -2178,9 +2178,18 @@ Function New-SharedInstanceObject
         $vspObject | Add-Member -notepropertyname 'startIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_vcfms_node_pool_start_ip"].Value
         $vspObject | Add-Member -notepropertyname 'endIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_vcfms_node_pool_end_ip"].Value
 
+        If ($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value -eq "First Instance")
+        {
+            $instance = "InstanceA"
+        }
+        else
+        {
+            $instance = "InstanceB"
+        }
         $sharedInstanceObject = New-Object -TypeName psobject
-        $sharedInstanceObject | Add-Member -notepropertyname 'deploymentProfile' -notepropertyvalue $deploymentProfileObject
+        $sharedInstanceObject | Add-Member -notepropertyname 'instance' -notepropertyvalue $instance
         $sharedInstanceObject | Add-Member -notepropertyname 'version' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
+        $sharedInstanceObject | Add-Member -notepropertyname 'deploymentProfile' -notepropertyvalue $deploymentProfileObject        
         $sharedInstanceObject | Add-Member -notepropertyname 'dns' -notepropertyvalue $dnsObject
         $sharedInstanceObject | Add-Member -notepropertyname 'ntp' -notepropertyvalue $ntpObject
         $sharedInstanceObject | Add-Member -notepropertyname 'sso' -notepropertyvalue $ssoObject
@@ -2216,7 +2225,7 @@ Function New-ManagementInstanceObject
         {
             LogMessage -type INFO -message "Extracting data specific to Management Domain Creation"
         }
-        
+
         If (!$totalRackCount)  { $totalRackCount = 1}
         $vcfInstanceName = $pnpWorkbook.Workbook.Names["vcf_instance_name"].Value
 
@@ -2822,12 +2831,20 @@ Function New-ManagementInstanceObject
                 $edgeClusterObject | Add-Member -NotePropertyName 'tepMode' -NotePropertyValue 'Dhcpv4'
             }
         }
-
+        
+        If ($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value -eq "First Instance")
+        {
+            $instance = "InstanceA"
+        }
+        else
+        {
+            $instance = "InstanceB"
+        }
         $managementInstanceObject = New-Object -TypeName psobject
-        $managementInstanceObject | Add-Member -notepropertyname 'version' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
         $managementInstanceObject | Add-Member -notepropertyname 'instance' -notepropertyvalue $instance
-        $managementInstanceObject | Add-Member -notepropertyname 'vcfInstanceName' -notepropertyvalue $vcfInstanceName
+        $managementInstanceObject | Add-Member -notepropertyname 'version' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
         $managementInstanceObject | Add-Member -notepropertyname 'deploymentProfile' -notepropertyvalue $deploymentProfileObject
+        $managementInstanceObject | Add-Member -notepropertyname 'vcfInstanceName' -notepropertyvalue $vcfInstanceName
         $managementInstanceObject | Add-Member -notepropertyname 'domainType' -notepropertyvalue "Management"
         $managementInstanceObject | Add-Member -notepropertyname 'domainName' -notepropertyvalue $domainName
         $managementInstanceObject | Add-Member -notepropertyname 'az1' -notepropertyvalue $az1Object
@@ -3463,9 +3480,9 @@ Function New-WorkloadInstanceObject
             $instance = "InstanceB"
         }
         $workloadInstanceObject = New-Object -TypeName psobject
+        $workloadInstanceObject | Add-Member -notepropertyname 'instance' -notepropertyvalue $instance
         $workloadInstanceObject | Add-Member -notepropertyname 'version' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
         $workloadInstanceObject | Add-Member -notepropertyname 'deploymentProfile' -notepropertyvalue $deploymentProfileObject
-        $workloadInstanceObject | Add-Member -notepropertyname 'instance' -notepropertyvalue $instance
         $workloadInstanceObject | Add-Member -notepropertyname 'granularOperation' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_granular_option_chosen"].Value
         $workloadInstanceObject | Add-Member -notepropertyname 'domainType' -notepropertyvalue "Workload"
         $workloadInstanceObject | Add-Member -notepropertyname 'domainName' -notepropertyvalue $domainName
