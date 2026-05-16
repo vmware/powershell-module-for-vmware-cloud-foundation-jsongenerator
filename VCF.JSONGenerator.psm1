@@ -1883,7 +1883,7 @@ Function New-WorkbookDeploymentProfile
     
     $deploymentProfileObject = New-Object -TypeName psobject
     $deploymentProfileObject | Add-Member -notepropertyname 'singleNSXTManager' -notepropertyvalue $singleNSXTManager
-    If ($type -eq 'managment')
+    If ($type -eq 'management')
     {
         $deploymentProfileObject | Add-Member -notepropertyname 'skipAutomation' -notepropertyvalue $skipAutomation
         $deploymentProfileObject | Add-Member -notepropertyname 'joinFleet' -notepropertyvalue $joinFleet
