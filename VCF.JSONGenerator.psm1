@@ -1904,7 +1904,7 @@ Function New-SharedInstanceObject
     Param (
         [Parameter (Mandatory = $true)] [Object]$pnpWorkbook,
         [Parameter (Mandatory = $false)] [Switch]$silent,
-        [Parameter (Mandatory = $false)] [switch]$interactiveBypass,
+        [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
         [Parameter (Mandatory = $false)] [string]$vcfVersion
     )
 
@@ -1935,8 +1935,8 @@ Function New-SharedInstanceObject
         $ssoObject | Add-Member -notepropertyname 'domain' -notepropertyvalue $pnpWorkbook.Workbook.names["mgmt_sso_domain"].Value 
         $ssoObject | Add-Member -notepropertyname 'adminPassword' -notepropertyvalue $pnpWorkbook.Workbook.names["administrator_vsphere_local_password"].Value 
         
-        #Enable Branch Logic for interactiveBypass        
-        If ($interactiveBypass)
+        #Enable Branch Logic for userPromptBypass        
+        If ($userPromptBypass)
         {
             $workbookProfile = New-Object -type psobject
             $workbookProfile | Add-Member -NotePropertyName 'granularOperation' -NotePropertyValue $pnpWorkbook.Workbook.Names["vcf_granular_option_chosen"].Value
@@ -1960,7 +1960,7 @@ Function New-SharedInstanceObject
             }
             else 
             {
-                If ($interactiveBypass)
+                If ($userPromptBypass)
                 {
                     $vcfOperationsObject | Add-Member -notepropertyname 'applianceSize' -notepropertyvalue ($pnpWorkbook.Workbook.Names["mgmt_vcfops_appliance_size_chosen"].Value).tolower()
                     $vcfOperationsObject | Add-Member -notepropertyname 'collectorApplianceSize' -notepropertyvalue 'standard'
@@ -2157,7 +2157,7 @@ Function New-SharedInstanceObject
         $vspObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_sr_fqdn"].Value
         $vspObject | Add-Member -notepropertyname 'instanceFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_ic_fqdn"].Value
         $vspObject | Add-Member -notepropertyname 'fleetFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_fc_fqdn"].Value
-        If ($interactiveBypass)
+        If ($userPromptBypass)
         {
             $vspObject | Add-Member -notepropertyname 'systemUserPassword' -notepropertyvalue $infrastructureSettings.environment.commonComplexPassword
         }
@@ -2208,7 +2208,7 @@ Function New-ManagementInstanceObject
         [Parameter (Mandatory = $false)] [Switch]$silent,
         [Parameter (Mandatory = $false)] [INT]$totalRackCount,
         [Parameter (Mandatory = $false)] [String]$vcfVersion,
-        [Parameter (Mandatory = $false)] [switch]$interactiveBypass
+        [Parameter (Mandatory = $false)] [switch]$userPromptBypass
         )
 
     Try {
@@ -2257,7 +2257,7 @@ Function New-ManagementInstanceObject
         $vcenterServerObject | Add-Member -notepropertyname 'nsxRp' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsx_rp"].Value
         $vcenterServerObject | Add-Member -notepropertyname 'userEdgeRp' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_user_edge_rp"].Value
         $vcenterServerObject | Add-Member -notepropertyname 'userVmRp' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_user_vm_rp"].Value
-        If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+        If (($vcfVersion -like "9.0*") -or ($userPromptBypass))
         {
             $vcenterServerObject | Add-Member -notepropertyname 'vcSize' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_vcenter_appliance_size_chosen"].Value
             $vcenterServerObject | Add-Member -notepropertyname 'vcStorage' -notepropertyvalue $pnpWorkbook.Workbook.Names["sizing_m01_vcenter_storage_size_chosen"].Value
@@ -2367,7 +2367,7 @@ Function New-ManagementInstanceObject
         $nsxtManagerObject | Add-Member -notepropertyname 'nodeAFQDN' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_mgra_fqdn"].Value
         $nsxtManagerObject | Add-Member -notepropertyname 'nodeBFQDN' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_mgrb_fqdn"].Value
         $nsxtManagerObject | Add-Member -notepropertyname 'nodeCFQDN' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_mgrc_fqdn"].Value
-        If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+        If (($vcfVersion -like "9.0*") -or ($userPromptBypass))
         {
             $nsxtManagerObject | Add-Member -notepropertyname 'mgrFormfactor' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_appliance_size_chosen"].Value
         }
@@ -2448,7 +2448,7 @@ Function New-ManagementInstanceObject
             #VMs
             $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_vlan"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_mtu"].Value
-            If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+            If (($vcfVersion -like "9.0*") -or ($userPromptBypass))
             {
                 $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_gateway_ip"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_cidr"].Value
@@ -2468,7 +2468,7 @@ Function New-ManagementInstanceObject
             $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vlan"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_mtu"].Value
             
-            If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+            If (($vcfVersion -like "9.0*") -or ($userPromptBypass))
             {
                 $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_gateway_ip"].Value            
                 $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_cidr"].Value
@@ -2488,7 +2488,7 @@ Function New-ManagementInstanceObject
             $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)vmotion_mtu"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)vmotion_pool_start_ip"].Value        
             $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)vmotion_pool_end_ip"].Value
-            If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+            If (($vcfVersion -like "9.0*") -or ($userPromptBypass))
             {
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)vmotion_gateway_ip"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)vmotion_cidr"].Value
@@ -2508,7 +2508,7 @@ Function New-ManagementInstanceObject
             $az1RackNetworkObject | Add-Member -notepropertyname 'vsanMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)vsan_mtu"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'vsanPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)vsan_pool_start_ip"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'vsanPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)vsan_pool_end_ip"].Value
-            If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+            If (($vcfVersion -like "9.0*") -or ($userPromptBypass))
             {
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)vsan_gateway_ip"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)vsan_cidr"].Value
@@ -2530,7 +2530,7 @@ Function New-ManagementInstanceObject
                 $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)secondary_storage_mtu"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)secondary_storage_pool_start_ip"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)secondary_storage_pool_end_ip"].Value
-                If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+                If (($vcfVersion -like "9.0*") -or ($userPromptBypass))
                 {
                     $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)secondary_storage_gateway_ip"].Value
                     $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)secondary_storage_cidr"].Value
@@ -2548,7 +2548,7 @@ Function New-ManagementInstanceObject
 
                 $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_dtgw_vlan"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_dtgw_mtu"].Value
-                If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+                If (($vcfVersion -like "9.0*") -or ($userPromptBypass))
                 {
                     $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_dtgw_gateway_ip"].Value
                     $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_dtgw_cidr"].Value
@@ -2569,7 +2569,7 @@ Function New-ManagementInstanceObject
             $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)host_overlay_mtu"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)host_overlay_pool_start_ip"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)host_overlay_pool_end_ip"].Value
-            If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+            If (($vcfVersion -like "9.0*") -or ($userPromptBypass))
             {
                 $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)host_overlay_gateway_ip"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)host_overlay_cidr"].Value
@@ -2593,7 +2593,7 @@ Function New-ManagementInstanceObject
             
             $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_management_vlan"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_management_mtu"].Value
-            If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+            If (($vcfVersion -like "9.0*") -or ($userPromptBypass))
             {
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_management_gateway_ip"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_management_cidr"].Value
@@ -2633,7 +2633,7 @@ Function New-ManagementInstanceObject
                 #VMs
                 $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVmVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_vlan"].Value
                 $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVmMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_mtu"].Value
-                If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+                If (($vcfVersion -like "9.0*") -or ($userPromptBypass))
                 {
                     $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVmGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_gateway_ip"].Value
                     $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVmCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_cidr"].Value
@@ -2798,7 +2798,7 @@ Function New-ManagementInstanceObject
             $edgeClusterObject | Add-Member -NotePropertyName 'bgp' -NotePropertyValue $bgpObject
             $edgeClusterObject | Add-Member -NotePropertyName 'nodes' -NotePropertyValue $nodesObject
             $edgeClusterObject | Add-Member -NotePropertyName 'haMode' -NotePropertyValue (($pnpWorkbook.Workbook.Names["mgmt_tier0_ha_chosen"].value).ToUpper()).replace(" ","_")
-            If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+            If (($vcfVersion -like "9.0*") -or ($userPromptBypass))
             {
                 $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_vpc_ext_ip_blocks"].value
                 $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_vpc_transit_gateway_ip_blocks"].value            
@@ -2886,7 +2886,7 @@ Function New-WorkloadInstanceObject
         [Parameter (Mandatory = $true)] [Object]$pnpWorkbook,
         [Parameter (Mandatory = $false)] [Switch]$silent,
         [Parameter (Mandatory = $false)] [String]$vcfVersion,
-        [Parameter (Mandatory = $false)] [Switch]$interactiveBypass
+        [Parameter (Mandatory = $false)] [Switch]$userPromptBypass
     )
 
     Try {
@@ -3129,7 +3129,7 @@ Function New-WorkloadInstanceObject
             #Hosts
             $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)mgmt_vlan"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)mgmt_mtu"].Value
-            If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+            If (($vcfVersion -like "9.0*") -or ($userPromptBypass))
             {
                 $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)mgmt_gateway_ip"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)mgmt_cidr"].Value
@@ -3149,7 +3149,7 @@ Function New-WorkloadInstanceObject
             $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)vmotion_mtu"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)vmotion_pool_start_ip"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)vmotion_pool_end_ip"].Value
-            If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+            If (($vcfVersion -like "9.0*") -or ($userPromptBypass))
             {
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)vmotion_gateway_ip"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)vmotion_cidr"].Value
@@ -3171,7 +3171,7 @@ Function New-WorkloadInstanceObject
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vsanMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_mtu"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vsanPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_pool_start_ip"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vsanPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_pool_end_ip"].Value
-                If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+                If (($vcfVersion -like "9.0*") -or ($userPromptBypass))
                 {
                     $az1RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_gateway_ip"].Value
                     $az1RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_cidr"].Value
@@ -3193,7 +3193,7 @@ Function New-WorkloadInstanceObject
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vsanMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_mtu"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vsanPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_pool_start_ip"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vsanPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_pool_end_ip"].Value
-                If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+                If (($vcfVersion -like "9.0*") -or ($userPromptBypass))
                 {
                     $az1RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_gateway_ip"].Value
                     $az1RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_cidr"].Value
@@ -3216,7 +3216,7 @@ Function New-WorkloadInstanceObject
                 $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_mtu"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_pool_start_ip"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_pool_end_ip"].Value
-                If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+                If (($vcfVersion -like "9.0*") -or ($userPromptBypass))
                 {
                     $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_gateway_ip"].Value
                     $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_cidr"].Value
@@ -3429,7 +3429,7 @@ Function New-WorkloadInstanceObject
             $edgeClusterObject | Add-Member -NotePropertyName 'bgp' -NotePropertyValue $bgpObject
             $edgeClusterObject | Add-Member -NotePropertyName 'nodes' -NotePropertyValue $nodesObject
             $edgeClusterObject | Add-Member -NotePropertyName 'haMode' -NotePropertyValue (($pnpWorkbook.Workbook.Names["wld_tier0_ha_chosen"].value).ToUpper()).replace(" ","_")
-            If (($vcfVersion -like "9.0*") -or ($interactiveBypass))
+            If (($vcfVersion -like "9.0*") -or ($userPromptBypass))
             {
                 $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_vpc_ext_ip_blocks"].value
                 $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_vpc_transit_gateway_ip_blocks"].value  
@@ -3902,12 +3902,12 @@ Function New-ManagementDomainJsonFile {
     .PARAMETER sharedInstanceObject
         The shared instance configuration object containing common settings across instances.
 
-    .PARAMETER interactiveBypass
+    .PARAMETER userPromptBypass
         If specified, skips interactive prompts and uses placeholder values for fingerprints.
 
     .PARAMETER noHostFingerprints
         If specified, skips live SSL fingerprint retrieval for ESXi hosts entirely and writes
-        placeholder values into the JSON. Independent of -interactiveBypass.
+        placeholder values into the JSON. Independent of -userPromptBypass.
 
     .PARAMETER targetFilePath
         If specified, saves the JSON output to exactly this path. If not specified, the file is saved
@@ -3917,7 +3917,7 @@ Function New-ManagementDomainJsonFile {
         New-ManagementDomainJsonFile -instanceObject $instanceObj -sharedInstanceObject $sharedObj
 
     .EXAMPLE
-        New-ManagementDomainJsonFile -instanceObject $instanceObj -sharedInstanceObject $sharedObj -interactiveBypass
+        New-ManagementDomainJsonFile -instanceObject $instanceObj -sharedInstanceObject $sharedObj -userPromptBypass
 
     .EXAMPLE
         New-ManagementDomainJsonFile -instanceObject $instanceObj -sharedInstanceObject $sharedObj -targetFilePath "C:\output\mgmt.json"
@@ -3926,14 +3926,14 @@ Function New-ManagementDomainJsonFile {
     Param (
         [Parameter (Mandatory = $true)] [Object]$instanceObject,
         [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
-        [Parameter (Mandatory = $false)] [Switch]$interactiveBypass,
+        [Parameter (Mandatory = $false)] [Switch]$userPromptBypass,
         [Parameter (Mandatory = $false)] [Switch]$noHostFingerprints,
         [Parameter (Mandatory = $false)] [String]$targetFilePath,
         [Parameter (Mandatory = $false)] [Object[]]$hostsToProcess
     )
 
     Try {
-        If (!$interactiveBypass)
+        If (!$userPromptBypass)
         {
             LogMessage -type INFO -message "Generating Management Domain JSON (V3)"
         }
@@ -3952,7 +3952,7 @@ Function New-ManagementDomainJsonFile {
         #endregion
 
         #region Interactive Mode Selection
-        If (-not $interactiveBypass) {
+        If (-not $userPromptBypass) {
             If (($joinFleet -eq "Y") -and ($instanceObject.instance -eq "InstanceB")) {
                 LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve fingerprints for ESX hosts plus existing Operations and Automation components? (Y/N): " -skipnewline
             } else {
@@ -5006,14 +5006,14 @@ Function New-WorkloadDomainJsonFile
 {
     Param (
         [Parameter (Mandatory = $true)] [Array]$instanceObject,
-        [Parameter (Mandatory = $false)] [switch]$interactiveBypass,
+        [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
         [Parameter (Mandatory = $false)] [String]$targetFilePath
     )
 
     Try 
     {
         LogMessage -type INFO -message "Generating Workload Domain JSON"
-        If (!$interactiveBypass)
+        If (!$userPromptBypass)
         {
             Do
             {
@@ -5031,7 +5031,7 @@ Function New-WorkloadDomainJsonFile
         }
         If ($interactiveEnabled -eq "Y")
         {
-            If (!$interactiveBypass)
+            If (!$userPromptBypass)
             {
                 Do
                 {
@@ -6002,7 +6002,7 @@ Function New-RackBasedHostCommissioning
     Param (
         [Parameter(Mandatory = $true)][Object]$instanceObject,
         [Parameter(Mandatory = $false)][string]$az,
-        [Parameter(Mandatory = $false)][switch]$interactiveBypass
+        [Parameter(Mandatory = $false)][switch]$userPromptBypass
     )
     Remove-Variable commissionNestedHosts -errorAction silentlyContinue
 
@@ -6012,7 +6012,7 @@ Function New-RackBasedHostCommissioning
         $jsonMode = Read-Host    
     } Until ($jsonMode -in "A","U")
     
-    If (!$interactiveBypass)
+    If (!$userPromptBypass)
     {
         Do
         {
@@ -6030,7 +6030,7 @@ Function New-RackBasedHostCommissioning
     }
     If ($interactiveEnabled -eq "Y")
     {
-        If (!$interactiveBypass)
+        If (!$userPromptBypass)
         {
             Do
             {
@@ -6153,9 +6153,9 @@ Function New-L2vSphereClusterJsonFile
 {
     Param (
         [Parameter (Mandatory = $true)] [Object]$clusterObject,
-        [Parameter (Mandatory = $false)] [switch]$interactiveBypass
+        [Parameter (Mandatory = $false)] [switch]$userPromptBypass
     )
-    If (!$interactiveBypass)
+    If (!$userPromptBypass)
     {
         Do
         {
@@ -6183,7 +6183,7 @@ Function New-L2vSphereClusterJsonFile
     }
     If ($interactiveEnabled -eq "Y")
     {
-        If (!$interactiveBypass)
+        If (!$userPromptBypass)
         {
             Do
             {
@@ -6715,9 +6715,9 @@ Function New-L3vSphereClusterJsonFile
 {
     Param (
         [Parameter (Mandatory = $true)] [Object]$clusterObject,
-        [Parameter (Mandatory = $false)] [switch]$interactiveBypass
+        [Parameter (Mandatory = $false)] [switch]$userPromptBypass
     )
-    If (!$interactiveBypass)
+    If (!$userPromptBypass)
     {
         Do
         {
@@ -6745,7 +6745,7 @@ Function New-L3vSphereClusterJsonFile
     }
     If ($interactiveEnabled -eq "Y")
     {
-        If (!$interactiveBypass)
+        If (!$userPromptBypass)
         {
             Do
             {
@@ -7286,10 +7286,10 @@ Function New-StretchedClusterJsonFile
 {
     Param (
         [Parameter (Mandatory = $true)] [Object]$instanceObject,
-        [Parameter (Mandatory = $false)] [switch]$interactiveBypass
+        [Parameter (Mandatory = $false)] [switch]$userPromptBypass
     )
 
-    If (!$interactiveBypass)
+    If (!$userPromptBypass)
     {
         Do
         {
@@ -7307,7 +7307,7 @@ Function New-StretchedClusterJsonFile
     }
     If ($interactiveEnabled -eq "Y")
     {
-        If (!$interactiveBypass)
+        If (!$userPromptBypass)
         {
             Do
             {
@@ -7563,9 +7563,9 @@ Function New-SingleOperationStretchedComputeClusterJsonFile
 {
     Param (
         [Parameter (Mandatory = $true)] [Object]$clusterObject,
-        [Parameter (Mandatory = $false)] [switch]$interactiveBypass
+        [Parameter (Mandatory = $false)] [switch]$userPromptBypass
     )
-    If (!$interactiveBypass)
+    If (!$userPromptBypass)
     {
         Do
         {
@@ -7586,7 +7586,7 @@ Function New-SingleOperationStretchedComputeClusterJsonFile
     }
     If ($interactiveEnabled -eq "Y")
     {
-        If (!$interactiveBypass)
+        If (!$userPromptBypass)
         {
             Do
             {
@@ -8213,9 +8213,9 @@ Function New-EdgeJSONFile
 {
     Param (
         [Parameter (Mandatory = $true)] [Object]$instanceObject,
-        [Parameter (Mandatory = $false)] [switch]$interactiveBypass
+        [Parameter (Mandatory = $false)] [switch]$userPromptBypass
     )
-    If (!$interactiveBypass)
+    If (!$userPromptBypass)
     {
         Do
         {
@@ -8931,7 +8931,7 @@ Function New-EdgeJSONFile
     $singleApiObject = New-Object -type psobject
     $singleApiObject | Add-Member -NotePropertyName 'resource_type' -NotePropertyValue "OrgRoot"
     $singleApiObject | Add-Member -NotePropertyName 'children' -NotePropertyValue $singleApiChildrenArray
-    If ($interactiveBypass)
+    If ($userPromptBypass)
     {
         LogMessage -Type INFO -Message "[$jumpboxName] Exporting the Edge Deployment JSON to edgeDeploymentSpec-$($instanceObject.edgeCluster.name).json"
     }
@@ -9121,10 +9121,10 @@ Function New-DayNIdbJsonFile
 {
     Param (
         [Parameter (Mandatory = $true)] [Array]$sharedInstanceObject,
-        [Parameter (Mandatory = $false)] [switch]$interactiveBypass
+        [Parameter (Mandatory = $false)] [switch]$userPromptBypass
     )
 
-    If (!$interactiveBypass)
+    If (!$userPromptBypass)
     {
         Do
         {
@@ -9142,7 +9142,7 @@ Function New-DayNIdbJsonFile
     }
     If ($interactiveEnabled -eq "Y")
     {
-        If (!$interactiveBypass)
+        If (!$userPromptBypass)
         {
             Do
             {
@@ -9275,10 +9275,10 @@ Function New-DayNLogsJsonFile
 {
     Param (
         [Parameter (Mandatory = $true)] [Array]$sharedInstanceObject,
-        [Parameter (Mandatory = $false)] [switch]$interactiveBypass
+        [Parameter (Mandatory = $false)] [switch]$userPromptBypass
     )
 
-    If (!$interactiveBypass)
+    If (!$userPromptBypass)
     {
         Do
         {
@@ -9296,7 +9296,7 @@ Function New-DayNLogsJsonFile
     }
     If ($interactiveEnabled -eq "Y")
     {
-        If (!$interactiveBypass)
+        If (!$userPromptBypass)
         {
             Do
             {
@@ -9512,10 +9512,10 @@ Function New-DayNNetworksJsonFile
 {
     Param (
         [Parameter (Mandatory = $true)] [Array]$sharedInstanceObject,
-        [Parameter (Mandatory = $false)] [switch]$interactiveBypass
+        [Parameter (Mandatory = $false)] [switch]$userPromptBypass
     )
 
-    If (!$interactiveBypass)
+    If (!$userPromptBypass)
     {
         Do
         {
@@ -9533,7 +9533,7 @@ Function New-DayNNetworksJsonFile
     }
     If ($interactiveEnabled -eq "Y")
     {
-        If (!$interactiveBypass)
+        If (!$userPromptBypass)
         {
             Do
             {
