@@ -2043,7 +2043,7 @@ Function New-SharedInstanceObject
             $vcfAutomationObject | Add-Member -notepropertyname 'collectorMgmtSubnetMask' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_mask"].Value
             $vcfAutomationObject | Add-Member -notepropertyname 'collectorMgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_gateway_ip"].Value
             $vcfAutomationObject | Add-Member -notepropertyname 'fleetManagementDeploymentModel' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ha_mode_chosen"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'size'  -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_size_chosen"].Value
+            $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_size_chosen"].Value
 
             $vcfFleetManagerObject = New-Object -TypeName psobject
             $vcfFleetManagerObject | Add-Member -notepropertyname 'fqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_flt_fqdn"].Value
