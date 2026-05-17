@@ -2929,36 +2929,15 @@ Function New-WorkloadInstanceObject
         If ($multiRackChosen -eq "Y")
         {
             $totalRackCount = ([INT]($pnpWorkbook.Workbook.Names["wld_multi_rack_count_chosen"].Value) + 1)
-            If ($pnpWorkbook.Workbook.Names["wld_dedicated_edge_cluster_result"].Value -eq "Included")
-            {
-                $dedicatedEdgeClusters = $true
-                $computeRackCount = ($totalRackCount - 2)
-            }
-            else
-            {
-                $dedicatedEdgeClusters = $false
-                $computeRackCount = $totalRackCount
-            }
-            $edgeRackFirst = "rack$($pnpWorkbook.Workbook.Names["wld_dedicated_edge_cluster_chosen_first"].Value)"
-            $edgeRackSecond = "rack$($pnpWorkbook.Workbook.Names["wld_dedicated_edge_cluster_chosen_second"].Value)"
-            $computeHostsPerRack = $pnpWorkbook.Workbook.Names["wld_compute_hosts_per_rack_chosen"].Value
+            $computeRackCount = $totalRackCount
         }
         else
         {
             $totalRackCount = 1
             $computeRackCount = 1
-            If ($commonObject.environment.networkingModel -eq 'isolated')
-            {
-                $computeHostsPerRack = 3
-            }
-            else
-            {
-                $computeHostsPerRack = 4
-            }            
-            $dedicatedEdgeClusters = $false
-            $edgeRackFirst = "Exclude"
-            $edgeRackSecond = "Exclude"
         }
+        $dedicatedEdgeClusters = $false
+        $computeHostsPerRack = $pnpWorkbook.Workbook.Names["wld_compute_hosts_per_rack_chosen"].Value
         
         $rackInformation = New-Object -TypeName psobject
         $rackInformation | Add-Member -notepropertyname 'multiRackChosen' -notepropertyvalue $multiRackChosen
@@ -2966,9 +2945,6 @@ Function New-WorkloadInstanceObject
         $rackInformation | Add-Member -notepropertyname 'computeRackCount' -notepropertyvalue $computeRackCount
         $rackInformation | Add-Member -notepropertyname 'computeHostsPerRack' -notepropertyvalue $computeHostsPerRack
         $rackInformation | Add-Member -notepropertyname 'dedicatedEdgeClusters' -notepropertyvalue $dedicatedEdgeClusters
-        $rackInformation | Add-Member -notepropertyname 'edgeRackFirst' -notepropertyvalue $($edgeRackFirst)
-        $rackInformation | Add-Member -notepropertyname 'edgeRackSecond' -notepropertyvalue $($edgeRackSecond)
-        $rackInformation | Add-Member -notepropertyname 'edgeDeploymentModel' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_dedicated_edge_cluster_model_chosen"].Value
 
         $domainName = $pnpWorkbook.Workbook.Names["wld_sddc_domain"].Value
 
@@ -5022,9 +4998,11 @@ Function New-ManagementDomainJsonFile {
 Function New-WorkloadDomainJsonFile 
 {
     Param (
-        [Parameter (Mandatory = $true)] [Array]$instanceObject,
-        [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
-        [Parameter (Mandatory = $false)] [String]$targetFilePath
+        [Parameter (Mandatory = $true)] [Object]$instanceObject,
+        [Parameter (Mandatory = $false)] [Switch]$noHostFingerprints,
+        [Parameter (Mandatory = $false)] [Switch]$userPromptBypass,
+        [Parameter (Mandatory = $false)] [String]$targetFilePath,
+        [Parameter (Mandatory = $false)] [Object]$selectedNSXManagerWorkloadObject        
     )
 
     Try 
@@ -5037,7 +5015,7 @@ Function New-WorkloadDomainJsonFile
                 LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve host and personality IDs from SDDC Manager? (Y/N): " -skipnewline
                 $interactiveEnabled = Read-Host    
             } Until ($interactiveEnabled -in "Y","N")
-            $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""
+            $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""    
         }
         else
         {
@@ -5070,50 +5048,53 @@ Function New-WorkloadDomainJsonFile
             {
                 New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
             }
+            
         }
+
+        If (!$selectedNSXManagerWorkloadObject) {$selectedNSXManagerWorkloadObject = $instanceObject}
 
         $nsxtNode1Object = @()
         $nsxtNode1Object += [pscustomobject]@{
-            'ipAddress'  = $instanceObject.nsxtManager.nodeAIpAddress
-            'dnsName'    = $instanceObject.nsxtManager.nodeAFQDN
+            'ipAddress'  = $selectedNSXManagerWorkloadObject.nsxtManager.nodeAIpAddress
+            'dnsName'    = $selectedNSXManagerWorkloadObject.nsxtManager.nodeAFQDN
         }
 
         $nsxtNode2Object = @()
         $nsxtNode2Object += [pscustomobject]@{
-            'ipAddress'  = $instanceObject.nsxtManager.nodeBIpAddress
-            'dnsName'    = $instanceObject.nsxtManager.nodeBFQDN
+            'ipAddress'  = $selectedNSXManagerWorkloadObject.nsxtManager.nodeBIpAddress
+            'dnsName'    = $selectedNSXManagerWorkloadObject.nsxtManager.nodeBFQDN
         }
 
         $nsxtNode3Object = @()
         $nsxtNode3Object += [pscustomobject]@{
-            'ipAddress'  = $instanceObject.nsxtManager.nodeCIpAddress
-            'dnsName'    = $instanceObject.nsxtManager.nodeCFQDN
+            'ipAddress'  = $selectedNSXManagerWorkloadObject.nsxtManager.nodeCIpAddress
+            'dnsName'    = $selectedNSXManagerWorkloadObject.nsxtManager.nodeCFQDN
         }
 
         $nsxtManagerObject = @()
         $nsxtManagerObject += [pscustomobject]@{
-            'name'             = $instanceObject.nsxtManager.nodeAHostname
+            'name'             = $selectedNSXManagerWorkloadObject.nsxtManager.nodeAHostname
             'networkDetailsSpec' = ($nsxtNode1Object | Select-Object -Skip 0)
         }
-        If ($instanceObject.deploymentProfile.singleNSXTManager -eq "N")
+        If ($selectedNSXManagerWorkloadObject.deploymentProfile.singleNSXTManager -eq "N")
         {
             $nsxtManagerObject += [pscustomobject]@{
-                'name'             = $instanceObject.nsxtManager.nodeBHostname
+                'name'             = $selectedNSXManagerWorkloadObject.nsxtManager.nodeBHostname
                 'networkDetailsSpec' = ($nsxtNode2Object | Select-Object -Skip 0)
             }
             $nsxtManagerObject += [pscustomobject]@{
-                'name'             = $instanceObject.nsxtManager.nodeCHostname
+                'name'             = $selectedNSXManagerWorkloadObject.nsxtManager.nodeCHostname
                 'networkDetailsSpec' = ($nsxtNode3Object | Select-Object -Skip 0)
             }
         }
         
         $nsxtObject = @()
         $nsxtObject += [pscustomobject]@{
-            'formFactor'              = $instanceObject.nsxtManager.formFactor
+            'formFactor'              = $selectedNSXManagerWorkloadObject.nsxtManager.formFactor
             'nsxManagerSpecs'         = $nsxtManagerObject
-            'vip'                     = $instanceObject.nsxtManager.ipAddress
-            'vipFqdn'                 = $instanceObject.nsxtManager.fqdn
-            'nsxManagerAdminPassword' = $instanceObject.nsxtManager.adminPassword
+            'vip'                     = $selectedNSXManagerWorkloadObject.nsxtManager.ipAddress
+            'vipFqdn'                 = $selectedNSXManagerWorkloadObject.nsxtManager.fqdn
+            'nsxManagerAdminPassword' = $selectedNSXManagerWorkloadObject.nsxtManager.adminPassword
         }
 
         $vmnicObject = @()
@@ -5210,50 +5191,51 @@ Function New-WorkloadDomainJsonFile
         $rackArray = @(($instanceObject.az1 | Get-Member -type NoteProperty).name)
         Foreach ($rack in $rackArray)
         {
-            $selectedHosts = @(0..$([INT]$instanceObject.az1.$($rack).hosts.count -1))
-            If ((($instanceObject.rackInformation.dedicatedEdgeClusters -eq $true ) -AND ($rack -ne $instanceObject.rackInformation.edgeRackFirst) -AND ($rack -ne $instanceObject.rackInformation.edgeRackSecond)) -OR ($instanceObject.rackInformation.dedicatedEdgeClusters -eq $false ))
+            $selectedHosts = @(0..$([INT]$instanceObject.rackInformation.computeHostsPerRack -1))
+            <#If (-not $selectedHosts) {
+                $selectedHosts = @(0..$([INT]$instanceObject.az1.$($rack).hosts.count -1))
+            }#>
+            Foreach ($selectedHost in $selectedHosts)
             {
-                Foreach ($selectedHost in $selectedHosts)
+                $hostnetworkObject = @()
+                $hostnetworkObject += [pscustomobject]@{
+                    'vmNics' = $vmnicObject
+                }
+                If ($instanceObject.rackinformation.multiRackChosen -eq "Y")
                 {
-                    $hostnetworkObject = @()
-                    $hostnetworkObject += [pscustomobject]@{
-                        'vmNics' = $vmnicObject
-                    }
-                    If ($instanceObject.rackinformation.multiRackChosen -eq "Y")
-                    {
-                        $hostnetworkObject | Add-Member -notepropertyName 'networkProfileName' -NotePropertyValue $instanceObject.az1.$($rack).network.networkProfileName
-                    }
+                    $hostnetworkObject | Add-Member -notepropertyName 'networkProfileName' -NotePropertyValue $instanceObject.az1.$($rack).network.networkProfileName
+                }
 
-                    If ($interactiveEnabled -eq "Y")
+                If (($interactiveEnabled -eq "Y") -and (!$noHostFingerprints))
+                {
+                    $hostID = Get-VCFHostDetails -Status UNASSIGNED_USEABLE | Select-Object fqdn, id | Where-Object { $_.fqdn -eq $instanceObject.az1.$($rack).hosts[$selectedHost].fqdn }
+                    If ($hostID)
                     {
-                        $hostID = Get-VCFHostDetails -Status UNASSIGNED_USEABLE | Select-Object fqdn, id | Where-Object { $_.fqdn -eq $instanceObject.az1.$($rack).hosts[$selectedHost].fqdn }
-                        If ($hostID)
-                        {
-                            LogMessage -Type INFO -Message "Obtaining Host ID from SDDC Manager for host $($instanceObject.az1.$($rack).hosts[$selectedHost].fqdn): Found"
-                            $hostIdValue = $hostId.id
-                        }
-                        else
-                        {
-                            LogMessage -Type WARNING -Message "Obtaining Host ID from SDDC Manager for host $($instanceObject.az1.$($rack).hosts[$selectedHost].fqdn): Not found. Not adding to JSON File"
-                            $hostIdValue = "None Found"
-                        }
+                        LogMessage -Type INFO -Message "Obtaining Host ID from SDDC Manager for host $($instanceObject.az1.$($rack).hosts[$selectedHost].fqdn): Found"
+                        $hostIdValue = $hostId.id
                     }
                     else
                     {
-                        $hostIdValue = "<--ENTER-SDDC-HOSTID-HERE-->"
+                        LogMessage -Type WARNING -Message "Obtaining Host ID from SDDC Manager for host $($instanceObject.az1.$($rack).hosts[$selectedHost].fqdn): Not found. Not adding to JSON File"
+                        $hostIdValue = "None Found"
                     }
-                    If ($hostIdValue -ne "None Found")
-                    {
-                        $newHost = [pscustomobject]@{
-                            'id'                = "$hostIdValue"
-                            'hostname'          = $instanceObject.az1.$($rack).hosts[$selectedHost].fqdn
-                            'hostNetworkSpec'   = ($hostnetworkObject | Select-Object -Skip 0)
-                        }
-                        $hostArray += $newHost
-                    }
-                    $hostCounter++
                 }
+                else
+                {
+                    $hostIdValue = "<--ENTER-SDDC-HOSTID-HERE-->"
+                }
+                If ($hostIdValue -ne "None Found")
+                {
+                    $newHost = [pscustomobject]@{
+                        'id'                = "$hostIdValue"
+                        'hostname'          = $instanceObject.az1.$($rack).hosts[$selectedHost].fqdn
+                        'hostNetworkSpec'   = ($hostnetworkObject | Select-Object -Skip 0)
+                    }
+                    $hostArray += $newHost
+                }
+                $hostCounter++
             }
+            
         }
         If ($hostCounter -gt $maxClusterNodeCount)
         {
@@ -5372,7 +5354,7 @@ Function New-WorkloadDomainJsonFile
         
         $vdsMtu = $([INT]$instanceObject.vsphereClusters[0].vds[0].mtu)
         $overlayTransportZone = [pscustomobject]@{
-            'name'          = "overlay-tz-$($instanceObject.nsxtManager.hostname)"
+            'name'          = "overlay-tz-$($selectedNSXManagerWorkloadObject.nsxtManager.hostname)"
             'transportType' = "OVERLAY"
         }
         
