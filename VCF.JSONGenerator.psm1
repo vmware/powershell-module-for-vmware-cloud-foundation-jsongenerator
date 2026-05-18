@@ -8808,14 +8808,22 @@ Function New-EdgeJSONFile
 
     # Start ChildVpcConnectivityProfile & ChildTransitGateway
 
-    If ($tier0Object.ha_mode -ne "ACTIVE_ACTIVE")
+    If ($instanceObject.version -like "9.0*")
+    {
+        If ($tier0Object.ha_mode -ne "ACTIVE_ACTIVE")
+        {
+            $snatValue = $true
+        }
+        else
+        {
+            $snatValue = $false
+        }
+    }
+    else 
     {
         $snatValue = $true
     }
-    else
-    {
-        $snatValue = $false
-    }
+    
     $natConfigObject = New-Object -type psobject
     $natConfigObject | Add-Member -NotePropertyName 'enable_default_snat' -NotePropertyValue $snatValue
 
