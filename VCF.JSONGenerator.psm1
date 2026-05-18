@@ -4071,7 +4071,7 @@ Function New-ManagementDomainJsonFile
         $dnsObject = @()
         $dnsObject += [pscustomobject]@{
             'nameservers'         = $nameServers
-            'subdomain'           = $sharedInstanceObject.dns.roofDnsDomain
+            'subdomain'           = $sharedInstanceObject.dns.rootDnsDomain
         }
 
         #ntpServers
