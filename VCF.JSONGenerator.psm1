@@ -3892,7 +3892,6 @@ Function New-ManagementDomainJsonFile
 {
 
     Param (
-        [Parameter (Mandatory = $true)] [String]$path,
         [Parameter (Mandatory = $true)] [Array]$instanceObject,
         [Parameter (Mandatory = $true)] [Array]$sharedInstanceObject,
         [Parameter (Mandatory = $false)] [string]$singleNSXTManager,
