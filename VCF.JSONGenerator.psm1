@@ -3892,7 +3892,7 @@ Function New-ManagementDomainJsonFile
 {
 
     Param (
-        [Parameter (Mandatory = $true)] [Array]$instanceObject,
+        [Parameter (Mandatory = $true)] [Object]$instanceObject,
         [Parameter (Mandatory = $true)] [Array]$sharedInstanceObject,
         [Parameter (Mandatory = $false)] [string]$singleNSXTManager,
         [Parameter (Mandatory = $false)] [string]$skipAutomation,
@@ -4469,7 +4469,7 @@ Function New-ManagementDomainJsonFile
             }
                             
             $hostSpecs += [pscustomobject]@{
-                'hostname'       = $instanceObject.az1.rack1.hosts[0..$lastHost].fqdn[$instanceObject.az1.rack1.hosts[0..$lastHost].indexof($hostInstance)]
+                'hostname'       = $hostInstance.hostname
                 'credentials'      = ($hostCredentialsObject | Select-Object -Skip 0)
                 'sslThumbprint' = $fingerprintText
             }
