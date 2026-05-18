@@ -4470,7 +4470,7 @@ Function New-ManagementDomainJsonFile
             }
                             
             $hostSpecs += [pscustomobject]@{
-                'hostname'       = $hostInstance.hostname
+                'hostname'       = $hostInstance.fqdn
                 'credentials'      = ($hostCredentialsObject | Select-Object -Skip 0)
                 'sslThumbprint' = $fingerprintText
             }
