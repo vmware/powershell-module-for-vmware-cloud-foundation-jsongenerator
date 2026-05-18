@@ -3119,6 +3119,13 @@ Function New-WorkloadInstanceObject
             $az1RackNetworkObject = New-Object -TypeName psobject
             
             #VMs
+            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_mgmt_vm_vlan"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_mgmt_vm_gateway_ip"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_mgmt_vm_mtu"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_mgmt_vm_cidr"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_mgmt_vm_network"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_mgmt_vm_mask"].Value
+            
             #Hosts
             $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)mgmt_vlan"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)mgmt_mtu"].Value
