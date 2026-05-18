@@ -4137,7 +4137,8 @@ Function New-ManagementDomainJsonFile
         }
 
         #nsxtSpec
-        $nsxtManagerObject = [pscustomobject]@{
+        $nsxtManagerObject = @()
+        $nsxtManagerObject += [pscustomobject]@{
             'hostname' = $instanceObject.nsxtManager.nodeAFqdn
         }
         If ($singleNSXTManager -eq "N")
