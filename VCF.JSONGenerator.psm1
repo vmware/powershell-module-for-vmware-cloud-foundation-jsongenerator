@@ -3904,10 +3904,9 @@ Function New-ManagementDomainJsonFile
     )
 
     Try {
-        If (!$userPromptBypass)
-        {
-            LogMessage -type INFO -message "Generating Management Domain JSON (V3)"
-        }
+        
+        LogMessage -type INFO -message "Generating Management Domain JSON (V3)"
+        
         #Region Parameter Resolution
         #Single NSX Manager
         If ($instanceObject.deploymentProfile.singleNSXTManager -eq "Y") {$singleNSXTManager = "Y"}
