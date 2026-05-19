@@ -4378,6 +4378,7 @@ Function New-ManagementDomainJsonFile
             'nodePrefix' = $sharedInstanceObject.automation.vcfaNodePrefix
             
         }
+        
         If ($instanceObject.version -notlike "9.0.*" -and $sharedInstanceObject.automation.platformFqdn) {
             $vcfAutomationSpecObject | Add-Member -NotePropertyName 'platformFqdn' -NotePropertyValue $sharedInstanceObject.automation.platformFqdn -Force
         }
@@ -5249,7 +5250,7 @@ Function New-ManagementDomainJsonFile
         If (($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and (($instanceObject.instance -eq "InstanceA") -OR (($instanceObject.instance -eq "InstanceB") -AND ($joinFleet -eq "Y")))){$managementDomainObject | Add-Member -notepropertyname 'vcfOperationsSpec' -notepropertyvalue ($vcfOperationsSpecObject | Select-Object -Skip 0)}
         If (($instanceObject.version -like "9.0.*") -and ($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and (($instanceObject.instance -eq "InstanceA") -OR (($instanceObject.instance -eq "InstanceB") -AND ($joinFleet -eq "Y")))) {$managementDomainObject | Add-Member -notepropertyname 'vcfOperationsFleetManagementSpec' -notepropertyvalue ($vcfOperationsManagementSpecObject | Select-Object -Skip 0)}
         If (($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and (($instanceObject.instance -eq "InstanceA") -OR (($instanceObject.instance -eq "InstanceB") -AND ($joinFleet -eq "Y")))) {$managementDomainObject | Add-Member -notepropertyname 'vcfOperationsCollectorSpec' -notepropertyvalue ($vcfOperationsCloudProxySpecObject | Select-Object -Skip 0)}
-        If ((($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and ($instanceObject.instance -eq "InstanceA") -AND ($skipAutomation -ne 'Y')) -or (($instanceObject.instance -eq "InstanceB") -and ($joinFleet -eq "Y") -AND ($skipAutomation -ne 'Y'))) {$managementDomainObject | Add-Member -notepropertyname 'vcfAutomationSpec' -notepropertyvalue ($vcfAutomationSpecObjectObject | Select-Object -Skip 0)}
+        If ((($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and ($instanceObject.instance -eq "InstanceA") -AND ($skipAutomation -ne 'Y')) -or (($instanceObject.instance -eq "InstanceB") -and ($joinFleet -eq "Y") -AND ($skipAutomation -ne 'Y'))) {$managementDomainObject | Add-Member -notepropertyname 'vcfAutomationSpec' -notepropertyvalue ($vcfAutomationSpecObject | Select-Object -Skip 0)}
         If ($instanceObject.version -notlike "9.0.*")
         {            
             $managementDomainObject | Add-Member -notepropertyname 'vspClusterSpec' -notepropertyvalue $vspClusterSpecObject
@@ -9310,8 +9311,8 @@ Function New-DayNOpsAndAutomationJsonFile
         $ipPoolObject += $sharedInstanceObject.automation.nodeCIpAddress
         $ipPoolObject += $sharedInstanceObject.automation.extraNodeIpAddress    
     }
-    $vcfAutomationSpecObjectObject = @()
-    $vcfAutomationSpecObjectObject += [pscustomobject]@{
+    $vcfAutomationSpecObject = @()
+    $vcfAutomationSpecObject += [pscustomobject]@{
         'hostname' = $sharedInstanceObject.automation.vipFqdn   
         'adminUserPassword' = $sharedInstanceObject.automation.adminUserPassword
         'nodePrefix' = $sharedInstanceObject.automation.vcfaNodePrefix
@@ -9344,7 +9345,7 @@ Function New-DayNOpsAndAutomationJsonFile
     $dayNOpsAndAutomationSpecObject | Add-Member -notepropertyname 'vcfOperationsFleetManagementSpec' -notepropertyvalue ($vcfOperationsManagementSpecObject | Select-Object -Skip 0)
     $dayNOpsAndAutomationSpecObject | Add-Member -notepropertyname 'vcfOperationsSpec' -notepropertyvalue ($vcfOperationsSpecObject | Select-Object -Skip 0)
     $dayNOpsAndAutomationSpecObject | Add-Member -notepropertyname 'vcfOperationsCollectorSpec' -notepropertyvalue ($vcfOperationsCloudProxySpecObject | Select-Object -Skip 0)
-    $dayNOpsAndAutomationSpecObject | Add-Member -notepropertyname 'vcfAutomationSpec' -notepropertyvalue ($vcfAutomationSpecObjectObject | Select-Object -Skip 0)
+    $dayNOpsAndAutomationSpecObject | Add-Member -notepropertyname 'vcfAutomationSpec' -notepropertyvalue ($vcfAutomationSpecObject | Select-Object -Skip 0)
     $dayNOpsAndAutomationSpecObject | Add-Member -notepropertyname 'vcfMangementComponentsInfrastructureSpec' -notepropertyvalue ($vcfMangementComponentsInfrastructureSpecObject | Select-Object -Skip 0)
     LogMessage -Type INFO -Message "Exporting the VCF Operations and Automation Post Bringup JSON to opsAutomation-dayNDeploymentSpec.json"
     ConvertTo-Json $dayNOpsAndAutomationSpecObject -depth 12 | Out-File -Encoding UTF8 -FilePath "opsAutomation-dayNDeploymentSpec.json"
