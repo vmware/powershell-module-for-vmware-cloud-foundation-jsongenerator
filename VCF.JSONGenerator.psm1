@@ -2636,7 +2636,7 @@ Function New-ManagementInstanceObject
             $az1RackObject | Add-Member -notepropertyname 'network' -notepropertyvalue $az1RackNetworkObject
             $az1Object | Add-Member -notepropertyname $rack -notepropertyvalue $az1RackObject
 
-            If ($pnpWorkbook.Workbook.Names["mgmt_stretched_cluster_chosen"].Value -eq "Include")
+            If (($pnpWorkbook.Workbook.Names["mgmt_stretched_cluster_result"].Value -eq "Included") -or ($userPromptBypass))
             {
                 $az2RackNetworkObject = New-Object -TypeName psobject
                 #VMs
@@ -2848,7 +2848,7 @@ Function New-ManagementInstanceObject
         $managementInstanceObject | Add-Member -notepropertyname 'domainType' -notepropertyvalue "Management"
         $managementInstanceObject | Add-Member -notepropertyname 'domainName' -notepropertyvalue $domainName
         $managementInstanceObject | Add-Member -notepropertyname 'az1' -notepropertyvalue $az1Object
-        If ($pnpWorkbook.Workbook.Names["mgmt_stretched_cluster_chosen"].Value -eq "Include")
+        If ($az2Object)
         {
             $managementInstanceObject | Add-Member -notepropertyname 'az2' -notepropertyvalue $az2Object
         }        
@@ -2864,7 +2864,7 @@ Function New-ManagementInstanceObject
             $managementInstanceObject | Add-Member -notepropertyname 'edgeCluster' -notepropertyvalue $edgeClusterObject
         }
         
-        If ($pnpWorkbook.Workbook.Names["mgmt_stretched_cluster_chosen"].value -eq "Include")
+        If ($az2Object)
         {
             $stretchClusterObject = New-Object -type pscustomobject
             $stretchClusterObject | Add-Member -notepropertyname 'required' -notepropertyvalue $true
@@ -3256,7 +3256,7 @@ Function New-WorkloadInstanceObject
             $az1RackObject | Add-Member -notepropertyname 'network' -notepropertyvalue $az1RackNetworkObject
             $az1Object | Add-Member -notepropertyname $rack -notepropertyvalue $az1RackObject
       
-            If ($pnpWorkbook.Workbook.Names["wld_stretched_cluster_result"].Value -eq "Included")
+            If (($pnpWorkbook.Workbook.Names["wld_stretched_cluster_result"].Value -eq "Included") -or ($userPromptBypass))
             {
                 $az2Object = New-Object -TypeName psobject
                 $az2RackNetworkObject = New-Object -TypeName psobject
@@ -3486,7 +3486,7 @@ Function New-WorkloadInstanceObject
             $workloadInstanceObject | Add-Member -notepropertyname 'edgeCluster' -notepropertyvalue $edgeClusterObject
         }
 
-        If ($pnpWorkbook.Workbook.Names["wld_stretched_cluster_chosen"].value -eq "Include")
+        If ($az2Object)
         {
             $stretchClusterObject = New-Object -type pscustomobject
             $stretchClusterObject | Add-Member -notepropertyname 'required' -notepropertyvalue $true
