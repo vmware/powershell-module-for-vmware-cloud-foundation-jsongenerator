@@ -2401,7 +2401,7 @@ Function New-ManagementInstanceObject
 
         #Define AZs for the domain
         $az1Object = New-Object -TypeName psobject
-        If ($pnpWorkbook.Workbook.Names["mgmt_stretched_cluster_chosen"].Value -eq "Include")
+        If (($pnpWorkbook.Workbook.Names["mgmt_stretched_cluster_result"].Value -eq "Included") -or ($userPromptBypass))
         {
             $az2Object = New-Object -TypeName psobject
         }
@@ -2434,7 +2434,7 @@ Function New-ManagementInstanceObject
                 $az1RackHostsObject += $az1RackHostObject           
             }
 
-            If ($pnpWorkbook.Workbook.Names["mgmt_stretched_cluster_chosen"].Value -eq "Include")
+            If (($pnpWorkbook.Workbook.Names["mgmt_stretched_cluster_result"].Value -eq "Included") -or ($userPromptBypass))
             {
                 $az2RackHostNames = @(($pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_hostnames"].Value) | Where-Object {$_ -notin "Value Missing","Not Required"})
                 $az2RackHostMgmtIps = @(($pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_mgmt_ips"].Value) | Where-Object {$_ -notin "Value Missing","Not Required"})
@@ -3100,22 +3100,7 @@ Function New-WorkloadInstanceObject
                 }
                 $az1RackHostsObject += $az1RackHostObject
             }
-            
-            $az2RackHostNames = @(($pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_hostnames"].Value) | Where-Object {$_ -notin "Value Missing","Not Required"})
-            $az2RackHostMgmtIps = @(($pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_mgmt_ips"].Value) | Where-Object {$_ -notin "Value Missing","Not Required"})
-            $az2RackHostFqdns = @(($pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_fqdns"].Value) | Where-Object {$_ -notin "Value Missing","Not Required" -and $_ -ne ""})
-            
-            $az2RackHostsObject = @()
-            Foreach ($az2RackHost in $az2RackHostFqdns)
-            {
-                $az2RackHostObject = [pscustomobject]@{
-                    'mgmtIp'   = $az2RackHostMgmtIps[$az2RackHostFqdns.indexof($az2RackHost)]
-                    'hostname' = $az2RackHostNames[$az2RackHostFqdns.indexof($az2RackHost)]
-                    'fqdn'     = $az2RackHostFqdns[$az2RackHostFqdns.indexof($az2RackHost)]
-                }
-                $az2RackHostsObject += $az2RackHostObject
-            }
-            
+             
             $az1RackNetworkObject = New-Object -TypeName psobject
             
             #VMs
@@ -3259,10 +3244,26 @@ Function New-WorkloadInstanceObject
             If (($pnpWorkbook.Workbook.Names["wld_stretched_cluster_result"].Value -eq "Included") -or ($userPromptBypass))
             {
                 $az2Object = New-Object -TypeName psobject
-                $az2RackNetworkObject = New-Object -TypeName psobject
+
                 If ($rack -eq "rack1")
                 {
                     #Hosts
+                    $az2RackHostNames = @(($pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_hostnames"].Value) | Where-Object {$_ -notin "Value Missing","Not Required"})
+                    $az2RackHostMgmtIps = @(($pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_mgmt_ips"].Value) | Where-Object {$_ -notin "Value Missing","Not Required"})
+                    $az2RackHostFqdns = @(($pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_fqdns"].Value) | Where-Object {$_ -notin "Value Missing","Not Required" -and $_ -ne ""})
+                    
+                    $az2RackHostsObject = @()
+                    Foreach ($az2RackHost in $az2RackHostFqdns)
+                    {
+                        $az2RackHostObject = [pscustomobject]@{
+                            'mgmtIp'   = $az2RackHostMgmtIps[$az2RackHostFqdns.indexof($az2RackHost)]
+                            'hostname' = $az2RackHostNames[$az2RackHostFqdns.indexof($az2RackHost)]
+                            'fqdn'     = $az2RackHostFqdns[$az2RackHostFqdns.indexof($az2RackHost)]
+                        }
+                        $az2RackHostsObject += $az2RackHostObject
+                    }        
+                    
+                    $az2RackNetworkObject = New-Object -TypeName psobject
                     $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)mgmt_vlan"].Value
                     $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)mgmt_mtu"].Value
                     $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)mgmt_gateway_ip"].Value
