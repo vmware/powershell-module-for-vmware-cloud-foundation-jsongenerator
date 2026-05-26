@@ -3243,10 +3243,8 @@ Function New-WorkloadInstanceObject
       
             If (($pnpWorkbook.Workbook.Names["wld_stretched_cluster_result"].Value -eq "Included") -or ($userPromptBypass))
             {
-                $az2Object = New-Object -TypeName psobject
-
                 If ($rack -eq "rack1")
-                {
+                {                                       
                     #Hosts
                     $az2RackHostNames = @(($pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_hostnames"].Value) | Where-Object {$_ -notin "Value Missing","Not Required"})
                     $az2RackHostMgmtIps = @(($pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_mgmt_ips"].Value) | Where-Object {$_ -notin "Value Missing","Not Required"})
@@ -3332,6 +3330,7 @@ Function New-WorkloadInstanceObject
                     $az2RackObject = New-Object -TypeName psobject           
                     $az2RackObject | Add-Member -notepropertyname 'hosts' -notepropertyvalue $az2RackHostsObject
                     $az2RackObject | Add-Member -notepropertyname 'network' -notepropertyvalue $az2RackNetworkObject
+                    $az2Object = New-Object -TypeName psobject
                     $az2Object | Add-Member -notepropertyname $rack -notepropertyvalue $az2RackObject    
                 }
             }
