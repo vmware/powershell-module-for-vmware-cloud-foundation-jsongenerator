@@ -785,7 +785,7 @@ Function Start-VCFJsonGeneration
                     Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem41" -Foregroundcolor Cyan; Write-Host -Object ''
                     If (($sharedInstanceObject) -and ($workbookProfile.logsDayNDeployment -eq "Include"))
                     {
-                        New-DayNLogsJsonFile -sharedInstanceObject $sharedInstanceObject
+                        New-DayNLogsJsonFileLegacy -sharedInstanceObject $sharedInstanceObject
                     }
                     else
                     {
@@ -798,7 +798,7 @@ Function Start-VCFJsonGeneration
                     Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem42" -Foregroundcolor Cyan; Write-Host -Object ''
                     If (($sharedInstanceObject) -and ($workbookProfile.networksDayNDeployment -eq "Include"))
                     {
-                        New-DayNNetworksJsonFile -sharedInstanceObject $sharedInstanceObject
+                        New-DayNNetworksJsonFileLegacy -sharedInstanceObject $sharedInstanceObject
                     }
                     else
                     {
@@ -1919,7 +1919,20 @@ Function New-SharedInstanceObject
         {
             $vcfVersion = $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
         }
+        $vcfInstanceName = $pnpWorkbook.Workbook.Names["vcf_instance_name"].Value
         $deploymentProfileObject = New-WorkbookDeploymentProfile -pnpWorkbook $pnpWorkbook -vcfVersion $vcfVersion -type management
+
+        $sddcManagerObject = New-Object -TypeName psobject
+        $sddcManagerObject | Add-Member -notepropertyname 'hostname' -notepropertyvalue $pnpWorkbook.Workbook.Names["sddc_mgr_hostname"].Value
+        $sddcManagerObject | Add-Member -notepropertyname 'fqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["sddc_mgr_fqdn"].Value
+        $sddcManagerObject | Add-Member -notepropertyname 'ipAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["sddc_mgr_ip"].Value
+        $sddcManagerObject | Add-Member -notepropertyname 'rootUser' -notepropertyvalue "root"
+        $sddcManagerObject | Add-Member -notepropertyname 'adminUser' -notepropertyvalue ("administrator@"+$pnpWorkbook.Workbook.names["mgmt_sso_domain"].Value)
+        $sddcManagerObject | Add-Member -notepropertyname 'vcfUser' -notepropertyvalue "vcf"
+        $sddcManagerObject | Add-Member -notepropertyname 'rootPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["sddc_mgr_root_password"].Value
+        $sddcManagerObject | Add-Member -notepropertyname 'vcfPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["sddc_mgr_vcf_password"].Value
+        $sddcManagerObject | Add-Member -notepropertyname 'adminPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["sddc_mgr_admin_local_password"].Value
+        $sddcManagerObject | Add-Member -notepropertyname 'localAdminPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["sddc_mgr_admin_local_password"].Value
        
         $dnsObject = New-Object -TypeName psobject
         $dnsObject | Add-Member -notepropertyname 'rootDnsDomain' -notepropertyvalue $pnpWorkbook.Workbook.names["parent_dns_zone"].Value
@@ -2188,8 +2201,10 @@ Function New-SharedInstanceObject
         }
         $sharedInstanceObject = New-Object -TypeName psobject
         $sharedInstanceObject | Add-Member -notepropertyname 'instance' -notepropertyvalue $instance
+        $sharedInstanceObject | Add-Member -notepropertyname 'vcfInstanceName' -notepropertyvalue $vcfInstanceName
         $sharedInstanceObject | Add-Member -notepropertyname 'version' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
-        $sharedInstanceObject | Add-Member -notepropertyname 'deploymentProfile' -notepropertyvalue $deploymentProfileObject        
+        $sharedInstanceObject | Add-Member -notepropertyname 'deploymentProfile' -notepropertyvalue $deploymentProfileObject    
+        $sharedInstanceObject | Add-Member -notepropertyname 'sddcManager' -notepropertyvalue $sddcManagerObject            
         $sharedInstanceObject | Add-Member -notepropertyname 'dns' -notepropertyvalue $dnsObject
         $sharedInstanceObject | Add-Member -notepropertyname 'ntp' -notepropertyvalue $ntpObject
         $sharedInstanceObject | Add-Member -notepropertyname 'sso' -notepropertyvalue $ssoObject
@@ -9577,7 +9592,7 @@ Function New-DayNIdbJsonFile
     ConvertTo-Json $idbJsonObject -depth 20 | Out-File "idbDeploymentSpec-$(($sharedInstanceObject.idb.vipFqdn).split(".")[0]).json"
 }
 
-Function New-DayNLogsJsonFile
+Function New-DayNLogsJsonFileLegacy
 {
     Param (
         [Parameter (Mandatory = $true)] [Array]$sharedInstanceObject,
@@ -9814,7 +9829,7 @@ Function New-DayNLogsJsonFile
     ConvertTo-Json $logsJsonObject -depth 20 | Out-File "opsLogsDeploymentSpec-$(($sharedInstanceObject.logs.vipFqdn).split(".")[0]).json"
 }
 
-Function New-DayNNetworksJsonFile
+Function New-DayNNetworksJsonFileLegacy
 {
     Param (
         [Parameter (Mandatory = $true)] [Array]$sharedInstanceObject,
@@ -10036,4 +10051,322 @@ Function New-DayNNetworksJsonFile
 
     LogMessage -Type INFO -Message "Exporting the Logs Deployment JSON to opsNetworksDeploymentSpec-$(($sharedInstanceObject.networks.nodeAFqdn).split(".")[0]).json"
     ConvertTo-Json $networksJsonObject -depth 20 | Out-File "opsNetworksDeploymentSpec-$(($sharedInstanceObject.networks.nodeAFqdn).split(".")[0]).json"
+}
+
+#Ops Deployment Functions
+Function New-DayNLogsJsonFileModern
+{
+    '{
+        "componentSpecs": [
+          {
+            "sddcLcmId": "18b9fe29-3db2-46a6-8d98-c13c163e5501",
+            "componentType": "OPS_LOGS",
+            "deploymentType": "VspComponentSpec",
+            "version": "9.1.0.0",
+            "fqdn": "flt-logs01.rainpole.io",
+            "configSpec": {
+              "size": "small",
+              "numberOfNodes": 1
+            }
+          }
+        ]
+    }'
+
+    '{
+    "componentSpecs": [
+        {
+            "sddcLcmId": "18b9fe29-3db2-46a6-8d98-c13c163e5501",
+            "componentType": "OPS_LOGS",
+            "deploymentType": "VspComponentSpec",
+            "version": "flt_logs_install_version",
+            "fqdn": "flt_logs_vip_fqdn",
+            "configSpec": {
+                "size": "flt_logs_node_size_chosen",
+                "numberOfNodes": flt_logs_number_replicas_chosen
+            }
+        }
+    ]
+    }'  
+}
+
+Function New-DayNNetworksJsonFileModern
+{
+    '{
+        "componentSpecs": [
+          {
+            "sddcLcmId": "18b9fe29-3db2-46a6-8d98-c13c163e5501",
+            "componentType": "OPS_NETWORKS",
+            "deploymentType": "OvaComponentSpec",
+            "nodeSpecs": [
+              {
+                "nodeType": "PLATFORM",
+                "version": "9.1.0.0",
+                "deploymentSpec": {
+                  "fqdn": "10.11.10.62",
+                  "deploymentOption": "small",
+                  "password": "VMw@re1!VMw@re1!",
+                  "ipv4Settings": {
+                    "address": "10.11.10.62"
+                  }
+                }
+              },
+              {
+                "nodeType": "COLLECTOR",
+                "version": "9.1.0.0",
+                "deploymentSpec": {
+                  "fqdn": "10.11.10.14",
+                  "deploymentOption": "small",
+                  "password": "VMw@re1!VMw@re1!",
+                  "ipv4Settings": {
+                    "address": "10.11.10.14"
+                  }
+                }
+              }
+            ],
+            "configSpec": {
+              "adminPassword": "VMw@re1!VMw@re1!"
+            }
+          }
+        ]
+      }'
+
+     '{
+        "componentSpecs": [
+            {
+            "sddcLcmId": "18b9fe29-3db2-46a6-8d98-c13c163e5501",
+            "componentType": "OPS_NETWORKS",
+            "deploymentType": "OvaComponentSpec",
+            "nodeSpecs": [
+                {
+                "nodeType": "PLATFORM",
+                "version": "flt_net_install_version",
+                "deploymentSpec": {
+                    "fqdn": "flt_net_nodea_ip",
+                    "deploymentOption": "flt_net_ha_mode_chosen",
+                    "password": "flt_net_admin_password",
+                    "ipv4Settings": {
+                    "address": "flt_net_nodea_ip"
+                    }
+                }
+                },
+                {
+                "nodeType": "COLLECTOR",
+                "version": "flt_net_install_version",
+                "deploymentSpec": {
+                    "fqdn": "flt_net_prxy_ip",
+                    "deploymentOption": "small",
+                    "password": "flt_net_admin_passwor",
+                    "ipv4Settings": {
+                    "address": "flt_net_prxy_ip"
+                    }
+                }
+                }
+            ],
+            "configSpec": {
+                "adminPassword": "flt_net_admin_passwor"
+            }
+            }
+        ]
+        }' 
+}
+
+Function New-DayNRealTimeMetrics
+{
+    '{
+        "componentSpecs": [
+            {
+            "sddcLcmId": "18b9fe29-3db2-46a6-8d98-c13c163e5501",
+            "deploymentType": "VspComponentSpec",
+            "componentType": "OPS_DATA_PLATFORM",
+            "version": "9.1.0.0"
+            }
+        ]
+    }'
+}
+
+Function New-DayNAutomationModern
+{
+    '
+    {
+        "componentSpecs": [
+            {
+            "componentType": "VCFA",
+            "deploymentType": "VspComponentSpec",
+            "sddcLcmId": "18b9fe29-3db2-46a6-8d98-c13c163e5501",
+            "fqdn": "flt-auto01.rainpole.io",
+            "version": "9.1.0.0",
+            "configSpec": {
+                "size": "small",
+                "adminSystemPassword": "VMw@re1!VMw@re1!"
+            },
+            "vspClusterSpec": {
+                "deploymentType": "VspClusterSpec",
+                "sddcLcmId": "18b9fe29-3db2-46a6-8d98-c13c163e5501",
+                "platformFqdn": "flt-vcfa-sr01.rainpole.io",
+                "systemUserPassword": "VMw@re1!VMw@re1!",
+                "size": "small",
+                "ipv4Pool": {
+                "cidr": "10.11.99.52/29"
+                }
+            }
+            }
+        ]
+    }
+    '
+
+    '
+    {
+        "componentSpecs": [
+            {
+            "componentType": "VCFA",
+            "deploymentType": "VspComponentSpec",
+            "sddcLcmId": "18b9fe29-3db2-46a6-8d98-c13c163e5501",
+            "fqdn": "vcf_automation_vip_fqdn",
+            "version": "vcf_automation_version",
+            "configSpec": {
+                "size": "small",
+                "adminSystemPassword": "VMw@re1!VMw@re1!"
+            },
+            "vspClusterSpec": {
+                "deploymentType": "VspClusterSpec",
+                "sddcLcmId": "18b9fe29-3db2-46a6-8d98-c13c163e5501",
+                "platformFqdn": "vcf_automation_auto_sr_fqdn",
+                "systemUserPassword": "vcf_automation_admin_password",
+                "size": "vcf_automation_size_chosen",
+                "ipv4Pool": {
+                "cidr": "vcf_automation_runtime_cidr"
+                }
+            }
+            }
+        ]
+    }
+    '
+}
+
+Function New-DayNCompleteFleet
+{
+    Param (
+        [Parameter (Mandatory = $true)] [Array]$sharedInstanceObject,
+        [Parameter (Mandatory = $true)] [Array]$managementInstanceObject,
+        [Parameter (Mandatory = $false)] [switch]$userPromptBypass
+    )
+
+    If ($userPromptBypass)
+    {
+        $interactiveEnabled = "Y"
+    }
+    else
+    {
+        LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve fingerprints for ESX hosts? (Y/N): " -skipnewline
+        Do
+        {  
+            $interactiveEnabled = Read-Host    
+        } Until ($interactiveEnabled -in "Y","N")
+        $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""
+    }
+
+
+    
+            
+    #sddc manager spec
+    If ($interactiveEnabled -eq "Y")
+    {
+        $sddcMgrFingerprint = (echo "Q" | openssl.exe s_client -connect "$($managementInstanceObject.sddcManager.fqdn):443" -showcerts 2>$null |  Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
+    }
+    else
+    {
+        $sddcMgrFingerprint = "<--ENTER-SDDCMGR-FINGERPRINT-HERE-->"
+    }    
+    $sddcManagerSpecObject = New-Object -type psobject
+    $sddcManagerSpecObject | Add-Member -NotePropertyName 'hostname' -NotePropertyValue $managementInstanceObject.sddcManager.fqdn
+    $sddcManagerSpecObject | Add-Member -NotePropertyName 'sslThumbprint' -NotePropertyValue $sddcMgrFingerprint
+    $sddcManagerSpecObject | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue 'true'
+
+    #vCenter Spec
+    If ($interactiveEnabled -eq "Y")
+    {
+        $vCenterFingerprint = (echo "Q" | openssl.exe s_client -connect "$($managementInstanceObject.vCenterServer.fqdn):443" -showcerts 2>$null |  Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
+    }
+    else
+    {
+        $vCenterFingerprint = "<--ENTER-VCENTER-FINGERPRINT-HERE-->"
+    }    
+    $vCenterSpecObject = New-Object -type psobject
+    $vCenterSpecObject | Add-Member -NotePropertyName 'vcenterHostname' -NotePropertyValue $managementInstanceObject.vCenterServer.fqdn
+    $vCenterSpecObject | Add-Member -NotePropertyName 'sslThumbprint' -NotePropertyValue $vCenterFingerprint
+    $vCenterSpecObject | Add-Member -NotePropertyName 'adminUserSsoUsername' -NotePropertyValue $managementInstanceObject.vCenterServer.adminUser
+    $vCenterSpecObject | Add-Member -NotePropertyName 'adminUserSsoPassword' -NotePropertyValue $managementInstanceObject.vCenterServer.adminPassword    
+    $vCenterSpecObject | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue 'true'
+
+    #Assemble Final Object
+    $completeFleetJsonObject = New-Object -type psobject
+    $completeFleetJsonObject | Add-Member -NotePropertyName 'workflowType' -NotePropertyValue 'VCF_COMPLETE'
+    $completeFleetJsonObject | Add-Member -NotePropertyName 'vcfInstanceName' -NotePropertyValue $sharedInstanceObject.vcfInstanceName
+    $completeFleetJsonObject | Add-Member -NotePropertyName 'sddcManagerSpec' -NotePropertyValue $sddcManagerSpecObject
+    $completeFleetJsonObject | Add-Member -NotePropertyName 'vcenterSpec' -NotePropertyValue $vCenterSpecObject
+    $completeFleetJsonObject | Add-Member -NotePropertyName 'version' -NotePropertyValue $sharedInstanceObject.version
+    $completeFleetJsonObject | Add-Member -NotePropertyName 'ceipEnabled' -NotePropertyValue 'true'
+
+
+    '
+    {
+        "sddcId": "sfo-m01-vc01", # possibly optional
+        # "vcfInstanceName": "vcf_instance_name",
+        # "sddcManagerSpec": {
+        #    "hostname": "flt_def_sddc_mgr_fqdn",
+        #    "sslThumbprint": "4B:E1:25:02:55:B2:31:E6:D9:DF:5D:D9:1D:F7:1D:6D:D9:46:3A:8B:84:89:DF:91:34:9F:67:F3:62:47:46:3B",
+        #    "useExistingDeployment": true
+        # },
+        # "vcenterSpec": {
+        #    "vcenterHostname": "mgmt_vc_fqdn",
+        #    "sslThumbprint": "ED:F2:6A:DC:1D:8E:74:D2:18:49:E5:EB:5C:26:59:7B:45:9D:9D:15:CB:65:4A:84:40:E0:BA:F5:79:87:DD:28",
+        #    "adminUserSsoPassword": "VMw@re1!VMw@re1!",
+        #    "adminUserSsoUsername": "administrator@vsphere.local",
+        #    "useExistingDeployment": true
+        # },
+        # "workflowType": "VCF_COMPLETE",
+        "vcfOperationsSpec": {
+            "applianceSize": "small",
+            "useExistingDeployment": false,
+            "nodes": [
+                {
+                    "hostname": "flt_def_vcf_operations_virtual_fqdn",
+                    "type": "master"
+                }
+            ]
+        },
+        # "ceipEnabled": true,
+        "vcfManagementComponentsInfrastructureSpec": {
+            "xRegionNetwork": {
+                "networkName": "flt_def_vcf_operations_az1_vcf_mgmt_pg",
+                "gateway": "flt_def_vcf_operations_az1_vcf_mgmt_gateway_cidr",
+                "subnetMask": "flt_def_vcf_operations_az1_vcf_mgmt_gateway_cidr"
+            }
+        },
+        "vcfAutomationSpec": {
+            "ipPool": [
+                "flt_def_auto_node_pool_start_ip",
+                "10.11.99.47",
+                "10.11.99.48",
+                "10.11.99.49",
+                "flt_def_auto_node_pool_end_ip"
+            ],
+            "hostname": "flt_def_vra_virtual_fqdn",
+            "platformFqdn": "flt_def_auto_sr_fqdn",
+            "nodePrefix": "sfo-m01-vc01-node-01",
+            "internalClusterCidr": "198.18.0.0/15",
+            "useExistingDeployment": false,
+            "size": "small"
+        },
+        "vcfOperationsCollectorSpec": {
+            "applianceSize": "small",
+            "hostname": "flt_def_vcf_operations_proxy_fqdn",
+            "useExistingDeployment": false
+        },
+        "licenseServerSpec": {
+            "hostname": "flt_def_vcf_operations_lc_fqdn"
+        },
+        #"version": "vcf_version_chosen"
+    }
+    '
 }
