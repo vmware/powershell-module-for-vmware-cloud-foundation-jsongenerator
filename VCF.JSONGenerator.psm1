@@ -10265,10 +10265,7 @@ Function New-DayNCompleteFleet
         $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""
     }
 
-
-    
-            
-    #sddc manager spec
+    #sddcManagerSpec
     If ($interactiveEnabled -eq "Y")
     {
         $sddcMgrFingerprint = (echo "Q" | openssl.exe s_client -connect "$($managementInstanceObject.sddcManager.fqdn):443" -showcerts 2>$null |  Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
@@ -10282,7 +10279,7 @@ Function New-DayNCompleteFleet
     $sddcManagerSpecObject | Add-Member -NotePropertyName 'sslThumbprint' -NotePropertyValue $sddcMgrFingerprint
     $sddcManagerSpecObject | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue 'true'
 
-    #vCenter Spec
+    #vcenterSpec
     If ($interactiveEnabled -eq "Y")
     {
         $vCenterFingerprint = (echo "Q" | openssl.exe s_client -connect "$($managementInstanceObject.vCenterServer.fqdn):443" -showcerts 2>$null |  Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
@@ -10298,15 +10295,36 @@ Function New-DayNCompleteFleet
     $vCenterSpecObject | Add-Member -NotePropertyName 'adminUserSsoPassword' -NotePropertyValue $managementInstanceObject.vCenterServer.adminPassword    
     $vCenterSpecObject | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue 'true'
 
+    #vcfOperationsSpec  #review
+    $opsNodesArray = @()
+    $opsNodesArray += [pscustomobject]@{
+        'hostname' = $sharedInstanceObject.operations.vipFqd
+        'type' = 'master'
+    }
+
+    $vcfOperationsSpecObject = New-Object -type psobject
+    $vcfOperationsSpecObject | Add-Member -NotePropertyName 'applianceSize' -NotePropertyValue $sharedInstanceObject.operations.applianceSize
+    $vcfOperationsSpecObject | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue 'false'
+    $vcfOperationsSpecObject | Add-Member -NotePropertyName 'nodes' -NotePropertyValue @($opsNodesArray)
+    
+    #vcfManagementComponentsInfrastructureSpec # review
+    $xRegionNetworkObject = New-Object -type psobject
+    $xRegionNetworkObject | Add-Member -NotePropertyName 'networkName' -NotePropertyValue $managementInstanceObject.vsphereClusters[0].portGroupNames.az1.fleetMgmt
+    $xRegionNetworkObject | Add-Member -NotePropertyName 'gateway' -NotePropertyValue $managementInstanceObject.az1.rack1.network.vcfManagementNetworkGw
+    $xRegionNetworkObject | Add-Member -NotePropertyName 'subnetMask' -NotePropertyValue $managementInstanceObject.az1.rack1.network.vcfManagementNetworkNetmask
+    $vcfManagementComponentsInfrastructureSpecObject = New-Object -type psobject
+    $vcfManagementComponentsInfrastructureSpecObject | Add-Member -NotePropertyName 'xRegionNetwork' -NotePropertyValue $xRegionNetworkObject
+
     #Assemble Final Object
     $completeFleetJsonObject = New-Object -type psobject
     $completeFleetJsonObject | Add-Member -NotePropertyName 'workflowType' -NotePropertyValue 'VCF_COMPLETE'
     $completeFleetJsonObject | Add-Member -NotePropertyName 'vcfInstanceName' -NotePropertyValue $sharedInstanceObject.vcfInstanceName
-    $completeFleetJsonObject | Add-Member -NotePropertyName 'sddcManagerSpec' -NotePropertyValue $sddcManagerSpecObject
-    $completeFleetJsonObject | Add-Member -NotePropertyName 'vcenterSpec' -NotePropertyValue $vCenterSpecObject
     $completeFleetJsonObject | Add-Member -NotePropertyName 'version' -NotePropertyValue $sharedInstanceObject.version
     $completeFleetJsonObject | Add-Member -NotePropertyName 'ceipEnabled' -NotePropertyValue 'true'
-
+    $completeFleetJsonObject | Add-Member -NotePropertyName 'sddcManagerSpec' -NotePropertyValue $sddcManagerSpecObject
+    $completeFleetJsonObject | Add-Member -NotePropertyName 'vcenterSpec' -NotePropertyValue $vCenterSpecObject
+    $completeFleetJsonObject | Add-Member -NotePropertyName 'vcfOperationsSpec' -NotePropertyValue $vcfOperationsSpecObject
+    $completeFleetJsonObject | Add-Member -NotePropertyName 'vcfManagementComponentsInfrastructureSpec' -NotePropertyValue $vcfManagementComponentsInfrastructureSpecObject
 
     '
     {
@@ -10325,24 +10343,24 @@ Function New-DayNCompleteFleet
         #    "useExistingDeployment": true
         # },
         # "workflowType": "VCF_COMPLETE",
-        "vcfOperationsSpec": {
-            "applianceSize": "small",
-            "useExistingDeployment": false,
-            "nodes": [
-                {
-                    "hostname": "flt_def_vcf_operations_virtual_fqdn",
-                    "type": "master"
-                }
-            ]
-        },
+        # "vcfOperationsSpec": {
+        #    "applianceSize": "small",
+        #    "useExistingDeployment": false,
+        #    "nodes": [
+        #        {
+        #            "hostname": "flt_def_vcf_operations_virtual_fqdn", 
+        #            "type": "master"
+        #        }
+        #    ]
+        # },
         # "ceipEnabled": true,
-        "vcfManagementComponentsInfrastructureSpec": {
-            "xRegionNetwork": {
-                "networkName": "flt_def_vcf_operations_az1_vcf_mgmt_pg",
-                "gateway": "flt_def_vcf_operations_az1_vcf_mgmt_gateway_cidr",
-                "subnetMask": "flt_def_vcf_operations_az1_vcf_mgmt_gateway_cidr"
-            }
-        },
+        # "vcfManagementComponentsInfrastructureSpec": {
+        #   "xRegionNetwork": {
+        #        "networkName": "flt_def_vcf_operations_az1_vcf_mgmt_pg",
+        #        "gateway": "flt_def_vcf_operations_az1_vcf_mgmt_gateway_cidr",
+        #        "subnetMask": "flt_def_vcf_operations_az1_vcf_mgmt_gateway_cidr"
+        #    }
+        # },
         "vcfAutomationSpec": {
             "ipPool": [
                 "flt_def_auto_node_pool_start_ip",
