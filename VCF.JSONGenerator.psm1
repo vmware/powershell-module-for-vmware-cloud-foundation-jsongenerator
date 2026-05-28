@@ -448,6 +448,10 @@ Function Start-VCFJsonGeneration
                 $menuItem43 = "VCF Identity Broker Appliance"
                 $idbDayNColour = $disabledColour
             }
+
+            #review
+            $menuItem44 = "VCF Complete Fleet Deployment"
+            $completeFleetDayNColour = $enabledColour
             
             If ($workbookProfile) 
             {
@@ -509,6 +513,7 @@ Function Start-VCFJsonGeneration
             Write-Host -Object " 41. $menuItem41" -ForegroundColor $logsDayNColour
             Write-Host -Object " 42. $menuItem42" -ForegroundColor $networksDayNColour
             Write-Host -Object " 43. $menuItem43" -ForegroundColor $idbDayNColour
+            Write-Host -Object " 44. $menuItem44" -ForegroundColor $completeFleetDayNColour
             
             Write-Host -Object ''
             $MenuInput = Read-Host -Prompt ' Select Option (or Q to go Quit)'
@@ -819,7 +824,19 @@ Function Start-VCFJsonGeneration
                     }
                     anykey
                 }
-
+                44
+                {
+                    Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem44" -Foregroundcolor Cyan; Write-Host -Object ''
+                    If (($sharedInstanceObject) -and ($managementInstanceObject)) # review
+                    {
+                        New-DayNCompleteFleet -sharedInstanceObject $sharedInstanceObject -managementObject $managementObject
+                    }
+                    else
+                    {
+                        LogMessage -type ERROR -message "Please load a relevant Planning & Preparation Workbook and try again"
+                    }
+                    anykey
+                }
                 Q {
                     $Host.UI.RawUI.WindowTitle = $Global:originalWindowTitle
                     Break
@@ -10247,7 +10264,7 @@ Function New-DayNCompleteFleet
 {
     Param (
         [Parameter (Mandatory = $true)] [Array]$sharedInstanceObject,
-        [Parameter (Mandatory = $true)] [Array]$managementInstanceObject,
+        [Parameter (Mandatory = $true)] [Array]$managementObject,
         [Parameter (Mandatory = $false)] [switch]$userPromptBypass
     )
 
@@ -10268,31 +10285,31 @@ Function New-DayNCompleteFleet
     #sddcManagerSpec
     If ($interactiveEnabled -eq "Y")
     {
-        $sddcMgrFingerprint = (echo "Q" | openssl.exe s_client -connect "$($managementInstanceObject.sddcManager.fqdn):443" -showcerts 2>$null |  Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
+        $sddcMgrFingerprint = (echo "Q" | openssl.exe s_client -connect "$($managementObject.sddcManager.fqdn):443" -showcerts 2>$null |  Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
     }
     else
     {
         $sddcMgrFingerprint = "<--ENTER-SDDCMGR-FINGERPRINT-HERE-->"
     }    
     $sddcManagerSpecObject = New-Object -type psobject
-    $sddcManagerSpecObject | Add-Member -NotePropertyName 'hostname' -NotePropertyValue $managementInstanceObject.sddcManager.fqdn
+    $sddcManagerSpecObject | Add-Member -NotePropertyName 'hostname' -NotePropertyValue $managementObject.sddcManager.fqdn
     $sddcManagerSpecObject | Add-Member -NotePropertyName 'sslThumbprint' -NotePropertyValue $sddcMgrFingerprint
     $sddcManagerSpecObject | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue 'true'
 
     #vcenterSpec
     If ($interactiveEnabled -eq "Y")
     {
-        $vCenterFingerprint = (echo "Q" | openssl.exe s_client -connect "$($managementInstanceObject.vCenterServer.fqdn):443" -showcerts 2>$null |  Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
+        $vCenterFingerprint = (echo "Q" | openssl.exe s_client -connect "$($managementObject.vCenterServer.fqdn):443" -showcerts 2>$null |  Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
     }
     else
     {
         $vCenterFingerprint = "<--ENTER-VCENTER-FINGERPRINT-HERE-->"
     }    
     $vCenterSpecObject = New-Object -type psobject
-    $vCenterSpecObject | Add-Member -NotePropertyName 'vcenterHostname' -NotePropertyValue $managementInstanceObject.vCenterServer.fqdn
+    $vCenterSpecObject | Add-Member -NotePropertyName 'vcenterHostname' -NotePropertyValue $managementObject.vCenterServer.fqdn
     $vCenterSpecObject | Add-Member -NotePropertyName 'sslThumbprint' -NotePropertyValue $vCenterFingerprint
-    $vCenterSpecObject | Add-Member -NotePropertyName 'adminUserSsoUsername' -NotePropertyValue $managementInstanceObject.vCenterServer.adminUser
-    $vCenterSpecObject | Add-Member -NotePropertyName 'adminUserSsoPassword' -NotePropertyValue $managementInstanceObject.vCenterServer.adminPassword    
+    $vCenterSpecObject | Add-Member -NotePropertyName 'adminUserSsoUsername' -NotePropertyValue $managementObject.vCenterServer.adminUser
+    $vCenterSpecObject | Add-Member -NotePropertyName 'adminUserSsoPassword' -NotePropertyValue $managementObject.vCenterServer.adminPassword    
     $vCenterSpecObject | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue 'true'
 
     #vcfOperationsSpec  #review
@@ -10309,11 +10326,37 @@ Function New-DayNCompleteFleet
     
     #vcfManagementComponentsInfrastructureSpec # review
     $xRegionNetworkObject = New-Object -type psobject
-    $xRegionNetworkObject | Add-Member -NotePropertyName 'networkName' -NotePropertyValue $managementInstanceObject.vsphereClusters[0].portGroupNames.az1.fleetMgmt
-    $xRegionNetworkObject | Add-Member -NotePropertyName 'gateway' -NotePropertyValue $managementInstanceObject.az1.rack1.network.vcfManagementNetworkGw
-    $xRegionNetworkObject | Add-Member -NotePropertyName 'subnetMask' -NotePropertyValue $managementInstanceObject.az1.rack1.network.vcfManagementNetworkNetmask
+    $xRegionNetworkObject | Add-Member -NotePropertyName 'networkName' -NotePropertyValue $managementObject.vsphereClusters[0].portGroupNames.az1.fleetMgmt
+    $xRegionNetworkObject | Add-Member -NotePropertyName 'gateway' -NotePropertyValue $managementObject.az1.rack1.network.vcfManagementNetworkGw
+    $xRegionNetworkObject | Add-Member -NotePropertyName 'subnetMask' -NotePropertyValue $managementObject.az1.rack1.network.vcfManagementNetworkNetmask
     $vcfManagementComponentsInfrastructureSpecObject = New-Object -type psobject
     $vcfManagementComponentsInfrastructureSpecObject | Add-Member -NotePropertyName 'xRegionNetwork' -NotePropertyValue $xRegionNetworkObject
+
+    #vcfAutomationSpecObject
+    $ipPoolArray = @()
+    $ipPoolArray += $sharedInstanceObject.automation.nodeAIpAddress
+    $ipPoolArray += $sharedInstanceObject.automation.nodeBIpAddress
+    $ipPoolArray += $sharedInstanceObject.automation.nodeCIpAddress
+    $ipPoolArray += $sharedInstanceObject.automation.nodeDIpAddress
+    $ipPoolArray += $sharedInstanceObject.automation.nodeEIpAddress
+    $vcfAutomationSpecObject = New-Object -type psobject
+    $vcfAutomationSpecObject | Add-Member -NotePropertyName 'ipPool' -NotePropertyValue $ipPoolArray
+    $vcfAutomationSpecObject | Add-Member -NotePropertyName 'hostname' -NotePropertyValue $sharedInstanceObject.automation.vipFqdn
+    $vcfAutomationSpecObject | Add-Member -NotePropertyName 'platformFqdn' -NotePropertyValue $sharedInstanceObject.automation.platformFqdn
+    $vcfAutomationSpecObject | Add-Member -NotePropertyName 'nodePrefix' -NotePropertyValue $sharedInstanceObject.automation.vcfaNodePrefix
+    $vcfAutomationSpecObject | Add-Member -NotePropertyName 'internalClusterCidr' -NotePropertyValue $sharedInstanceObject.automation.internalClusterCidr
+    $vcfAutomationSpecObject | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue 'false'
+    $vcfAutomationSpecObject | Add-Member -NotePropertyName 'size' -NotePropertyValue $sharedInstanceObject.automation.size
+
+    #vcfOperationsCollectorSpec
+    $vcfOperationsCollectorSpecObject = New-Object -type psobject
+    $vcfOperationsCollectorSpecObject | Add-Member -NotePropertyName 'applianceSize' -NotePropertyValue $sharedInstanceObject.operations.collectorApplianceSize
+    $vcfOperationsCollectorSpecObject | Add-Member -NotePropertyName 'hostname' -NotePropertyValue $sharedInstanceObject.operations.opsCollectorFqdn
+    $vcfOperationsCollectorSpecObject | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue 'false'
+
+    #licenseServerSpec
+    $licenseServerSpecObject = New-Object -type psobject
+    $licenseServerSpecObject | Add-Member -NotePropertyName 'hostname' -NotePropertyValue $sharedInstanceObject.licenseServer.fqdn
 
     #Assemble Final Object
     $completeFleetJsonObject = New-Object -type psobject
@@ -10324,7 +10367,13 @@ Function New-DayNCompleteFleet
     $completeFleetJsonObject | Add-Member -NotePropertyName 'sddcManagerSpec' -NotePropertyValue $sddcManagerSpecObject
     $completeFleetJsonObject | Add-Member -NotePropertyName 'vcenterSpec' -NotePropertyValue $vCenterSpecObject
     $completeFleetJsonObject | Add-Member -NotePropertyName 'vcfOperationsSpec' -NotePropertyValue $vcfOperationsSpecObject
+    $completeFleetJsonObject | Add-Member -NotePropertyName 'vcfAutomationSpec' -NotePropertyValue $vcfAutomationSpecObject
+    $completeFleetJsonObject | Add-Member -NotePropertyName 'vcfOperationsCollectorSpec' -NotePropertyValue $vcfOperationsCollectorSpecObject
+    $completeFleetJsonObject | Add-Member -NotePropertyName 'licenseServerSpec' -NotePropertyValue $licenseServerSpecObject
     $completeFleetJsonObject | Add-Member -NotePropertyName 'vcfManagementComponentsInfrastructureSpec' -NotePropertyValue $vcfManagementComponentsInfrastructureSpecObject
+
+    LogMessage -Type INFO -Message "Exporting the Complete Fleet Deployment JSON to completeFleetDeploymentSpec-$($managementObject.domainName).json"
+    ConvertTo-Json $completeFleetJsonObject -depth 20 | Out-File "completeFleetDeploymentSpec-$($managementObject.domainName).json"
 
     '
     {
@@ -10361,29 +10410,29 @@ Function New-DayNCompleteFleet
         #        "subnetMask": "flt_def_vcf_operations_az1_vcf_mgmt_gateway_cidr"
         #    }
         # },
-        "vcfAutomationSpec": {
-            "ipPool": [
-                "flt_def_auto_node_pool_start_ip",
-                "10.11.99.47",
-                "10.11.99.48",
-                "10.11.99.49",
-                "flt_def_auto_node_pool_end_ip"
-            ],
-            "hostname": "flt_def_vra_virtual_fqdn",
-            "platformFqdn": "flt_def_auto_sr_fqdn",
-            "nodePrefix": "sfo-m01-vc01-node-01",
-            "internalClusterCidr": "198.18.0.0/15",
-            "useExistingDeployment": false,
-            "size": "small"
-        },
-        "vcfOperationsCollectorSpec": {
-            "applianceSize": "small",
-            "hostname": "flt_def_vcf_operations_proxy_fqdn",
-            "useExistingDeployment": false
-        },
-        "licenseServerSpec": {
-            "hostname": "flt_def_vcf_operations_lc_fqdn"
-        },
+        # "vcfAutomationSpec": {
+        #    "ipPool": [
+        #        "flt_def_auto_node_pool_start_ip",
+        #        "10.11.99.47",
+        #        "10.11.99.48",
+        #        "10.11.99.49",
+        #        "flt_def_auto_node_pool_end_ip"
+        #    ],
+        #    "hostname": "flt_def_vra_virtual_fqdn",
+        #    "platformFqdn": "flt_def_auto_sr_fqdn",
+        #    "nodePrefix": "sfo-m01-vc01-node-01",
+        #    "internalClusterCidr": "198.18.0.0/15",
+        #    "useExistingDeployment": false,
+        #    "size": "small"
+        # },
+        # "vcfOperationsCollectorSpec": {
+        #    "applianceSize": "small",
+        #    "hostname": "flt_def_vcf_operations_proxy_fqdn",
+        #    "useExistingDeployment": false
+        # },
+        # "licenseServerSpec": {
+        #    "hostname": "flt_def_vcf_operations_lc_fqdn"
+        # },
         #"version": "vcf_version_chosen"
     }
     '
