@@ -10073,6 +10073,15 @@ Function New-DayNNetworksJsonFileLegacy
 #Ops Deployment Functions
 Function New-DayNLogsJsonFileModern
 {
+    Param (
+        [Parameter (Mandatory = $true)] [Array]$sharedInstanceObject,
+        [Parameter (Mandatory = $true)] [Array]$managementObject,
+        [Parameter (Mandatory = $false)] [switch]$userPromptBypass
+    )
+
+    $configSpecObject = New-Object -type psobject
+    $configSpecObject | Add-Member -NotePropertyName 'size' -NotePropertyValue ''
+    $configSpecObject | Add-Member -NotePropertyName 'numberOfNodes' -NotePropertyValue ''
     '{
         "componentSpecs": [
           {
