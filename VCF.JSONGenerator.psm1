@@ -385,90 +385,133 @@ Function Start-VCFJsonGeneration
             }
 
             $headingItem05 = "Additional Components JSON Generation"
-            
+
             If (-not $sharedInstanceObject)
             {
-                $menuItem40 = "VCF Operations and Automation Post Bringup (Disabled: No workbook loaded)"
+                $menuItem40 = "VCF Complete Fleet Deployment (Disabled: No workbook loaded)"
+                $completeFleetDayNColour = $disabledColour
+            }
+            elseIf ($sharedInstanceObject.version -like "9.0*")
+            {
+                $menuItem40 = "VCF Complete Fleet Deployment (Disabled: Not applicable for VCF 9.0)"
+                $completeFleetDayNColour = $disabledColour
+            }
+            elseIf ($workbookProfile.deferredFleetCompletion -eq $true)
+            {
+                $menuItem40 = "VCF Complete Fleet Deployment"
+                $completeFleetDayNColour = $enabledColour
+            }
+            else
+            {
+                $menuItem40 = "VCF Complete Fleet Deployment (Disabled: Not applicable based on loaded workbook)"
+                $completeFleetDayNColour = $disabledColour
+            }
+
+            If (-not $sharedInstanceObject)
+            {
+                $menuItem41 = "VCF Operations and Automation Post Bringup (Disabled: No workbook loaded)"
                 $opsAndAutomationDayNColour = $disabledColour
             }
             elseIf ($workbookProfile.opsAutomationDayNDeployment -eq "Selected")
             {
-                $menuItem40 = "VCF Operations and Automation Post Bringup"
+                $menuItem41 = "VCF Operations and Automation Post Bringup"
                 $opsAndAutomationDayNColour = $enabledColour
             }
             elseif ($workbookProfile.opsAutomationDayNDeployment -eq "Unselected")
             {
-                $menuItem40 = "VCF Operations and Automation Post Bringup (Disabled: Not applicable based on loaded workbook)"
+                $menuItem41 = "VCF Operations and Automation Post Bringup (Disabled: Not applicable based on loaded workbook)"
                 $opsAndAutomationDayNColour = $disabledColour
             }
-            else 
+            else
             {
-                $menuItem40 = "VCF Operations and Automation Post Bringup"
+                $menuItem41 = "VCF Operations and Automation Post Bringup"
                 $opsAndAutomationDayNColour = $disabledColour
             }
 
             $logsDayNLabel = If ($sharedInstanceObject.version -like "9.0*") { "VCF Operations for Logs" } else { "VCF Log Management" }
             If (-not $sharedInstanceObject)
             {
-                $menuItem41 = "VCF Operations for Logs (Disabled: No workbook loaded)"
+                $menuItem42 = "VCF Operations for Logs (Disabled: No workbook loaded)"
                 $logsDayNColour = $disabledColour
             }
             elseIf ($workbookProfile.logsDayNDeployment -eq "Include")
             {
-                $menuItem41 = $logsDayNLabel
+                $menuItem42 = $logsDayNLabel
                 $logsDayNColour = $enabledColour
             }
             elseif ($workbookProfile.logsDayNDeployment -eq "Exclude")
             {
-                $menuItem41 = "$logsDayNLabel (Disabled: Not applicable based on loaded workbook)"
+                $menuItem42 = "$logsDayNLabel (Disabled: Not applicable based on loaded workbook)"
                 $logsDayNColour = $disabledColour
             }
             else
             {
-                $menuItem41 = $logsDayNLabel
+                $menuItem42 = $logsDayNLabel
                 $logsDayNColour = $disabledColour
             }
 
             If (-not $sharedInstanceObject)
             {
-                $menuItem42 = "VCF Operations for Networks (Disabled: No workbook loaded)"
+                $menuItem43 = "VCF Operations for Networks (Disabled: No workbook loaded)"
                 $networksDayNColour = $disabledColour
             }
             elseIf ($workbookProfile.networksDayNDeployment -eq "Include")
             {
-                $menuItem42 = "VCF Operations for Networks"
+                $menuItem43 = "VCF Operations for Networks"
                 $networksDayNColour = $enabledColour
             }
             elseif ($workbookProfile.networksDayNDeployment -eq "Exclude")
             {
-                $menuItem42 = "VCF Operations for Networks (Disabled: Not applicable based on loaded workbook)"
+                $menuItem43 = "VCF Operations for Networks (Disabled: Not applicable based on loaded workbook)"
                 $networksDayNColour = $disabledColour
             }
             else
             {
-                $menuItem42 = "VCF Operations for Networks"
+                $menuItem43 = "VCF Operations for Networks"
                 $networksDayNColour = $disabledColour
             }
 
-            If ($workbookProfile.idbDayNDeployment -eq "Identity Broker Appliance")
+            If (-not $sharedInstanceObject)
             {
-                $menuItem43 = "VCF Identity Broker Appliance"
+                $menuItem44 = "VCF Identity Broker Appliance (Disabled: No workbook loaded)"
+                $idbDayNColour = $disabledColour
+            }
+            elseIf ($workbookProfile.idbDayNDeployment -eq "Identity Broker Appliance")
+            {
+                $menuItem44 = "VCF Identity Broker Appliance"
                 $idbDayNColour = $enabledColour
             }
             elseif ($workbookProfile.idbDayNDeployment -in "Identity Broker (Embedded)","Exclude")
             {
-                $menuItem43 = "VCF Identity Broker Appliance (Disabled: Not applicable based on loaded workbook)"
+                $menuItem44 = "VCF Identity Broker Appliance (Disabled: Not applicable based on loaded workbook)"
                 $idbDayNColour = $disabledColour
             }
             else
             {
-                $menuItem43 = "VCF Identity Broker Appliance"
+                $menuItem44 = "VCF Identity Broker Appliance"
                 $idbDayNColour = $disabledColour
             }
 
-            #review
-            $menuItem44 = "VCF Complete Fleet Deployment"
-            $completeFleetDayNColour = $enabledColour
+            If (-not $sharedInstanceObject)
+            {
+                $menuItem45 = "VCF Real Time Metrics (Disabled: No workbook loaded)"
+                $realTimeMetricsDayNColour = $disabledColour
+            }
+            elseIf ($sharedInstanceObject.version -like "9.0*")
+            {
+                $menuItem45 = "VCF Real Time Metrics (Disabled: Not applicable for VCF 9.0)"
+                $realTimeMetricsDayNColour = $disabledColour
+            }
+            elseIf ($workbookProfile.realTimeMetricsDayNDeployment -eq "Include")
+            {
+                $menuItem45 = "VCF Real Time Metrics"
+                $realTimeMetricsDayNColour = $enabledColour
+            }
+            else
+            {
+                $menuItem45 = "VCF Real Time Metrics (Disabled: Not applicable based on loaded workbook)"
+                $realTimeMetricsDayNColour = $disabledColour
+            }
             
             If ($workbookProfile) 
             {
@@ -526,11 +569,12 @@ Function Start-VCFJsonGeneration
             Write-Host -Object " 38. $menuItem38" -ForegroundColor $clusterMenuStretchedColour
             
             Write-Host ""; Write-Host -Object " $headingItem05" -ForegroundColor Yellow
-            Write-Host -Object " 40. $menuItem40" -ForegroundColor $opsAndAutomationDayNColour
-            Write-Host -Object " 41. $menuItem41" -ForegroundColor $logsDayNColour
-            Write-Host -Object " 42. $menuItem42" -ForegroundColor $networksDayNColour
-            Write-Host -Object " 43. $menuItem43" -ForegroundColor $idbDayNColour
-            Write-Host -Object " 44. $menuItem44" -ForegroundColor $completeFleetDayNColour
+            Write-Host -Object " 40. $menuItem40" -ForegroundColor $completeFleetDayNColour
+            Write-Host -Object " 41. $menuItem41" -ForegroundColor $opsAndAutomationDayNColour
+            Write-Host -Object " 42. $menuItem42" -ForegroundColor $logsDayNColour
+            Write-Host -Object " 43. $menuItem43" -ForegroundColor $networksDayNColour
+            Write-Host -Object " 44. $menuItem44" -ForegroundColor $idbDayNColour
+            Write-Host -Object " 45. $menuItem45" -ForegroundColor $realTimeMetricsDayNColour
             
             Write-Host -Object ''
             $MenuInput = Read-Host -Prompt ' Select Option (or Q to go Quit)'
@@ -792,6 +836,19 @@ Function Start-VCFJsonGeneration
                 40
                 {
                     Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem40" -Foregroundcolor Cyan; Write-Host -Object ''
+                    If (($sharedInstanceObject) -and ($sharedInstanceObject.version -notlike "9.0*") -and ($workbookProfile.deferredFleetCompletion -eq $true))
+                    {
+                        New-DayNCompleteFleet -sharedInstanceObject $sharedInstanceObject -managementObject $managementObject
+                    }
+                    else
+                    {
+                        LogMessage -type ERROR -message "Please load a relevant Planning & Preparation Workbook and try again"
+                    }
+                    anykey
+                }
+                41
+                {
+                    Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem41" -Foregroundcolor Cyan; Write-Host -Object ''
                     If (($sharedInstanceObject) -and ($workbookProfile.opsAutomationDayNDeployment -eq "Selected"))
                     {
                         If ($sharedInstanceObject.version -like "9.0*")
@@ -809,9 +866,9 @@ Function Start-VCFJsonGeneration
                     }
                     anykey
                 }
-                41
+                42
                 {
-                    Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem41" -Foregroundcolor Cyan; Write-Host -Object ''
+                    Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem42" -Foregroundcolor Cyan; Write-Host -Object ''
                     If (($sharedInstanceObject) -and ($workbookProfile.logsDayNDeployment -eq "Include"))
                     {
                         If ($sharedInstanceObject.version -like "9.0*")
@@ -829,9 +886,9 @@ Function Start-VCFJsonGeneration
                     }
                     anykey
                 }
-                42
+                43
                 {
-                    Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem42" -Foregroundcolor Cyan; Write-Host -Object ''
+                    Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem43" -Foregroundcolor Cyan; Write-Host -Object ''
                     If (($sharedInstanceObject) -and ($workbookProfile.networksDayNDeployment -eq "Include"))
                     {
                         If ($sharedInstanceObject.version -like "9.0*")
@@ -849,9 +906,9 @@ Function Start-VCFJsonGeneration
                     }
                     anykey
                 }
-                43
+                44
                 {
-                    Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem43" -Foregroundcolor Cyan; Write-Host -Object ''
+                    Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem44" -Foregroundcolor Cyan; Write-Host -Object ''
                     If (($sharedInstanceObject) -and ($workbookProfile.idbDayNDeployment -eq "Identity Broker Appliance"))
                     {
                         New-DayNIdbJsonFile -sharedInstanceObject $sharedInstanceObject
@@ -862,12 +919,12 @@ Function Start-VCFJsonGeneration
                     }
                     anykey
                 }
-                44
+                45
                 {
-                    Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem44" -Foregroundcolor Cyan; Write-Host -Object ''
-                    If (($sharedInstanceObject) -and ($managementInstanceObject)) # review
+                    Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem45" -Foregroundcolor Cyan; Write-Host -Object ''
+                    If (($sharedInstanceObject) -and ($sharedInstanceObject.version -notlike "9.0*") -and ($workbookProfile.realTimeMetricsDayNDeployment -eq "Include"))
                     {
-                        New-DayNCompleteFleet -sharedInstanceObject $sharedInstanceObject -managementObject $managementObject
+                        New-DayNRealTimeMetrics -sharedInstanceObject $sharedInstanceObject
                     }
                     else
                     {
@@ -1711,6 +1768,8 @@ Function Get-PnPInputFileInputs
             $Global:workbookProfile | Add-Member -NotePropertyName 'idbDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_vidb_chosen"].Value
             $Global:workbookProfile | Add-Member -NotePropertyName 'logsDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_logs_chosen"].Value
             $Global:workbookProfile | Add-Member -NotePropertyName 'networksDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_net_chosen"].Value
+            $Global:workbookProfile | Add-Member -NotePropertyName 'deferredFleetCompletion' -NotePropertyValue ($pnpWorkbook.Workbook.Names["placeholder_deferred_fleet_completion"].Value -eq $true)
+            $Global:workbookProfile | Add-Member -NotePropertyName 'realTimeMetricsDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["placeholder_real_time_metrics_chosen"].Value
         }
         If ($workbookProfile.granularOperation -eq "Create Cluster")
         {
