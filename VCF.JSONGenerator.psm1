@@ -790,7 +790,7 @@ Function Start-VCFJsonGeneration
                     Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem41" -Foregroundcolor Cyan; Write-Host -Object ''
                     If (($sharedInstanceObject) -and ($workbookProfile.logsDayNDeployment -eq "Include"))
                     {
-                        New-DayNLogsJsonFileLegacy -sharedInstanceObject $sharedInstanceObject
+                        New-DayNLogsViaFleetManagerJsonFile -sharedInstanceObject $sharedInstanceObject
                     }
                     else
                     {
@@ -803,7 +803,7 @@ Function Start-VCFJsonGeneration
                     Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem42" -Foregroundcolor Cyan; Write-Host -Object ''
                     If (($sharedInstanceObject) -and ($workbookProfile.networksDayNDeployment -eq "Include"))
                     {
-                        New-DayNNetworksJsonFileLegacy -sharedInstanceObject $sharedInstanceObject
+                        New-DayNNetworksViaFleetManagerJsonFile -sharedInstanceObject $sharedInstanceObject
                     }
                     else
                     {
@@ -9280,7 +9280,7 @@ Function New-EdgeJSONFile
     ConvertTo-Json $singleApiObject -depth 20 | Out-File "edgeDeploymentSpec-$($instanceObject.edgeCluster.name).json"
 }
 
-#Day N Aria JSON Files
+#Region Ops & Automation SDDC Manager
 Function New-DayNOpsAndAutomationJsonFile
 {
     Param (
@@ -9388,7 +9388,9 @@ Function New-DayNOpsAndAutomationJsonFile
     LogMessage -Type INFO -Message "Exporting the VCF Operations and Automation Post Bringup JSON to opsAutomation-dayNDeploymentSpec.json"
     ConvertTo-Json $dayNOpsAndAutomationSpecObject -depth 12 | Out-File -Encoding UTF8 -FilePath "opsAutomation-dayNDeploymentSpec.json"
 }
+#EndRegion Ops & Automation SDDC Manager
 
+#Region Fleet Manager Supporting Functions
 Function createBasicAuthHeader {
     $base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $username, $password))) # Create Basic Authentication Encoded Credentials
     $headers = @{"Accept" = "application/json" }
@@ -9454,7 +9456,9 @@ Function Get-FleetManagerLockerCertificate {
         Write-Error $_.Exception.Message
     }
 }
+#EndRegion Fleet Manager Supporting Functions
 
+#Region IDB
 Function New-DayNIdbJsonFile
 {
     Param (
@@ -9608,8 +9612,10 @@ Function New-DayNIdbJsonFile
     LogMessage -Type INFO -Message "Exporting the IDB Deployment JSON to idbDeploymentSpec-$(($sharedInstanceObject.idb.vipFqdn).split(".")[0]).json"
     ConvertTo-Json $idbJsonObject -depth 20 | Out-File "idbDeploymentSpec-$(($sharedInstanceObject.idb.vipFqdn).split(".")[0]).json"
 }
+#EndRegion IDB
 
-Function New-DayNLogsJsonFileLegacy
+#Region Log Managment
+Function New-DayNLogsViaFleetManagerJsonFile
 {
     Param (
         [Parameter (Mandatory = $true)] [Array]$sharedInstanceObject,
@@ -9846,7 +9852,57 @@ Function New-DayNLogsJsonFileLegacy
     ConvertTo-Json $logsJsonObject -depth 20 | Out-File "opsLogsDeploymentSpec-$(($sharedInstanceObject.logs.vipFqdn).split(".")[0]).json"
 }
 
-Function New-DayNNetworksJsonFileLegacy
+Function New-DayNLogsViaOpsJsonFile
+{
+    Param (
+        [Parameter (Mandatory = $true)] [Array]$sharedInstanceObject,
+        [Parameter (Mandatory = $false)] [switch]$userPromptBypass
+    )
+
+    <# Reference Sample JSON
+    '{
+    "componentSpecs": [
+        {
+            "sddcLcmId": "18b9fe29-3db2-46a6-8d98-c13c163e5501",
+            "componentType": "OPS_LOGS",
+            "deploymentType": "VspComponentSpec",
+            "version": "flt_logs_install_version",
+            "fqdn": "flt_logs_vip_fqdn",
+            "configSpec": {
+                "size": "flt_logs_node_size_chosen",
+                "numberOfNodes": flt_logs_number_replicas_chosen
+            }
+        }
+    ]
+    }'
+    #>
+
+    $configSpecObject = New-Object -type psobject
+    $configSpecObject | Add-Member -NotePropertyName 'size' -NotePropertyValue $sharedInstanceAObject.logs.nodeSize
+    $configSpecObject | Add-Member -NotePropertyName 'numberOfNodes' -NotePropertyValue '' #review
+
+    $componentSpecObject = New-Object -type psobject
+    #$componentSpecObject | Add-Member -NotePropertyName 'sddcLcmId' -NotePropertyValue ''
+    $componentSpecObject | Add-Member -NotePropertyName 'componentType' -NotePropertyValue 'OPS_LOGS'
+    $componentSpecObject | Add-Member -NotePropertyName 'deploymentType' -NotePropertyValue 'VspComponentSpec'
+    $componentSpecObject | Add-Member -NotePropertyName 'version' -NotePropertyValue $sharedInstanceObject.version
+    $componentSpecObject | Add-Member -NotePropertyName 'fqdn' -NotePropertyValue $sharedInstanceAObject.logs.vipFqdn
+    $componentSpecObject | Add-Member -NotePropertyName 'configSpec' -NotePropertyValue $configSpecObject
+
+    $componentSpecsArray = @()
+    $componentSpecsArray += $componentSpecObject
+
+    $logsJsonObject = New-Object -type psobject
+    $logsJsonObject | Add-Member -NotePropertyName 'componentSpecs' -NotePropertyValue @($componentSpecsArray)
+
+    LogMessage -Type INFO -Message "Exporting the Logs Management Deployment JSON to logMangementDeploymentSpec-$(($sharedInstanceObject.logs.vipFqdn).split(".")[0]).json"
+    ConvertTo-Json $logsJsonObject -depth 20 | Out-File "logMangementDeploymentSpec-$(($sharedInstanceObject.logs.vipFqdn).split(".")[0]).json"
+
+}
+#EndRegion Log Managment
+
+#Region Ops for Networks
+Function New-DayNNetworksViaFleetManagerJsonFile
 {
     Param (
         [Parameter (Mandatory = $true)] [Array]$sharedInstanceObject,
@@ -10070,91 +10126,56 @@ Function New-DayNNetworksJsonFileLegacy
     ConvertTo-Json $networksJsonObject -depth 20 | Out-File "opsNetworksDeploymentSpec-$(($sharedInstanceObject.networks.nodeAFqdn).split(".")[0]).json"
 }
 
-#Ops Deployment Functions
-Function New-DayNLogsJsonFileModern
+Function New-DayNNetworksViaOpsJsonFile
 {
     Param (
         [Parameter (Mandatory = $true)] [Array]$sharedInstanceObject,
-        [Parameter (Mandatory = $true)] [Array]$managementObject,
         [Parameter (Mandatory = $false)] [switch]$userPromptBypass
     )
 
+    $ipv4SettingsPlatformObject = New-Object -type psobject
+    $ipv4SettingsPlatformObject | Add-Member -NotePropertyName 'address' -NotePropertyValue $sharedInstanceObject.networks.nodeAIpAddress
+
+    $deploymentSpecPlatformObject = New-Object -type psobject
+    $deploymentSpecPlatformObject | Add-Member -NotePropertyName 'fqdn' -NotePropertyValue $sharedInstanceObject.networks.nodeAIpAddress
+    $deploymentSpecPlatformObject | Add-Member -NotePropertyName 'deploymentOption' -NotePropertyValue $sharedInstanceObject.networks.nodeASize
+    $deploymentSpecPlatformObject | Add-Member -NotePropertyName 'password' -NotePropertyValue $sharedInstanceObject.networks.systemUserPassword #review
+    $deploymentSpecPlatformObject | Add-Member -NotePropertyName 'ipv4Settings' -NotePropertyValue $ipv4SettingsPlatformObject
+
+    $ipv4SettingsCollectorObject = New-Object -type psobject
+    $ipv4SettingsCollectorObject | Add-Member -NotePropertyName 'address' -NotePropertyValue $sharedInstanceObject.networks.proxyIpAddress
+
+    $deploymentSpecCollectorObject = New-Object -type psobject
+    $deploymentSpecCollectorObject | Add-Member -NotePropertyName 'fqdn' -NotePropertyValue $sharedInstanceObject.networks.proxyIpAddress
+    $deploymentSpecCollectorObject | Add-Member -NotePropertyName 'deploymentOption' -NotePropertyValue $sharedInstanceObject.networks.proxySize
+    $deploymentSpecCollectorObject | Add-Member -NotePropertyName 'password' -NotePropertyValue $sharedInstanceObject.networks.systemUserPassword #review
+    $deploymentSpecCollectorObject | Add-Member -NotePropertyName 'ipv4Settings' -NotePropertyValue $ipv4SettingsCollectorObject
+
+    $nodeSpecsArray = @()
+    $nodeSpecsArray += [pscustomobject]@{
+        'nodeType' = 'PLATFORM'
+        'version' = $sharedInstanceObject.networks.installVersion
+        'deploymentSpec' = $deploymentSpecPlatformObject
+    }
+    $nodeSpecsArray += [pscustomobject]@{
+        'nodeType' = 'COLLECTOR'
+        'version' = $sharedInstanceObject.networks.installVersion
+        'deploymentSpec' = $deploymentSpecCollectorObject
+    }
+
     $configSpecObject = New-Object -type psobject
-    $configSpecObject | Add-Member -NotePropertyName 'size' -NotePropertyValue ''
-    $configSpecObject | Add-Member -NotePropertyName 'numberOfNodes' -NotePropertyValue ''
-    '{
-        "componentSpecs": [
-          {
-            "sddcLcmId": "18b9fe29-3db2-46a6-8d98-c13c163e5501",
-            "componentType": "OPS_LOGS",
-            "deploymentType": "VspComponentSpec",
-            "version": "9.1.0.0",
-            "fqdn": "flt-logs01.rainpole.io",
-            "configSpec": {
-              "size": "small",
-              "numberOfNodes": 1
-            }
-          }
-        ]
-    }'
+    $configSpecObject | Add-Member -NotePropertyName 'adminPassword' -NotePropertyValue $sharedInstanceObject.networks.systemUserPassword #review
 
-    '{
-    "componentSpecs": [
-        {
-            "sddcLcmId": "18b9fe29-3db2-46a6-8d98-c13c163e5501",
-            "componentType": "OPS_LOGS",
-            "deploymentType": "VspComponentSpec",
-            "version": "flt_logs_install_version",
-            "fqdn": "flt_logs_vip_fqdn",
-            "configSpec": {
-                "size": "flt_logs_node_size_chosen",
-                "numberOfNodes": flt_logs_number_replicas_chosen
-            }
-        }
-    ]
-    }'  
-}
+    $componentSpecObject = New-Object -type psobject
+    #$componentSpecObject | Add-Member -NotePropertyName 'sddcLcmId' -NotePropertyValue ''
+    $componentSpecObject | Add-Member -NotePropertyName 'componentType' -NotePropertyValue 'OPS_NETWORKS'
+    $componentSpecObject | Add-Member -NotePropertyName 'deploymentType' -NotePropertyValue 'OvaComponentSpec'
+    $componentSpecObject | Add-Member -NotePropertyName 'nodeSpecs' -NotePropertyValue @($nodeSpecsArray)
+    $componentSpecObject | Add-Member -NotePropertyName 'configSpec' -NotePropertyValue $configSpecObject
 
-Function New-DayNNetworksJsonFileModern
-{
-    '{
-        "componentSpecs": [
-          {
-            "sddcLcmId": "18b9fe29-3db2-46a6-8d98-c13c163e5501",
-            "componentType": "OPS_NETWORKS",
-            "deploymentType": "OvaComponentSpec",
-            "nodeSpecs": [
-              {
-                "nodeType": "PLATFORM",
-                "version": "9.1.0.0",
-                "deploymentSpec": {
-                  "fqdn": "10.11.10.62",
-                  "deploymentOption": "small",
-                  "password": "VMw@re1!VMw@re1!",
-                  "ipv4Settings": {
-                    "address": "10.11.10.62"
-                  }
-                }
-              },
-              {
-                "nodeType": "COLLECTOR",
-                "version": "9.1.0.0",
-                "deploymentSpec": {
-                  "fqdn": "10.11.10.14",
-                  "deploymentOption": "small",
-                  "password": "VMw@re1!VMw@re1!",
-                  "ipv4Settings": {
-                    "address": "10.11.10.14"
-                  }
-                }
-              }
-            ],
-            "configSpec": {
-              "adminPassword": "VMw@re1!VMw@re1!"
-            }
-          }
-        ]
-      }'
+    $networksJsonObject = New-Object -type psobject
+    $networksJsonObject | Add-Member -NotePropertyName 'componentSpecs' -NotePropertyValue @($componentSpecObject)
+
 
      '{
         "componentSpecs": [
@@ -10195,7 +10216,9 @@ Function New-DayNNetworksJsonFileModern
         ]
         }' 
 }
+#EndRegion Ops for Networks
 
+#Region RealTimeMetrics
 Function New-DayNRealTimeMetrics
 {
     '{
@@ -10209,7 +10232,9 @@ Function New-DayNRealTimeMetrics
         ]
     }'
 }
+#EndRegion RealTimeMetrics
 
+#Region Automation
 Function New-DayNAutomationModern
 {
     '
@@ -10268,7 +10293,9 @@ Function New-DayNAutomationModern
     }
     '
 }
+#EndRegion Automation
 
+#Region Installer
 Function New-DayNCompleteFleet
 {
     Param (
@@ -10446,3 +10473,4 @@ Function New-DayNCompleteFleet
     }
     '
 }
+#EndRegion Installer
