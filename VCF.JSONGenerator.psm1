@@ -589,7 +589,7 @@ Function Start-VCFJsonGeneration
                     Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem14" -Foregroundcolor Cyan; Write-Host -Object ''
                     If ($managementObject.edgecluster)
                     {
-                        New-EdgeJSONFile -instanceObject $managementObject
+                        New-CentralizedTransitGatewayJsonFile -instanceObject $managementObject
                     }
                     else
                     {
@@ -651,7 +651,7 @@ Function Start-VCFJsonGeneration
                     Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem24" -Foregroundcolor Cyan; Write-Host -Object ''
                     If ($workloadObject.edgecluster)
                     {
-                        New-EdgeJSONFile -instanceObject $workloadObject
+                        New-CentralizedTransitGatewayJsonFile -instanceObject $workloadObject
                     }
                     else
                     {
@@ -8539,7 +8539,7 @@ Function New-DecodedPassword
 }
 
 #Edge JSON Files
-Function New-EdgeJSONFile
+Function New-CentralizedTransitGatewayJsonFile
 {
     Param (
         [Parameter (Mandatory = $true)] [Object]$instanceObject,
