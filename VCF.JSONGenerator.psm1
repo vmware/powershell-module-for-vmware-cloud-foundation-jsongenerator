@@ -2438,7 +2438,8 @@ Function New-SharedInstanceObject
     }
     Catch {
         LogMessage -type ERROR -message "Shared Object failed to generate for $instance Instance. Please consult the error message and remediate"
-        LogMessage -type ERROR -message "At $($_.InvocationInfo.ScriptName):$($_.InvocationInfo.ScriptLineNumber) - $($_.InvocationInfo.Line.Trim()) | $($_.Exception.Message)"
+        LogMessage -type ERROR -message "At $($_.InvocationInfo.ScriptName):$($_.InvocationInfo.ScriptLineNumber)"
+        LogMessage -type ERROR -message "$($_.InvocationInfo.Line.Trim()) | $($_.Exception.Message)"
         Break
     }
 }
@@ -3126,7 +3127,8 @@ Function New-ManagementInstanceObject
     }
     Catch {
         LogMessage -type ERROR -message "Management Object failed to generate for $instance Instance. Please consult the error message and remediate"
-        LogMessage -type ERROR -message "At $($_.InvocationInfo.ScriptName):$($_.InvocationInfo.ScriptLineNumber) - $($_.InvocationInfo.Line.Trim()) | $($_.Exception.Message)"
+        LogMessage -type ERROR -message "At $($_.InvocationInfo.ScriptName):$($_.InvocationInfo.ScriptLineNumber)"
+        LogMessage -type ERROR -message "$($_.InvocationInfo.Line.Trim()) | $($_.Exception.Message)"
         Break
     }
 }
@@ -3748,7 +3750,8 @@ Function New-WorkloadInstanceObject
     }
     Catch {
         LogMessage -type ERROR -message "Workload object failed to generate for $($workloadInstanceObject.instance). Please consult the error message and remediate"
-        LogMessage -type ERROR -message "At $($_.InvocationInfo.ScriptName):$($_.InvocationInfo.ScriptLineNumber) - $($_.InvocationInfo.Line.Trim()) | $($_.Exception.Message)"
+        LogMessage -type ERROR -message "At $($_.InvocationInfo.ScriptName):$($_.InvocationInfo.ScriptLineNumber)"
+        LogMessage -type ERROR -message "$($_.InvocationInfo.Line.Trim()) | $($_.Exception.Message)"
     }
 }
 
