@@ -33,6 +33,7 @@ else
     [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 }
 
+#Region Exported Functions
 Function Set-VCFJsonGenerationPrequisites
 {
     LogMessage -type INFO -message "Trusting PSGallery"
@@ -861,7 +862,9 @@ Function Start-VCFJsonGeneration
     New-JsonGenerationMenu
 }
 Export-ModuleMember -function Start-VCFJsonGeneration
+#EndRegion Exported Functions
 
+#Region Common Supporting Functions
 Function Set-ConsoleParameters
 {
     $ErrorActionPreference = "Stop"
@@ -987,58 +990,6 @@ Function catchWriter
     LogMessage -Type EXCEPTION -Message "Error Message: $errorMessage"
 }
 
-Function Get-SslFingerprint {
-    Param ([String]$fqdn, [Int]$port = 443)
-    
-    Try {
-        If ([System.Environment]::OSVersion.Platform -eq 'Win32NT') {
-            $fingerprint = (Write-Output "Q" | openssl.exe s_client -connect "${fqdn}:${port}" -showcerts 2>$null | Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
-        } else {
-            $fingerprint = (Write-Output "Q" | openssl s_client -connect "${fqdn}:${port}" -showcerts 2>$null | Filter-X509 | openssl x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
-        }
-        return $fingerprint
-    } Catch {
-        return $null
-    }
-}
-
-Function Get-UplinkConfiguration {
-    Param ([Object]$vdsConfig)
-    
-    If ($vdsConfig.type -eq "VDS LAG") {
-        return @{
-            activeUplinks = @($vdsConfig.lagName)
-            policy = "FAILOVER_ORDER"
-            uplink1Name = "$($vdsConfig.lagName)-0"
-            uplink2Name = "$($vdsConfig.lagName)-1"
-            teamingPolicy = "failover_explicit"
-        }
-    } else {
-        return @{
-            activeUplinks = @("uplink1", "uplink2")
-            policy = "LOADBALANCE_SRCID"
-            uplink1Name = "uplink1"
-            uplink2Name = "uplink2"
-            teamingPolicy = "loadbalance_loadbased"
-        }
-    }
-}
-
-Function New-LagSpec {
-    Param ([Object]$vdsConfig)
-    
-    If ($vdsConfig.type -eq "VDS LAG") {
-        return [PSCustomObject]@{
-            name              = $vdsConfig.lagName
-            lacpMode          = ($vdsConfig.lagMode).ToUpper()
-            loadBalancingMode = (($vdsConfig.lagLoadBalancing).Replace(" ", "_")).ToUpper()
-            lacpTimeoutMode   = ($vdsConfig.lagTimeout).ToUpper()
-            uplinksCount      = $vdsConfig.uplinkCount -as [INT]
-        }
-    }
-    return $null
-}
-
 Function Get-InstalledSoftware
 {
     $software = @()
@@ -1066,6 +1017,371 @@ Function Get-InstalledSoftware
     Return $software
 }
 
+Function Filter-X509()
+{
+    begin
+    {
+        $doOutput = $false
+    }
+    process
+    {
+        if ( $_.Contains("-----BEGIN CERTIFICATE-----") )
+        {
+            $doOutput = $true
+        }
+        if ($doOutput)
+        {
+            Write-Output $_
+        }
+        if ( $_.Contains("-----END CERTIFICATE-----") )
+        {
+            $doOutput = $false
+        }
+    }
+    end
+    {
+        if ($doOutput)
+        {
+            throw "still printing certificate"
+        }
+    }
+}
+
+Function cidrToMask 
+{
+    Param (
+        [Parameter (Mandatory = $true)] [String]$cidr
+    )
+
+    $subnetMasks = @(
+        ($32 = @{ cidr = "32"; mask = "255.255.255.255" }),
+        ($31 = @{ cidr = "31"; mask = "255.255.255.254" }),
+        ($30 = @{ cidr = "30"; mask = "255.255.255.252" }),
+        ($29 = @{ cidr = "29"; mask = "255.255.255.248" }),
+        ($28 = @{ cidr = "28"; mask = "255.255.255.240" }),
+        ($27 = @{ cidr = "27"; mask = "255.255.255.224" }),
+        ($26 = @{ cidr = "26"; mask = "255.255.255.192" }),
+        ($25 = @{ cidr = "25"; mask = "255.255.255.128" }),
+        ($24 = @{ cidr = "24"; mask = "255.255.255.0" }),
+        ($23 = @{ cidr = "23"; mask = "255.255.254.0" }),
+        ($22 = @{ cidr = "22"; mask = "255.255.252.0" }),
+        ($21 = @{ cidr = "21"; mask = "255.255.248.0" }),
+        ($20 = @{ cidr = "20"; mask = "255.255.240.0" }),
+        ($19 = @{ cidr = "19"; mask = "255.255.224.0" }),
+        ($18 = @{ cidr = "18"; mask = "255.255.192.0" }),
+        ($17 = @{ cidr = "17"; mask = "255.255.128.0" }),
+        ($16 = @{ cidr = "16"; mask = "255.255.0.0" }),
+        ($15 = @{ cidr = "15"; mask = "255.254.0.0" }),
+        ($14 = @{ cidr = "14"; mask = "255.252.0.0" }),
+        ($13 = @{ cidr = "13"; mask = "255.248.0.0" }),
+        ($12 = @{ cidr = "12"; mask = "255.240.0.0" }),
+        ($11 = @{ cidr = "11"; mask = "255.224.0.0" }),
+        ($10 = @{ cidr = "10"; mask = "255.192.0.0" }),
+        ($9 = @{ cidr = "9"; mask = "255.128.0.0" }),
+        ($8 = @{ cidr = "8"; mask = "255.0.0.0" }),
+        ($7 = @{ cidr = "7"; mask = "254.0.0.0" }),
+        ($6 = @{ cidr = "6"; mask = "252.0.0.0" }),
+        ($5 = @{ cidr = "5"; mask = "248.0.0.0" }),
+        ($4 = @{ cidr = "4"; mask = "240.0.0.0" }),
+        ($3 = @{ cidr = "3"; mask = "224.0.0.0" }),
+        ($2 = @{ cidr = "2"; mask = "192.0.0.0" }),
+        ($1 = @{ cidr = "1"; mask = "128.0.0.0" }),
+        ($0 = @{ cidr = "0"; mask = "0.0.0.0" })
+    )
+    $foundMask = $subnetMasks | Where-Object { $_.'cidr' -eq $cidr }
+    Return $foundMask.mask
+}
+
+Function Get-NetworkDetailsFromGateway
+{
+    Param (
+        [Parameter (Mandatory = $true)] [String]$gatewayCidr
+    )
+
+    $parts = $gatewayCidr -split '/'
+    If ($parts.Count -ne 2)
+    {
+        Throw "Invalid input '$gatewayCidr'. Expected format: <gateway>/<prefix>, e.g. 192.168.1.1/24"
+    }
+
+    $gwAddress  = $parts[0]
+    $cidrPrefix = $parts[1]
+
+    $netmask = cidrToMask -cidr $cidrPrefix
+
+    $gwOctets   = $gwAddress -split '\.'
+    $maskOctets = $netmask   -split '\.'
+
+    $networkOctets = @()
+    For ($i = 0; $i -lt 4; $i++)
+    {
+        $networkOctets += ([int]$gwOctets[$i] -band [int]$maskOctets[$i])
+    }
+    $networkAddress = $networkOctets -join '.'
+
+    $result = New-Object -TypeName PSObject
+    $result | Add-Member -NotePropertyName 'netmask'  -NotePropertyValue $netmask
+    $result | Add-Member -NotePropertyName 'cidr'     -NotePropertyValue "$networkAddress/$cidrPrefix"
+    $result | Add-Member -NotePropertyName 'network'  -NotePropertyValue $networkAddress
+    $result | Add-Member -NotePropertyName 'gw'       -NotePropertyValue $gwAddress
+
+    Return $result
+}
+
+Function New-BasicAuthHeader
+{
+    Param(
+    [Parameter (Mandatory=$true)]
+    [String] $username,
+    [Parameter (Mandatory=$true)]
+    [String] $password
+    )
+    $base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $username,$password))) # Create Basic Authentication Encoded Credentials
+    $headers = @{"Accept" = "application/json"}
+    $headers.Add("Authorization", "Basic $base64AuthInfo")
+    
+    Return $headers
+}
+
+Function New-VCFToken {
+    
+    Param (
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$fqdn,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$username,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$password,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [Switch]$skipCertificateCheck
+    )
+
+    if ( -not $PsBoundParameters.ContainsKey("username") -or ( -not $PsBoundParameters.ContainsKey("password"))) {
+        $creds = Get-Credential # Request Credentials
+        $username = $creds.UserName.ToString()
+        $password = $creds.GetNetworkCredential().password
+    }
+
+    if ($PsBoundParameters.ContainsKey("skipCertificateCheck")) {
+        if (-not("placeholder" -as [type])) {
+            add-type -TypeDefinition @"
+using System;
+using System.Net;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
+
+public static class Placeholder {
+    public static bool ReturnTrue(object sender,
+        X509Certificate certificate,
+        X509Chain chain,
+        SslPolicyErrors sslPolicyErrors) { return true; }
+
+    public static RemoteCertificateValidationCallback GetDelegate() {
+        return new RemoteCertificateValidationCallback(Placeholder.ReturnTrue);
+    }
+}
+"@
+}
+        [System.Net.ServicePointManager]::ServerCertificateValidationCallback = [placeholder]::GetDelegate()
+    }
+
+    $Global:sddcManager = $fqdn
+    $headers = @{"Content-Type" = "application/json" }
+    $uri = "https://$sddcManager/v1/tokens" # Set URI for executing an API call to validate authentication
+    $body = '{"username": "' + $username + '","password": "' + $password + '"}'
+
+    Try {
+        # Checking authentication with SDDC Manager
+        if ($PSEdition -eq 'Core') {
+            $response = Invoke-RestMethod -Method POST -Uri $uri -Headers $headers -Body $body -SkipCertificateCheck # PS Core has -SkipCertificateCheck implemented
+            $Global:accessToken = $response.accessToken
+            $Global:refreshToken = $response.refreshToken.id
+        } else {
+            $response = Invoke-RestMethod -Method POST -Uri $uri -Headers $headers -Body $body
+            $Global:accessToken = $response.accessToken
+            $Global:refreshToken = $response.refreshToken.id
+        }
+        if ($response.accessToken) {
+            Write-Output "Successfully Requested New API Token From SDDC Manager: $sddcManager"
+        }
+    } Catch {
+        ResponseException -object $_
+    }
+}
+
+Function New-VCFBearerAuthHeader {
+    $Global:headers = @{"Accept" = "application/json" }
+    $Global:headers.Add("Authorization", "Bearer $accessToken")
+}
+
+Function New-RackBasedHostCommissioning
+{
+    Param (
+        [Parameter(Mandatory = $true)][Object]$instanceObject,
+        [Parameter(Mandatory = $false)][string]$az,
+        [Parameter(Mandatory = $false)][switch]$userPromptBypass
+    )
+    Remove-Variable commissionNestedHosts -errorAction silentlyContinue
+
+    Do
+    {
+        LogMessage -Type QUESTION -Message "Do you wish to create a commissioning JSON for submission via API (A) or UI (U)? " -skipnewline
+        $jsonMode = Read-Host    
+    } Until ($jsonMode -in "A","U")
+    
+    If (!$userPromptBypass)
+    {
+        Do
+        {
+            LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve network pool IDs from SDDC Manager? (Y/N): " -skipnewline
+            $interactiveEnabled = Read-Host    
+        } Until ($interactiveEnabled -in "Y","N")
+        $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""
+    }
+    else
+    {
+        $sddcMgrFqdn = $instanceObject.sddcManager.fqdn
+        $sddcMgrUser = $instanceObject.sddcManager.adminUser
+        $decodedPassword = $instanceObject.sddcManager.adminPassword
+        $interactiveEnabled = "Y"
+    }
+    If ($interactiveEnabled -eq "Y")
+    {
+        If (!$userPromptBypass)
+        {
+            Do
+            {
+                LogMessage -type INFO -message "SDDC Manager FQDN: " -skipnewline
+                $sddcMgrFqdn = Read-Host
+                LogMessage -type INFO -message "SDDC Manager Administrator: " -skipnewline
+                $sddcMgrUser = Read-Host
+                LogMessage -type INFO -message "SDDC Manager Administrator password: " -skipnewline
+                $adminPassword = Read-Host -AsSecureString
+                $decodedPassword = New-DecodedPassword -securePassword $adminPassword
+                New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
+                If (!($accessToken))
+                {
+                    LogMessage -type ERROR -message "Failed to connect to $sddcMgrFqdn. Please check details and try again"
+                }
+            } Until ($accessToken)
+        }
+        else
+        {
+            New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
+        }
+    }
+
+    If (!($az))
+    {
+        If ($instanceObject.az2)
+        { 
+            $azs = @("az1","az2") 
+        }
+        else
+        {
+            $azs = @("az1")
+        }
+    }
+    else
+    {
+        $azs = @($az)
+    }
+    
+    Foreach ($az in $azs)
+    {
+        $selectedRackArray = @(($instanceObject.$($az) | Get-Member -type NoteProperty).name)
+        $commissionNestedHosts = @()
+        If (!$exitFunction)
+        {
+            Foreach ($rack in $selectedRackArray)
+            {
+                $selectedHostArray = @($instanceObject.$($az).$($rack).hosts)
+    
+                If (!$exitFunction)
+                {
+                    If ($instanceObject.vsphereClusters[0].storageModel -eq "VSAN-ESA") 
+                    {
+                        $vSanTypeObject="VSAN_ESA" 
+                    }
+                    elseIf ($instanceObject.vsphereClusters[0].storageModel -eq "vSAN Storage Cluster")
+                    {
+                        $vSanTypeObject="VSAN_MAX"
+                    }
+                    else
+                    {
+                        $vSanTypeObject="VSAN"
+                    }
+        
+                    If ($interactiveEnabled -eq "Y")
+                    {
+                        LogMessage -Type INFO -Message "Obtaining Network Pool ID from SDDC Manager for pool $($instanceObject.$($az).$($rack).network.vcfNetworkPoolName): Found"
+                        $networkPool = (Get-VCFNetworkPoolDetails | Where-Object { $_.name -eq $instanceObject.$($az).$($rack).network.vcfNetworkPoolName }).id
+                    }
+                    else
+                    {
+                        $networkPool = '<--ENTER-NETWORK-POOL-ID-HERE-->'
+                    }
+    
+                    Foreach ($selectedHost in $selectedHostArray)
+                    {
+                        $commissionNestedHosts += [pscustomobject]@{
+                            "fqdn" = $selectedHost.fqdn
+                            "username" = "root"
+                            "storageType" = $vSanTypeObject
+                            "password" = $instanceObject.hostCredentials.esxiPassword
+                            'networkPoolName' = $instanceObject.$($az).$($rack).network.vcfNetworkPoolName
+                            'networkPoolId'   = $networkPool
+                        } 
+                    }
+                Remove-Variable selectedHostArray
+                }
+            }
+    
+            If (!$exitFunction)
+            {
+                
+                If ($jsonMode -eq "A")
+                {
+                    #Create API JSON Spec
+                    LogMessage -Type INFO -Message "Exporting API Commissioning JSON to commissionHostSpec-$($instanceObject.vsphereClusters[0].clustername)-$($az)-api.json"
+                    ConvertTo-Json $commissionNestedHosts -Depth 10 | Out-File -FilePath "commissionHostSpec-$($instanceObject.vsphereClusters[0].clustername)-$($az)-api.json"
+                }
+                else
+                {
+                    #Create UI JSON Spec
+                    $uiSpecObject = @()
+                    $uiSpecObject += [pscustomobject]@{
+                        'hosts' = $commissionNestedHosts
+                    }                
+                    $uiSpecObject[0].hosts = $uiSpecObject.hosts | ForEach-Object {            
+                        $_ | Select-Object @{Name = 'fqdn'; Expression = {$_.fqdn}}, 'username', 'storageType', 'password', 'networkPoolName'
+                    } | Select-Object -Skip 0
+                    LogMessage -Type INFO -Message "Exporting UI Commissioning JSON to commissionHostSpec-$($instanceObject.vsphereClusters[0].clustername)-$($az)-ui.json"
+                    $uiSpecObject | Convertto-json -depth 10 | Out-File -FilePath "commissionHostSpec-$($instanceObject.vsphereClusters[0].clustername)-$($az)-ui.json"    
+                }
+                LogMessage -Type NOTE -Message "Completed the Process of Generating the Commissioning JSON"
+            }
+        }
+    }
+}
+
+Function New-DecodedPassword
+{
+    Param (
+        [Parameter (Mandatory = $true)] [securestring]$securePassword
+    )
+    If ([System.Environment]::OSVersion.Platform -eq 'Win32NT')
+    {
+        $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
+        $decodedPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+    }
+    else
+    {
+        $serializedSecureString = $securePassword | ConvertFrom-SecureString
+        $byteArray = [byte[]] -split ($serializedSecureString -replace '..', '0x$& ')
+        $decodedPassword = [System.Text.Encoding]::Unicode.GetString($byteArray)
+    }
+    Return $decodedPassword
+}
+#EndRegion Common Supporting Functions
+
+#Region Supporting SDDC Manager Functions
 Function Get-VCFHostDetails {
     [CmdletBinding(DefaultParametersetname = "Default")]
 
@@ -1194,228 +1510,9 @@ Function Get-VCFWorkloadDomainDetails {
         ResponseException -object $_
     }
 }
+#EndRegion Supporting SDDC Manager Functions
 
-Function New-VCFToken {
-    
-    Param (
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$fqdn,
-        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$username,
-        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$password,
-        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [Switch]$skipCertificateCheck
-    )
-
-    if ( -not $PsBoundParameters.ContainsKey("username") -or ( -not $PsBoundParameters.ContainsKey("password"))) {
-        $creds = Get-Credential # Request Credentials
-        $username = $creds.UserName.ToString()
-        $password = $creds.GetNetworkCredential().password
-    }
-
-    if ($PsBoundParameters.ContainsKey("skipCertificateCheck")) {
-        if (-not("placeholder" -as [type])) {
-            add-type -TypeDefinition @"
-using System;
-using System.Net;
-using System.Net.Security;
-using System.Security.Cryptography.X509Certificates;
-
-public static class Placeholder {
-    public static bool ReturnTrue(object sender,
-        X509Certificate certificate,
-        X509Chain chain,
-        SslPolicyErrors sslPolicyErrors) { return true; }
-
-    public static RemoteCertificateValidationCallback GetDelegate() {
-        return new RemoteCertificateValidationCallback(Placeholder.ReturnTrue);
-    }
-}
-"@
-}
-        [System.Net.ServicePointManager]::ServerCertificateValidationCallback = [placeholder]::GetDelegate()
-    }
-
-    $Global:sddcManager = $fqdn
-    $headers = @{"Content-Type" = "application/json" }
-    $uri = "https://$sddcManager/v1/tokens" # Set URI for executing an API call to validate authentication
-    $body = '{"username": "' + $username + '","password": "' + $password + '"}'
-
-    Try {
-        # Checking authentication with SDDC Manager
-        if ($PSEdition -eq 'Core') {
-            $response = Invoke-RestMethod -Method POST -Uri $uri -Headers $headers -Body $body -SkipCertificateCheck # PS Core has -SkipCertificateCheck implemented
-            $Global:accessToken = $response.accessToken
-            $Global:refreshToken = $response.refreshToken.id
-        } else {
-            $response = Invoke-RestMethod -Method POST -Uri $uri -Headers $headers -Body $body
-            $Global:accessToken = $response.accessToken
-            $Global:refreshToken = $response.refreshToken.id
-        }
-        if ($response.accessToken) {
-            Write-Output "Successfully Requested New API Token From SDDC Manager: $sddcManager"
-        }
-    } Catch {
-        ResponseException -object $_
-    }
-}
-
-Function Filter-X509()
-{
-    begin
-    {
-        $doOutput = $false
-    }
-    process
-    {
-        if ( $_.Contains("-----BEGIN CERTIFICATE-----") )
-        {
-            $doOutput = $true
-        }
-        if ($doOutput)
-        {
-            Write-Output $_
-        }
-        if ( $_.Contains("-----END CERTIFICATE-----") )
-        {
-            $doOutput = $false
-        }
-    }
-    end
-    {
-        if ($doOutput)
-        {
-            throw "still printing certificate"
-        }
-    }
-}
-
-Function cidrToMask 
-{
-    Param (
-        [Parameter (Mandatory = $true)] [String]$cidr
-    )
-
-    $subnetMasks = @(
-        ($32 = @{ cidr = "32"; mask = "255.255.255.255" }),
-        ($31 = @{ cidr = "31"; mask = "255.255.255.254" }),
-        ($30 = @{ cidr = "30"; mask = "255.255.255.252" }),
-        ($29 = @{ cidr = "29"; mask = "255.255.255.248" }),
-        ($28 = @{ cidr = "28"; mask = "255.255.255.240" }),
-        ($27 = @{ cidr = "27"; mask = "255.255.255.224" }),
-        ($26 = @{ cidr = "26"; mask = "255.255.255.192" }),
-        ($25 = @{ cidr = "25"; mask = "255.255.255.128" }),
-        ($24 = @{ cidr = "24"; mask = "255.255.255.0" }),
-        ($23 = @{ cidr = "23"; mask = "255.255.254.0" }),
-        ($22 = @{ cidr = "22"; mask = "255.255.252.0" }),
-        ($21 = @{ cidr = "21"; mask = "255.255.248.0" }),
-        ($20 = @{ cidr = "20"; mask = "255.255.240.0" }),
-        ($19 = @{ cidr = "19"; mask = "255.255.224.0" }),
-        ($18 = @{ cidr = "18"; mask = "255.255.192.0" }),
-        ($17 = @{ cidr = "17"; mask = "255.255.128.0" }),
-        ($16 = @{ cidr = "16"; mask = "255.255.0.0" }),
-        ($15 = @{ cidr = "15"; mask = "255.254.0.0" }),
-        ($14 = @{ cidr = "14"; mask = "255.252.0.0" }),
-        ($13 = @{ cidr = "13"; mask = "255.248.0.0" }),
-        ($12 = @{ cidr = "12"; mask = "255.240.0.0" }),
-        ($11 = @{ cidr = "11"; mask = "255.224.0.0" }),
-        ($10 = @{ cidr = "10"; mask = "255.192.0.0" }),
-        ($9 = @{ cidr = "9"; mask = "255.128.0.0" }),
-        ($8 = @{ cidr = "8"; mask = "255.0.0.0" }),
-        ($7 = @{ cidr = "7"; mask = "254.0.0.0" }),
-        ($6 = @{ cidr = "6"; mask = "252.0.0.0" }),
-        ($5 = @{ cidr = "5"; mask = "248.0.0.0" }),
-        ($4 = @{ cidr = "4"; mask = "240.0.0.0" }),
-        ($3 = @{ cidr = "3"; mask = "224.0.0.0" }),
-        ($2 = @{ cidr = "2"; mask = "192.0.0.0" }),
-        ($1 = @{ cidr = "1"; mask = "128.0.0.0" }),
-        ($0 = @{ cidr = "0"; mask = "0.0.0.0" })
-    )
-    $foundMask = $subnetMasks | Where-Object { $_.'cidr' -eq $cidr }
-    Return $foundMask.mask
-}
-
-Function Get-NetworkDetailsFromGateway
-{
-    Param (
-        [Parameter (Mandatory = $true)] [String]$gatewayCidr
-    )
-
-    $parts = $gatewayCidr -split '/'
-    If ($parts.Count -ne 2)
-    {
-        Throw "Invalid input '$gatewayCidr'. Expected format: <gateway>/<prefix>, e.g. 192.168.1.1/24"
-    }
-
-    $gwAddress  = $parts[0]
-    $cidrPrefix = $parts[1]
-
-    $netmask = cidrToMask -cidr $cidrPrefix
-
-    $gwOctets   = $gwAddress -split '\.'
-    $maskOctets = $netmask   -split '\.'
-
-    $networkOctets = @()
-    For ($i = 0; $i -lt 4; $i++)
-    {
-        $networkOctets += ([int]$gwOctets[$i] -band [int]$maskOctets[$i])
-    }
-    $networkAddress = $networkOctets -join '.'
-
-    $result = New-Object -TypeName PSObject
-    $result | Add-Member -NotePropertyName 'netmask'  -NotePropertyValue $netmask
-    $result | Add-Member -NotePropertyName 'cidr'     -NotePropertyValue "$networkAddress/$cidrPrefix"
-    $result | Add-Member -NotePropertyName 'network'  -NotePropertyValue $networkAddress
-    $result | Add-Member -NotePropertyName 'gw'       -NotePropertyValue $gwAddress
-
-    Return $result
-}
-
-Function New-RackDisplayObject
-{
-    Param (
-        [Parameter (mandatory = $true)] [Array]$instanceObject,
-        [Parameter (Mandatory = $false)] [String]$az
-    )
-    $rackArray = @(($instanceObject.$($az) | get-member -type NoteProperty).name)
-    $rackDisplayObject=@()
-    $rackIndex = 1
-    $rackDisplayObject += [pscustomobject]@{
-            'id'    = "ID"
-            'name' = "Rack"
-        }
-    $rackDisplayObject += [pscustomobject]@{
-            'id'    = "--"
-            'name' = "------"
-        }
-    Foreach ($rackInstance in $rackArray)
-    {
-        $rackDisplayObject += [pscustomobject]@{
-            'id'    = $rackIndex
-            'name' = $rackInstance
-        }
-        $rackIndex++
-    }
-    Return $rackDisplayObject
-}
-
-Function New-BasicAuthHeader
-{
-    Param(
-    [Parameter (Mandatory=$true)]
-    [String] $username,
-    [Parameter (Mandatory=$true)]
-    [String] $password
-    )
-    $base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $username,$password))) # Create Basic Authentication Encoded Credentials
-    $headers = @{"Accept" = "application/json"}
-    $headers.Add("Authorization", "Basic $base64AuthInfo")
-    
-    Return $headers
-}
-
-Function New-VCFBearerAuthHeader {
-    $Global:headers = @{"Accept" = "application/json" }
-    $Global:headers.Add("Authorization", "Bearer $accessToken")
-}
-
+#Region Supporting NSX Functions
 Function Get-NsxTransportZones {
     Param (
         [Parameter (Mandatory=$true)][ValidateNotNullOrEmpty()][String]$nsxtUsername,
@@ -1495,8 +1592,9 @@ Function Get-NsxTransitGateways {
         catchwriter -object $_
     }
 }
+#EndRegion Supporting NSX Functions
 
-# PnP Scraping Functions
+#Region PnP Scraping Functions
 Function Show-PnPFilesInFolder
 {
     #Get All xlsx Files
@@ -1914,8 +2012,9 @@ Function New-WorkbookDeploymentProfile
     }
     Return $deploymentProfileObject
 }
+#EndRegion PnP Scraping Functions
 
-# Generate Global Objects
+#Region Generate Global Objects
 Function New-SharedInstanceObject
 {
     Param (
@@ -1937,6 +2036,7 @@ Function New-SharedInstanceObject
             $vcfVersion = $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
         }
         $vcfInstanceName = $pnpWorkbook.Workbook.Names["vcf_instance_name"].Value
+        $domainName = $pnpWorkbook.Workbook.Names["mgmt_sddc_domain"].Value
         $deploymentProfileObject = New-WorkbookDeploymentProfile -pnpWorkbook $pnpWorkbook -vcfVersion $vcfVersion -type management
 
         $sddcManagerObject = New-Object -TypeName psobject
@@ -2218,6 +2318,7 @@ Function New-SharedInstanceObject
         }
         $sharedInstanceObject = New-Object -TypeName psobject
         $sharedInstanceObject | Add-Member -notepropertyname 'instance' -notepropertyvalue $instance
+        $sharedInstanceObject | Add-Member -notepropertyname 'domainName' -notepropertyvalue $domainName
         $sharedInstanceObject | Add-Member -notepropertyname 'vcfInstanceName' -notepropertyvalue $vcfInstanceName
         $sharedInstanceObject | Add-Member -notepropertyname 'version' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
         $sharedInstanceObject | Add-Member -notepropertyname 'deploymentProfile' -notepropertyvalue $deploymentProfileObject    
@@ -3918,14 +4019,15 @@ Function New-ClusterObject
     } 
     
 }
+#EndRegion Generate Global Objects
 
-# Domain JSON Files
+#Region Domain JSON Files
 Function New-ManagementDomainJsonFile
 {
 
     Param (
         [Parameter (Mandatory = $true)] [Object]$instanceObject,
-        [Parameter (Mandatory = $true)] [Array]$sharedInstanceObject,
+        [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
         [Parameter (Mandatory = $false)] [string]$singleNSXTManager,
         [Parameter (Mandatory = $false)] [string]$skipAutomation,
         [Parameter (Mandatory = $false)] [string]$joinFleet,
@@ -6234,8 +6336,9 @@ Function New-WorkloadDomainJsonFile
         catchWriter -object $_
     }
 }
+#EndRegion Domain JSON Files
 
-# SDDC Manager Supporting Functions
+#Region Network Pools Functions
 Function New-NetworkPoolJsonFile 
 {
     Param (
@@ -6326,159 +6429,9 @@ Function New-NetworkPoolJsonFile
         catchWriter -object $_
     }
 }
+#EndRegion Network Pools Functions
 
-Function New-RackBasedHostCommissioning
-{
-    Param (
-        [Parameter(Mandatory = $true)][Object]$instanceObject,
-        [Parameter(Mandatory = $false)][string]$az,
-        [Parameter(Mandatory = $false)][switch]$userPromptBypass
-    )
-    Remove-Variable commissionNestedHosts -errorAction silentlyContinue
-
-    Do
-    {
-        LogMessage -Type QUESTION -Message "Do you wish to create a commissioning JSON for submission via API (A) or UI (U)? " -skipnewline
-        $jsonMode = Read-Host    
-    } Until ($jsonMode -in "A","U")
-    
-    If (!$userPromptBypass)
-    {
-        Do
-        {
-            LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve network pool IDs from SDDC Manager? (Y/N): " -skipnewline
-            $interactiveEnabled = Read-Host    
-        } Until ($interactiveEnabled -in "Y","N")
-        $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""
-    }
-    else
-    {
-        $sddcMgrFqdn = $instanceObject.sddcManager.fqdn
-        $sddcMgrUser = $instanceObject.sddcManager.adminUser
-        $decodedPassword = $instanceObject.sddcManager.adminPassword
-        $interactiveEnabled = "Y"
-    }
-    If ($interactiveEnabled -eq "Y")
-    {
-        If (!$userPromptBypass)
-        {
-            Do
-            {
-                LogMessage -type INFO -message "SDDC Manager FQDN: " -skipnewline
-                $sddcMgrFqdn = Read-Host
-                LogMessage -type INFO -message "SDDC Manager Administrator: " -skipnewline
-                $sddcMgrUser = Read-Host
-                LogMessage -type INFO -message "SDDC Manager Administrator password: " -skipnewline
-                $adminPassword = Read-Host -AsSecureString
-                $decodedPassword = New-DecodedPassword -securePassword $adminPassword
-                New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
-                If (!($accessToken))
-                {
-                    LogMessage -type ERROR -message "Failed to connect to $sddcMgrFqdn. Please check details and try again"
-                }
-            } Until ($accessToken)
-        }
-        else
-        {
-            New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
-        }
-    }
-
-    If (!($az))
-    {
-        If ($instanceObject.az2)
-        { 
-            $azs = @("az1","az2") 
-        }
-        else
-        {
-            $azs = @("az1")
-        }
-    }
-    else
-    {
-        $azs = @($az)
-    }
-    
-    Foreach ($az in $azs)
-    {
-        $selectedRackArray = @(($instanceObject.$($az) | Get-Member -type NoteProperty).name)
-        $commissionNestedHosts = @()
-        If (!$exitFunction)
-        {
-            Foreach ($rack in $selectedRackArray)
-            {
-                $selectedHostArray = @($instanceObject.$($az).$($rack).hosts)
-    
-                If (!$exitFunction)
-                {
-                    If ($instanceObject.vsphereClusters[0].storageModel -eq "VSAN-ESA") 
-                    {
-                        $vSanTypeObject="VSAN_ESA" 
-                    }
-                    elseIf ($instanceObject.vsphereClusters[0].storageModel -eq "vSAN Storage Cluster")
-                    {
-                        $vSanTypeObject="VSAN_MAX"
-                    }
-                    else
-                    {
-                        $vSanTypeObject="VSAN"
-                    }
-        
-                    If ($interactiveEnabled -eq "Y")
-                    {
-                        LogMessage -Type INFO -Message "Obtaining Network Pool ID from SDDC Manager for pool $($instanceObject.$($az).$($rack).network.vcfNetworkPoolName): Found"
-                        $networkPool = (Get-VCFNetworkPoolDetails | Where-Object { $_.name -eq $instanceObject.$($az).$($rack).network.vcfNetworkPoolName }).id
-                    }
-                    else
-                    {
-                        $networkPool = '<--ENTER-NETWORK-POOL-ID-HERE-->'
-                    }
-    
-                    Foreach ($selectedHost in $selectedHostArray)
-                    {
-                        $commissionNestedHosts += [pscustomobject]@{
-                            "fqdn" = $selectedHost.fqdn
-                            "username" = "root"
-                            "storageType" = $vSanTypeObject
-                            "password" = $instanceObject.hostCredentials.esxiPassword
-                            'networkPoolName' = $instanceObject.$($az).$($rack).network.vcfNetworkPoolName
-                            'networkPoolId'   = $networkPool
-                        } 
-                    }
-                Remove-Variable selectedHostArray
-                }
-            }
-    
-            If (!$exitFunction)
-            {
-                
-                If ($jsonMode -eq "A")
-                {
-                    #Create API JSON Spec
-                    LogMessage -Type INFO -Message "Exporting API Commissioning JSON to commissionHostSpec-$($instanceObject.vsphereClusters[0].clustername)-$($az)-api.json"
-                    ConvertTo-Json $commissionNestedHosts -Depth 10 | Out-File -FilePath "commissionHostSpec-$($instanceObject.vsphereClusters[0].clustername)-$($az)-api.json"
-                }
-                else
-                {
-                    #Create UI JSON Spec
-                    $uiSpecObject = @()
-                    $uiSpecObject += [pscustomobject]@{
-                        'hosts' = $commissionNestedHosts
-                    }                
-                    $uiSpecObject[0].hosts = $uiSpecObject.hosts | ForEach-Object {            
-                        $_ | Select-Object @{Name = 'fqdn'; Expression = {$_.fqdn}}, 'username', 'storageType', 'password', 'networkPoolName'
-                    } | Select-Object -Skip 0
-                    LogMessage -Type INFO -Message "Exporting UI Commissioning JSON to commissionHostSpec-$($instanceObject.vsphereClusters[0].clustername)-$($az)-ui.json"
-                    $uiSpecObject | Convertto-json -depth 10 | Out-File -FilePath "commissionHostSpec-$($instanceObject.vsphereClusters[0].clustername)-$($az)-ui.json"    
-                }
-                LogMessage -Type NOTE -Message "Completed the Process of Generating the Commissioning JSON"
-            }
-        }
-    }
-}
-
-#Cluster JSON Files
+#Region Cluster JSON Files
 Function New-L2vSphereClusterJsonFile
 {
     Param (
@@ -8518,27 +8471,9 @@ Function New-SingleOperationStretchedComputeClusterJsonFile
     $clusterJsonObject | ConvertTo-Json -Depth 12 | Out-File -Encoding UTF8 -FilePath "clusterSpec-$($clusterObject.vsphereClusters[0].clusterName).json"
     LogMessage -Type NOTE -Message "Completed the Process of Generating the Cluster Creation JSON"
 }
+#EndRegion Cluster JSON Files
 
-Function New-DecodedPassword
-{
-    Param (
-        [Parameter (Mandatory = $true)] [securestring]$securePassword
-    )
-    If ([System.Environment]::OSVersion.Platform -eq 'Win32NT')
-    {
-        $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
-        $decodedPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
-    }
-    else
-    {
-        $serializedSecureString = $securePassword | ConvertFrom-SecureString
-        $byteArray = [byte[]] -split ($serializedSecureString -replace '..', '0x$& ')
-        $decodedPassword = [System.Text.Encoding]::Unicode.GetString($byteArray)
-    }
-    Return $decodedPassword
-}
-
-#Edge JSON Files
+#Region Transit Gateways
 Function New-CentralizedTransitGatewayJsonFile
 {
     Param (
@@ -9279,12 +9214,13 @@ Function New-CentralizedTransitGatewayJsonFile
     }    
     ConvertTo-Json $singleApiObject -depth 20 | Out-File "ctgwDeploymentSpec-$($instanceObject.edgeCluster.name).json"
 }
+#EndRegion Transit Gateways
 
 #Region Ops & Automation SDDC Manager
 Function New-DayNOpsAndAutomationJsonFile
 {
     Param (
-        [Parameter (Mandatory = $true)] [Array]$sharedInstanceObject
+        [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject
     )
 
     $vcfOperationsManagementSpecObject = @()
@@ -9391,7 +9327,8 @@ Function New-DayNOpsAndAutomationJsonFile
 #EndRegion Ops & Automation SDDC Manager
 
 #Region Fleet Manager Supporting Functions
-Function createBasicAuthHeader {
+Function createBasicAuthHeader 
+{
     $base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $username, $password))) # Create Basic Authentication Encoded Credentials
     $headers = @{"Accept" = "application/json" }
     $headers.Add("Authorization", "Basic $base64AuthInfo")
@@ -9399,7 +9336,8 @@ Function createBasicAuthHeader {
     $headers
 }
 
-Function Request-FleetManagerToken {
+Function Request-FleetManagerToken 
+{
     Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$fqdn,
         [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$username,
@@ -9440,7 +9378,8 @@ Function Get-FleetManagerLockerPassword
     }
 }
 
-Function Get-FleetManagerLockerCertificate {
+Function Get-FleetManagerLockerCertificate 
+{
     Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$fqdn,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$username,
@@ -9462,7 +9401,7 @@ Function Get-FleetManagerLockerCertificate {
 Function New-DayNIdbJsonFile
 {
     Param (
-        [Parameter (Mandatory = $true)] [Array]$sharedInstanceObject,
+        [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
         [Parameter (Mandatory = $false)] [switch]$userPromptBypass
     )
 
@@ -9618,7 +9557,7 @@ Function New-DayNIdbJsonFile
 Function New-DayNLogsViaFleetManagerJsonFile
 {
     Param (
-        [Parameter (Mandatory = $true)] [Array]$sharedInstanceObject,
+        [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
         [Parameter (Mandatory = $false)] [switch]$userPromptBypass
     )
 
@@ -9855,7 +9794,7 @@ Function New-DayNLogsViaFleetManagerJsonFile
 Function New-DayNLogsViaOpsJsonFile
 {
     Param (
-        [Parameter (Mandatory = $true)] [Array]$sharedInstanceObject,
+        [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
         [Parameter (Mandatory = $false)] [switch]$userPromptBypass
     )
 
@@ -9878,7 +9817,7 @@ Function New-DayNLogsViaOpsJsonFile
     #>
 
     $configSpecObject = New-Object -type psobject
-    $configSpecObject | Add-Member -NotePropertyName 'size' -NotePropertyValue $sharedInstanceAObject.logs.nodeSize
+    $configSpecObject | Add-Member -NotePropertyName 'size' -NotePropertyValue $sharedInstanceObject.logs.nodeSize
     $configSpecObject | Add-Member -NotePropertyName 'numberOfNodes' -NotePropertyValue '' #review
 
     $componentSpecObject = New-Object -type psobject
@@ -9886,7 +9825,7 @@ Function New-DayNLogsViaOpsJsonFile
     $componentSpecObject | Add-Member -NotePropertyName 'componentType' -NotePropertyValue 'OPS_LOGS'
     $componentSpecObject | Add-Member -NotePropertyName 'deploymentType' -NotePropertyValue 'VspComponentSpec'
     $componentSpecObject | Add-Member -NotePropertyName 'version' -NotePropertyValue $sharedInstanceObject.version
-    $componentSpecObject | Add-Member -NotePropertyName 'fqdn' -NotePropertyValue $sharedInstanceAObject.logs.vipFqdn
+    $componentSpecObject | Add-Member -NotePropertyName 'fqdn' -NotePropertyValue $sharedInstanceObject.logs.vipFqdn
     $componentSpecObject | Add-Member -NotePropertyName 'configSpec' -NotePropertyValue $configSpecObject
 
     $componentSpecsArray = @()
@@ -9905,7 +9844,7 @@ Function New-DayNLogsViaOpsJsonFile
 Function New-DayNNetworksViaFleetManagerJsonFile
 {
     Param (
-        [Parameter (Mandatory = $true)] [Array]$sharedInstanceObject,
+        [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
         [Parameter (Mandatory = $false)] [switch]$userPromptBypass
     )
 
@@ -10129,9 +10068,50 @@ Function New-DayNNetworksViaFleetManagerJsonFile
 Function New-DayNNetworksViaOpsJsonFile
 {
     Param (
-        [Parameter (Mandatory = $true)] [Array]$sharedInstanceObject,
+        [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
         [Parameter (Mandatory = $false)] [switch]$userPromptBypass
     )
+
+    <# Reference Sample JSON
+    '{
+        "componentSpecs": [
+            {
+            "sddcLcmId": "18b9fe29-3db2-46a6-8d98-c13c163e5501",
+            "componentType": "OPS_NETWORKS",
+            "deploymentType": "OvaComponentSpec",
+            "nodeSpecs": [
+                {
+                "nodeType": "PLATFORM",
+                "version": "flt_net_install_version",
+                "deploymentSpec": {
+                    "fqdn": "flt_net_nodea_ip",
+                    "deploymentOption": "flt_net_ha_mode_chosen",
+                    "password": "flt_net_admin_password",
+                    "ipv4Settings": {
+                    "address": "flt_net_nodea_ip"
+                    }
+                }
+                },
+                {
+                "nodeType": "COLLECTOR",
+                "version": "flt_net_install_version",
+                "deploymentSpec": {
+                    "fqdn": "flt_net_prxy_ip",
+                    "deploymentOption": "small",
+                    "password": "flt_net_admin_passwor",
+                    "ipv4Settings": {
+                    "address": "flt_net_prxy_ip"
+                    }
+                }
+                }
+            ],
+            "configSpec": {
+                "adminPassword": "flt_net_admin_passwor"
+            }
+            }
+        ]
+        }'
+    #> 
 
     $ipv4SettingsPlatformObject = New-Object -type psobject
     $ipv4SettingsPlatformObject | Add-Member -NotePropertyName 'address' -NotePropertyValue $sharedInstanceObject.networks.nodeAIpAddress
@@ -10176,51 +10156,20 @@ Function New-DayNNetworksViaOpsJsonFile
     $networksJsonObject = New-Object -type psobject
     $networksJsonObject | Add-Member -NotePropertyName 'componentSpecs' -NotePropertyValue @($componentSpecObject)
 
-
-     '{
-        "componentSpecs": [
-            {
-            "sddcLcmId": "18b9fe29-3db2-46a6-8d98-c13c163e5501",
-            "componentType": "OPS_NETWORKS",
-            "deploymentType": "OvaComponentSpec",
-            "nodeSpecs": [
-                {
-                "nodeType": "PLATFORM",
-                "version": "flt_net_install_version",
-                "deploymentSpec": {
-                    "fqdn": "flt_net_nodea_ip",
-                    "deploymentOption": "flt_net_ha_mode_chosen",
-                    "password": "flt_net_admin_password",
-                    "ipv4Settings": {
-                    "address": "flt_net_nodea_ip"
-                    }
-                }
-                },
-                {
-                "nodeType": "COLLECTOR",
-                "version": "flt_net_install_version",
-                "deploymentSpec": {
-                    "fqdn": "flt_net_prxy_ip",
-                    "deploymentOption": "small",
-                    "password": "flt_net_admin_passwor",
-                    "ipv4Settings": {
-                    "address": "flt_net_prxy_ip"
-                    }
-                }
-                }
-            ],
-            "configSpec": {
-                "adminPassword": "flt_net_admin_passwor"
-            }
-            }
-        ]
-        }' 
+    LogMessage -Type INFO -Message "Exporting the Logs Deployment JSON to opsNetworksDeploymentSpec-$(($sharedInstanceObject.networks.nodeAFqdn).split(".")[0]).json"
+    ConvertTo-Json $networksJsonObject -depth 20 | Out-File "opsNetworksDeploymentSpec-$(($sharedInstanceObject.networks.nodeAFqdn).split(".")[0]).json"
 }
 #EndRegion Ops for Networks
 
 #Region RealTimeMetrics
 Function New-DayNRealTimeMetrics
 {
+    Param (
+        [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
+        [Parameter (Mandatory = $false)] [switch]$userPromptBypass
+    )
+
+    <# Reference Sample JSOM
     '{
         "componentSpecs": [
             {
@@ -10231,40 +10180,32 @@ Function New-DayNRealTimeMetrics
             }
         ]
     }'
+    #>
+
+    $componentSpecObject = New-Object -type psobject
+    #$componentSpecObject | Add-Member -NotePropertyName 'sddcLcmId' -NotePropertyValue ''
+    $componentSpecObject | Add-Member -NotePropertyName 'deploymentType' -NotePropertyValue 'VspComponentSpec'
+    $componentSpecObject | Add-Member -NotePropertyName 'componentType' -NotePropertyValue 'OPS_DATA_PLATFORM'
+    $componentSpecObject | Add-Member -NotePropertyName 'version' -NotePropertyValue $sharedInstanceObject.version
+
+    $realTimeMetricsJsonObject = New-Object -type psobject
+    $realTimeMetricsJsonObject | Add-Member -NotePropertyName 'componentSpecs' -NotePropertyValue @($componentSpecObject)
+
+    LogMessage -Type INFO -Message "Exporting the Real Time Metrics Deployment JSON to realTimeMetricsDeploymentSpec-$($sharedInstanceObject.domainName).json"
+    ConvertTo-Json $realTimeMetricsJsonObject -depth 20 | Out-File "realTimeMetricsDeploymentSpec-$($sharedInstanceObject.domainName).json"
+
 }
 #EndRegion RealTimeMetrics
 
 #Region Automation
 Function New-DayNAutomationModern
 {
-    '
-    {
-        "componentSpecs": [
-            {
-            "componentType": "VCFA",
-            "deploymentType": "VspComponentSpec",
-            "sddcLcmId": "18b9fe29-3db2-46a6-8d98-c13c163e5501",
-            "fqdn": "flt-auto01.rainpole.io",
-            "version": "9.1.0.0",
-            "configSpec": {
-                "size": "small",
-                "adminSystemPassword": "VMw@re1!VMw@re1!"
-            },
-            "vspClusterSpec": {
-                "deploymentType": "VspClusterSpec",
-                "sddcLcmId": "18b9fe29-3db2-46a6-8d98-c13c163e5501",
-                "platformFqdn": "flt-vcfa-sr01.rainpole.io",
-                "systemUserPassword": "VMw@re1!VMw@re1!",
-                "size": "small",
-                "ipv4Pool": {
-                "cidr": "10.11.99.52/29"
-                }
-            }
-            }
-        ]
-    }
-    '
+    Param (
+        [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
+        [Parameter (Mandatory = $false)] [switch]$userPromptBypass
+    )
 
+    <# Reference Sample JSON
     '
     {
         "componentSpecs": [
@@ -10292,6 +10233,36 @@ Function New-DayNAutomationModern
         ]
     }
     '
+    #>
+    $ipv4PoolObject = New-Object -type psobject
+    $ipv4PoolObject | Add-Member -NotePropertyName 'cidr' -NotePropertyValue "$($sharedInstanceObject.automation.nodeAIpAddress)/29" #review
+
+    $vspClusterSpecObject = New-Object -type psobject
+    $vspClusterSpecObject | Add-Member -NotePropertyName 'deploymentType' -NotePropertyValue 'VspClusterSpec'
+    #$vspClusterSpecObject | Add-Member -NotePropertyName 'sddcLcmId' -NotePropertyValue ''
+    $vspClusterSpecObject | Add-Member -NotePropertyName 'platformFqdn' -NotePropertyValue $sharedInstanceObject.automation.platformFqdn
+    $vspClusterSpecObject | Add-Member -NotePropertyName 'systemUserPassword' -NotePropertyValue $sharedInstanceObject.automation.adminUserPassword #review
+    $vspClusterSpecObject | Add-Member -NotePropertyName 'size' -NotePropertyValue $sharedInstanceObject.automation.size #review
+    $vspClusterSpecObject | Add-Member -NotePropertyName 'ipv4Pool' -NotePropertyValue $ipv4PoolObject
+
+    $configSpecObject = New-Object -type psobject
+    $configSpecObject | Add-Member -NotePropertyName 'size' -NotePropertyValue $sharedInstanceObject.automation.size #review
+    $configSpecObject | Add-Member -NotePropertyName 'adminSystemPassword' -NotePropertyValue $sharedInstanceObject.automation.adminUserPassword #review
+
+    $componentSpecObject = New-Object -type psobject
+    $componentSpecObject | Add-Member -NotePropertyName 'componentType' -NotePropertyValue 'VCFA'
+    $componentSpecObject | Add-Member -NotePropertyName 'deploymentType' -NotePropertyValue 'VspComponentSpec'
+    #$componentSpecObject | Add-Member -NotePropertyName 'sddcLcmId' -NotePropertyValue ''
+    $componentSpecObject | Add-Member -NotePropertyName 'fqdn' -NotePropertyValue $sharedInstanceObject.automation.vipFqdn
+    $componentSpecObject | Add-Member -NotePropertyName 'version' -NotePropertyValue $sharedInstanceObject.version
+    $componentSpecObject | Add-Member -NotePropertyName 'configSpec' -NotePropertyValue $configSpecObject
+    $componentSpecObject | Add-Member -NotePropertyName 'vspClusterSpec' -NotePropertyValue $vspClusterSpecObject
+
+    $automationJsonObject = New-Object -type psobject
+    $automationJsonObject | Add-Member -NotePropertyName 'componentSpecs' -NotePropertyValue @($componentSpecObject)
+
+    LogMessage -Type INFO -Message "Exporting the Automation Deployment JSON to automationDeploymentSpec-$(($sharedInstanceObject.automation.vipFqdn).split(".")[0]).json"
+    ConvertTo-Json $automationJsonObject -depth 20 | Out-File "automationDeploymentSpec-$(($sharedInstanceObject.automation.vipFqdn).split(".")[0]).json"
 }
 #EndRegion Automation
 
@@ -10299,10 +10270,74 @@ Function New-DayNAutomationModern
 Function New-DayNCompleteFleet
 {
     Param (
-        [Parameter (Mandatory = $true)] [Array]$sharedInstanceObject,
-        [Parameter (Mandatory = $true)] [Array]$managementObject,
+        [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
+        [Parameter (Mandatory = $true)] [Object]$managementObject,
         [Parameter (Mandatory = $false)] [switch]$userPromptBypass
     )
+
+    <#Reference Sample JSON
+    '
+    {
+        "sddcId": "sfo-m01-vc01", # possibly optional
+        # "vcfInstanceName": "vcf_instance_name",
+        # "sddcManagerSpec": {
+        #    "hostname": "flt_def_sddc_mgr_fqdn",
+        #    "sslThumbprint": "4B:E1:25:02:55:B2:31:E6:D9:DF:5D:D9:1D:F7:1D:6D:D9:46:3A:8B:84:89:DF:91:34:9F:67:F3:62:47:46:3B",
+        #    "useExistingDeployment": true
+        # },
+        # "vcenterSpec": {
+        #    "vcenterHostname": "mgmt_vc_fqdn",
+        #    "sslThumbprint": "ED:F2:6A:DC:1D:8E:74:D2:18:49:E5:EB:5C:26:59:7B:45:9D:9D:15:CB:65:4A:84:40:E0:BA:F5:79:87:DD:28",
+        #    "adminUserSsoPassword": "VMw@re1!VMw@re1!",
+        #    "adminUserSsoUsername": "administrator@vsphere.local",
+        #    "useExistingDeployment": true
+        # },
+        # "workflowType": "VCF_COMPLETE",
+        # "vcfOperationsSpec": {
+        #    "applianceSize": "small",
+        #    "useExistingDeployment": false,
+        #    "nodes": [
+        #        {
+        #            "hostname": "flt_def_vcf_operations_virtual_fqdn", 
+        #            "type": "master"
+        #        }
+        #    ]
+        # },
+        # "ceipEnabled": true,
+        # "vcfManagementComponentsInfrastructureSpec": {
+        #   "xRegionNetwork": {
+        #        "networkName": "flt_def_vcf_operations_az1_vcf_mgmt_pg",
+        #        "gateway": "flt_def_vcf_operations_az1_vcf_mgmt_gateway_cidr",
+        #        "subnetMask": "flt_def_vcf_operations_az1_vcf_mgmt_gateway_cidr"
+        #    }
+        # },
+        # "vcfAutomationSpec": {
+        #    "ipPool": [
+        #        "flt_def_auto_node_pool_start_ip",
+        #        "10.11.99.47",
+        #        "10.11.99.48",
+        #        "10.11.99.49",
+        #        "flt_def_auto_node_pool_end_ip"
+        #    ],
+        #    "hostname": "flt_def_vra_virtual_fqdn",
+        #    "platformFqdn": "flt_def_auto_sr_fqdn",
+        #    "nodePrefix": "sfo-m01-vc01-node-01",
+        #    "internalClusterCidr": "198.18.0.0/15",
+        #    "useExistingDeployment": false,
+        #    "size": "small"
+        # },
+        # "vcfOperationsCollectorSpec": {
+        #    "applianceSize": "small",
+        #    "hostname": "flt_def_vcf_operations_proxy_fqdn",
+        #    "useExistingDeployment": false
+        # },
+        # "licenseServerSpec": {
+        #    "hostname": "flt_def_vcf_operations_lc_fqdn"
+        # },
+        #"version": "vcf_version_chosen"
+    }
+    '
+    #>
 
     If ($userPromptBypass)
     {
@@ -10410,67 +10445,5 @@ Function New-DayNCompleteFleet
 
     LogMessage -Type INFO -Message "Exporting the Complete Fleet Deployment JSON to completeFleetDeploymentSpec-$($managementObject.domainName).json"
     ConvertTo-Json $completeFleetJsonObject -depth 20 | Out-File "completeFleetDeploymentSpec-$($managementObject.domainName).json"
-
-    '
-    {
-        "sddcId": "sfo-m01-vc01", # possibly optional
-        # "vcfInstanceName": "vcf_instance_name",
-        # "sddcManagerSpec": {
-        #    "hostname": "flt_def_sddc_mgr_fqdn",
-        #    "sslThumbprint": "4B:E1:25:02:55:B2:31:E6:D9:DF:5D:D9:1D:F7:1D:6D:D9:46:3A:8B:84:89:DF:91:34:9F:67:F3:62:47:46:3B",
-        #    "useExistingDeployment": true
-        # },
-        # "vcenterSpec": {
-        #    "vcenterHostname": "mgmt_vc_fqdn",
-        #    "sslThumbprint": "ED:F2:6A:DC:1D:8E:74:D2:18:49:E5:EB:5C:26:59:7B:45:9D:9D:15:CB:65:4A:84:40:E0:BA:F5:79:87:DD:28",
-        #    "adminUserSsoPassword": "VMw@re1!VMw@re1!",
-        #    "adminUserSsoUsername": "administrator@vsphere.local",
-        #    "useExistingDeployment": true
-        # },
-        # "workflowType": "VCF_COMPLETE",
-        # "vcfOperationsSpec": {
-        #    "applianceSize": "small",
-        #    "useExistingDeployment": false,
-        #    "nodes": [
-        #        {
-        #            "hostname": "flt_def_vcf_operations_virtual_fqdn", 
-        #            "type": "master"
-        #        }
-        #    ]
-        # },
-        # "ceipEnabled": true,
-        # "vcfManagementComponentsInfrastructureSpec": {
-        #   "xRegionNetwork": {
-        #        "networkName": "flt_def_vcf_operations_az1_vcf_mgmt_pg",
-        #        "gateway": "flt_def_vcf_operations_az1_vcf_mgmt_gateway_cidr",
-        #        "subnetMask": "flt_def_vcf_operations_az1_vcf_mgmt_gateway_cidr"
-        #    }
-        # },
-        # "vcfAutomationSpec": {
-        #    "ipPool": [
-        #        "flt_def_auto_node_pool_start_ip",
-        #        "10.11.99.47",
-        #        "10.11.99.48",
-        #        "10.11.99.49",
-        #        "flt_def_auto_node_pool_end_ip"
-        #    ],
-        #    "hostname": "flt_def_vra_virtual_fqdn",
-        #    "platformFqdn": "flt_def_auto_sr_fqdn",
-        #    "nodePrefix": "sfo-m01-vc01-node-01",
-        #    "internalClusterCidr": "198.18.0.0/15",
-        #    "useExistingDeployment": false,
-        #    "size": "small"
-        # },
-        # "vcfOperationsCollectorSpec": {
-        #    "applianceSize": "small",
-        #    "hostname": "flt_def_vcf_operations_proxy_fqdn",
-        #    "useExistingDeployment": false
-        # },
-        # "licenseServerSpec": {
-        #    "hostname": "flt_def_vcf_operations_lc_fqdn"
-        # },
-        #"version": "vcf_version_chosen"
-    }
-    '
 }
 #EndRegion Installer
