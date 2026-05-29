@@ -3746,7 +3746,8 @@ Function New-WorkloadInstanceObject
     }
     Catch {
         LogMessage -type ERROR -message "Workload object failed to generate for $($workloadInstanceObject.instance). Please consult the error message and remediate"
-        $($_.Exception.Message)
+        LogMessage -type ERROR -message "$($_.Exception.Message)"
+        LogMessage -type ERROR -message "$($_.InvocationInfo.PositionMessage)"
     }
 }
 
