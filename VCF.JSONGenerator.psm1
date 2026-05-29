@@ -10241,12 +10241,12 @@ Function New-DayNNetworksViaOpsJsonFile
     $nodeSpecsArray = @()
     $nodeSpecsArray += [pscustomobject]@{
         'nodeType' = 'PLATFORM'
-        'version' = $sharedInstanceObject.networks.installVersion
+        'version' = $sharedInstanceObject.version
         'deploymentSpec' = $deploymentSpecPlatformObject
     }
     $nodeSpecsArray += [pscustomobject]@{
         'nodeType' = 'COLLECTOR'
-        'version' = $sharedInstanceObject.networks.installVersion
+        'version' = $sharedInstanceObject.version
         'deploymentSpec' = $deploymentSpecCollectorObject
     }
 
