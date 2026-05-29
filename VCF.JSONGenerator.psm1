@@ -1768,8 +1768,10 @@ Function Get-PnPInputFileInputs
             $Global:workbookProfile | Add-Member -NotePropertyName 'idbDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_vidb_chosen"].Value
             $Global:workbookProfile | Add-Member -NotePropertyName 'logsDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_logs_chosen"].Value
             $Global:workbookProfile | Add-Member -NotePropertyName 'networksDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_net_chosen"].Value
-            $Global:workbookProfile | Add-Member -NotePropertyName 'deferredFleetCompletion' -NotePropertyValue ($pnpWorkbook.Workbook.Names["placeholder_deferred_fleet_completion"].Value -eq $true)
-            $Global:workbookProfile | Add-Member -NotePropertyName 'realTimeMetricsDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["placeholder_real_time_metrics_chosen"].Value
+            $deferredFleetCompletionCell = $pnpWorkbook.Workbook.Names["placeholder_deferred_fleet_completion"]
+            $Global:workbookProfile | Add-Member -NotePropertyName 'deferredFleetCompletion' -NotePropertyValue ($deferredFleetCompletionCell -and $deferredFleetCompletionCell.Value -eq $true)
+            $realTimeMetricsCell = $pnpWorkbook.Workbook.Names["placeholder_real_time_metrics_chosen"]
+            $Global:workbookProfile | Add-Member -NotePropertyName 'realTimeMetricsDayNDeployment' -NotePropertyValue (If ($realTimeMetricsCell) { $realTimeMetricsCell.Value } else { 'Exclude' })
         }
         If ($workbookProfile.granularOperation -eq "Create Cluster")
         {
