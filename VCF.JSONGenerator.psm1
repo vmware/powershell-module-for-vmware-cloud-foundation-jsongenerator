@@ -1771,7 +1771,8 @@ Function Get-PnPInputFileInputs
             $deferredFleetCompletionCell = $pnpWorkbook.Workbook.Names["placeholder_deferred_fleet_completion"]
             $Global:workbookProfile | Add-Member -NotePropertyName 'deferredFleetCompletion' -NotePropertyValue ($deferredFleetCompletionCell -and $deferredFleetCompletionCell.Value -eq $true)
             $realTimeMetricsCell = $pnpWorkbook.Workbook.Names["placeholder_real_time_metrics_chosen"]
-            $Global:workbookProfile | Add-Member -NotePropertyName 'realTimeMetricsDayNDeployment' -NotePropertyValue (If ($realTimeMetricsCell) { $realTimeMetricsCell.Value } else { 'Exclude' })
+            $realTimeMetricsDayNDeploymentValue = If ($realTimeMetricsCell) { $realTimeMetricsCell.Value } else { 'Exclude' }
+            $Global:workbookProfile | Add-Member -NotePropertyName 'realTimeMetricsDayNDeployment' -NotePropertyValue $realTimeMetricsDayNDeploymentValue
         }
         If ($workbookProfile.granularOperation -eq "Create Cluster")
         {
