@@ -9275,9 +9275,9 @@ Function New-CentralizedTransitGatewayJsonFile
     }
     else
     {
-        LogMessage -Type INFO -Message "Exporting the Edge Deployment JSON to edgeDeploymentSpec-$($instanceObject.edgeCluster.name).json"
+        LogMessage -Type INFO -Message "Exporting the Edge Deployment JSON to ctgwDeploymentSpec-$($instanceObject.edgeCluster.name).json"
     }    
-    ConvertTo-Json $singleApiObject -depth 20 | Out-File "edgeDeploymentSpec-$($instanceObject.edgeCluster.name).json"
+    ConvertTo-Json $singleApiObject -depth 20 | Out-File "ctgwDeploymentSpec-$($instanceObject.edgeCluster.name).json"
 }
 
 #Region Ops & Automation SDDC Manager
