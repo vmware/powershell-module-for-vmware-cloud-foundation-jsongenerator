@@ -386,7 +386,12 @@ Function Start-VCFJsonGeneration
 
             $headingItem05 = "Additional Components JSON Generation"
             
-            If ($workbookProfile.opsAutomationDayNDeployment -eq "Selected")
+            If (-not $sharedInstanceObject)
+            {
+                $menuItem40 = "VCF Operations and Automation Post Bringup (Disabled: No workbook loaded)"
+                $opsAndAutomationDayNColour = $disabledColour
+            }
+            elseIf ($workbookProfile.opsAutomationDayNDeployment -eq "Selected")
             {
                 $menuItem40 = "VCF Operations and Automation Post Bringup"
                 $opsAndAutomationDayNColour = $enabledColour
@@ -402,23 +407,34 @@ Function Start-VCFJsonGeneration
                 $opsAndAutomationDayNColour = $disabledColour
             }
 
-            If ($workbookProfile.logsDayNDeployment -eq "Include")
+            $logsDayNLabel = If ($sharedInstanceObject.version -like "9.0*") { "VCF Operations for Logs" } else { "VCF Log Management" }
+            If (-not $sharedInstanceObject)
             {
-                $menuItem41 = "VCF Operations for Logs"
+                $menuItem41 = "VCF Operations for Logs (Disabled: No workbook loaded)"
+                $logsDayNColour = $disabledColour
+            }
+            elseIf ($workbookProfile.logsDayNDeployment -eq "Include")
+            {
+                $menuItem41 = $logsDayNLabel
                 $logsDayNColour = $enabledColour
             }
             elseif ($workbookProfile.logsDayNDeployment -eq "Exclude")
             {
-                $menuItem41 = "VCF Operations for Logs (Disabled: Not applicable based on loaded workbook)"
+                $menuItem41 = "$logsDayNLabel (Disabled: Not applicable based on loaded workbook)"
                 $logsDayNColour = $disabledColour
             }
             else
             {
-                $menuItem41 = "VCF Operations for Logs"
+                $menuItem41 = $logsDayNLabel
                 $logsDayNColour = $disabledColour
             }
 
-            If ($workbookProfile.networksDayNDeployment -eq "Include")
+            If (-not $sharedInstanceObject)
+            {
+                $menuItem42 = "VCF Operations for Networks (Disabled: No workbook loaded)"
+                $networksDayNColour = $disabledColour
+            }
+            elseIf ($workbookProfile.networksDayNDeployment -eq "Include")
             {
                 $menuItem42 = "VCF Operations for Networks"
                 $networksDayNColour = $enabledColour
@@ -778,7 +794,14 @@ Function Start-VCFJsonGeneration
                     Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem40" -Foregroundcolor Cyan; Write-Host -Object ''
                     If (($sharedInstanceObject) -and ($workbookProfile.opsAutomationDayNDeployment -eq "Selected"))
                     {
-                        New-DayNOpsAndAutomationJsonFile -sharedInstanceObject $sharedInstanceObject
+                        If ($sharedInstanceObject.version -like "9.0*")
+                        {
+                            New-DayNOpsAndAutomationJsonFile -sharedInstanceObject $sharedInstanceObject
+                        }
+                        else
+                        {
+                            New-DayNAutomationModern -sharedInstanceObject $sharedInstanceObject -managementObject $managementObject
+                        }
                     }
                     else
                     {
@@ -791,7 +814,14 @@ Function Start-VCFJsonGeneration
                     Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem41" -Foregroundcolor Cyan; Write-Host -Object ''
                     If (($sharedInstanceObject) -and ($workbookProfile.logsDayNDeployment -eq "Include"))
                     {
-                        New-DayNLogsViaFleetManagerJsonFile -sharedInstanceObject $sharedInstanceObject
+                        If ($sharedInstanceObject.version -like "9.0*")
+                        {
+                            New-DayNLogsViaFleetManagerJsonFile -sharedInstanceObject $sharedInstanceObject
+                        }
+                        else
+                        {
+                            New-DayNLogsViaOpsJsonFile -sharedInstanceObject $sharedInstanceObject
+                        }
                     }
                     else
                     {
@@ -804,7 +834,14 @@ Function Start-VCFJsonGeneration
                     Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem42" -Foregroundcolor Cyan; Write-Host -Object ''
                     If (($sharedInstanceObject) -and ($workbookProfile.networksDayNDeployment -eq "Include"))
                     {
-                        New-DayNNetworksViaFleetManagerJsonFile -sharedInstanceObject $sharedInstanceObject
+                        If ($sharedInstanceObject.version -like "9.0*")
+                        {
+                            New-DayNNetworksViaFleetManagerJsonFile -sharedInstanceObject $sharedInstanceObject
+                        }
+                        else
+                        {
+                            New-DayNNetworksViaOpsJsonFile -sharedInstanceObject $sharedInstanceObject
+                        }
                     }
                     else
                     {
