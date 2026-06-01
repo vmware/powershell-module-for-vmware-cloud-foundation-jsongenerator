@@ -1,6 +1,11 @@
+#1.9.0.005 /1820
+#1.9.0.006 /1820
+#1.9.0.007 /1821
+#1.9.0.127 /1822
+
 $Global:version = ((Get-InstalledModule VCF.JSONGenerator).version -as [STRING])
-$Global:supportedLegacyVersions = @("v1.9.0.005")
-$Global:supportedCurrentVersion = @("v1.9.0.006")
+$Global:baseSupportedUserVersion = [INT]("190005")
+$Global:supportedAutomationVersion = [INT]("1822")
 If ($PSEdition -eq 'Core') {
     #$PSDefaultParameterValues.Add("Invoke-RestMethod:SkipCertificateCheck",$true)
     $Script:PSDefaultParameterValues = @{
@@ -44,8 +49,8 @@ Function Set-VCFJsonGenerationPrequisites
         $installedSoftware = Get-InstalledSoftware
         If (!($installedSoftware -match "OpenSSL"))
         {
-           LogMessage -Type WARNING -Message "OpenSSL not detected. This will prevent the retrieval of SSH fingerprints in interactive mode."
-           LogMessage -Type NOTE -Message "To enable interactive mode, please install OpenSSL and ensure its installation path is added to the system PATH variable."
+           LogMessage -Type WARNING -Message "OpenSSL not detected. This will prevent the retrieval of SSH fingerprints in interactive mode"
+           LogMessage -Type NOTE -Message "To enable interactive mode, please install OpenSSL and ensure its installation path is added to the system PATH variable"
         }
     }
 
@@ -106,8 +111,16 @@ Function Start-VCFJsonGeneration
                     $managementMenuNetworkPoolColour = $disabledColour
                     $managementMenuStretchedClusterColour = $disabledColour
                 }
-                $menuItem14 = "Edge Cluster"
-                $managementMenuEdgeClusterColour = $enabledColour
+                If ($managementObject.edgeCluster)
+                {
+                    $menuItem14 = "Edge Cluster"
+                    $managementMenuEdgeClusterColour = $enabledColour    
+                }
+                else
+                {
+                    $menuItem14 = "Edge Cluster (Disabled: Edges not required)"
+                    $managementMenuEdgeClusterColour = $disabledColour
+                }
             }
             else
             {
@@ -155,9 +168,16 @@ Function Start-VCFJsonGeneration
                     $menuItem23 = "Stretch Initial Cluster (Disabled: Stretch cluster not selected)"
                     $workloadMenuStretchedClusterColour = $disabledColour
                 }
-                
-                $menuItem24 = "Edge Cluster"
-                $workloadMenuEdgeClusterColour = $enabledColour
+                If ($workloadObject.edgecluster)
+                {
+                    $menuItem24 = "Edge Cluster"
+                    $workloadMenuEdgeClusterColour = $enabledColour    
+                }
+                else
+                {
+                       $menuItem24 = "Edge Cluster"
+                       $workloadMenuEdgeClusterColour = $disabledColour
+                }
             }
             else
             {
@@ -496,7 +516,10 @@ Function Start-VCFJsonGeneration
                 1 {
                     Clear-Host; Write-Host `n " Version $utilityBuild > Load Planning & Preparation Workbook  > $menuItem01" -Foregroundcolor Cyan; Write-Host -Object ''
                     Show-PnPFilesInFolder
-                    Get-PnPInputFileInputs
+                    If ($Global:xlsxFilesExist -eq $true)
+                    {
+                        Get-PnPInputFileInputs
+                    }                    
                     anykey
                 }
                 2 {
@@ -556,7 +579,7 @@ Function Start-VCFJsonGeneration
                 14
                 {
                     Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem14" -Foregroundcolor Cyan; Write-Host -Object ''
-                    If ($managementObject)
+                    If ($managementObject.edgecluster)
                     {
                         New-EdgeJSONFile -instanceObject $managementObject
                     }
@@ -618,7 +641,7 @@ Function Start-VCFJsonGeneration
                 24
                 {
                     Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem24" -Foregroundcolor Cyan; Write-Host -Object ''
-                    If ($workloadObject)
+                    If ($workloadObject.edgecluster)
                     {
                         New-EdgeJSONFile -instanceObject $workloadObject
                     }
@@ -1371,8 +1394,11 @@ Function Show-PnPFilesInFolder
     #Get All xlsx Files
     $xlsxFiles = (Get-ChildItem *.xlsx).name
 
-    #Select Source File
-    $Global:xlsxDisplayObject=@()
+    If ($xlsxFiles.count -ne 0)
+    {
+        $Global:xlsxFilesExist = $true
+        #Select Source File
+        $Global:xlsxDisplayObject=@()
         $xlsxIndex = 1
         $Global:xlsxDisplayObject += [pscustomobject]@{
                 'ID'    = "ID"
@@ -1391,8 +1417,14 @@ Function Show-PnPFilesInFolder
             $xlsxIndex++
         }
 
-    #Get Source File	
-    $xlsxDisplayObject | format-table -Property @{Expression=" "},id,FileName -autosize -HideTableHeaders | Out-String | ForEach-Object { $_.Trim("`r","`n") }
+        #Get Source File	
+        $xlsxDisplayObject | format-table -Property @{Expression=" "},id,FileName -autosize -HideTableHeaders | Out-String | ForEach-Object { $_.Trim("`r","`n") }
+    }
+    else
+    {
+        $Global:xlsxFilesExist = $false
+        Write-Host "  ERROR: No files of type xlsx were found in the current folder. Please change to the correct directory or add files to the current folder" -ForegroundColor Red
+    }    
 }
 
 Function Get-PnPInputFileInputs
@@ -1413,7 +1445,7 @@ Function Get-PnPInputFileInputs
     {
         $Global:WarningPreference = "Continue"
     }
-    If ($pnpWorkbook.Workbook.Names["pnp_version_number"].Value -in $Global:supportedCurrentVersion)
+    If ($pnpWorkbook.Workbook.Names["pnp_version_history"].Value -eq $Global:supportedAutomationVersion)
     {
         Remove-Variable workbookProfile -scope Global -ErrorAction SilentlyContinue
         Remove-Variable chosenWorkBook -scope Global -ErrorAction SilentlyContinue
@@ -1453,139 +1485,163 @@ Function Get-PnPInputFileInputs
         }
     }
     else{
-        LogMessage -type ERROR -message "The Planning & Preparation Workbook version you supplied is not supported by this version of VCF.JSONGenerator. Supported versions are $($Global:supportedCurrentVersion -join(", "))"
+        LogMessage -type ERROR -message "The Planning & Preparation Workbook version you supplied is not the version supported by this version of VCF.JSONGenerator"
+        LogMessage -type ERROR -message "Please source the latest version from the Broadcom website"
     }
     Close-ExcelPackage $pnpWorkbook -NoSave -ErrorAction SilentlyContinue
 }
 
 Function New-TransferExcelContents
-{
-    #Import Changed Names
-    $changedNames = Get-Content "$PSScriptRoot\changed-names.json" | convertfrom-json
-    
+{    
     #Get Source File
     Show-PnPFilesInFolder
-    Do
+    If ($Global:xlsxFilesExist -eq $true)
     {
-        Write-Host ""; Write-Host " Choose the ID of the older VCF Planning & Preparation Workbook containing the source data (or C to cancel): " -ForegroundColor Yellow -nonewline
-        $sourceFile = Read-Host
-    } Until (($sourceFile -in $xlsxDisplayObject.ID) -OR ($sourceFile -eq "c"))
-    If ($sourceFile -eq "c") {Break}
-    $sourceXlsx = ($xlsxDisplayObject | Where-Object {$_.id -eq $sourceFile}).FileName
-
-    #Get Template File
-    Write-Host ""; Show-PnPFilesInFolder
-    Do
-    {
-        Write-Host ""; Write-Host " Choose the ID of the current VCF Planning & Preparation Workbook template to transfer data to (or C to cancel): " -ForegroundColor Yellow -nonewline
-        $templateFile = Read-Host
-    } Until (($templateFile -in $xlsxDisplayObject.ID) -OR ($templateFile -eq "c"))
-    If ($templateFile -eq "c") {Break}
-    $targetXlsx = ($xlsxDisplayObject | Where-Object {$_.id -eq $templateFile}).FileName
-
-    #Create New Target File from Template
-    $newBlankFile = "Updated-"+($sourceXlsx.split(".xlsx")[0])+".xlsx"
-    If (Test-Path -path $newBlankFile)
-    {
-        Remove-Item $newBlankFile
-    }
-    Copy-Item $targetXlsx $newBlankFile
-
-    #Open and Check Excel Files
-    $sourceWorkbook = Open-ExcelPackage -Path $sourceXlsx
-    If (!($sourceWorkbook.Workbook.Names["pnp_version_number"].Value -in $Global:supportedLegacyVersions))
-    { 
-        LogMessage -type ERROR -message "Source file $sourceXlsx is not one of the verisons ($($supportedLegacVersion.join(","))) supported for content transfer"
-        anyKey
-        Break
-    }
-    else
-    {
-        LogMessage -type INFO -message "Source file $sourceXlsx is supported for content transfer"
-    }
-
-    $targetWorkbook = Open-ExcelPackage -Path $newBlankFile
-    If (!($targetWorkbook.Workbook.Names["pnp_version_number"].Value -in $Global:supportedCurrentVersion))
-    { 
-        LogMessage -type ERROR -message "Target file $targetXlsx is not the version of Planning & Preparation workbook supported by this release of VCF.JSONGenerator"
-        anyKey
-        Break
-    }
-    else
-    { 
-        LogMessage -type INFO -message "Target file $targetXlsx is supported by this release of VCF.JSONGenerator"
-    }
-
-    #Get Named Cell Count in source workbook
-    $noOfNamedCells = $sourceWorkbook.Workbook.Names.Count
-
-    #Get Inputs
-    LogMessage -type INFO -message "Getting inputs from source file $sourceXlsx"
-    $inputsHash = @{}
-    $counter = 1
-    Do
-    {
-        $namedCellName = $sourceWorkbook.Workbook.Names[$counter].Name | Where-Object {$sourceWorkbook.Workbook.Names[$counter].Name -like "input*"}
-        $namedCellValue = $sourceWorkbook.Workbook.Names[$counter].Value | Where-Object {$sourceWorkbook.Workbook.Names[$counter].Name -like "input*"}
-        If ($namedCellName)
+        Do
         {
-            $inputsHash.Add($namedCellName, $namedCellValue)
-        }
-        $counter++
-    } Until ($counter -gt $noOfNamedCells)
+            Write-Host ""; Write-Host " Choose the ID of the older VCF Planning & Preparation Workbook containing the source data (or C to cancel): " -ForegroundColor Yellow -nonewline
+            $sourceFile = Read-Host
+        } Until (($sourceFile -in $xlsxDisplayObject.ID) -OR ($sourceFile -eq "c"))
+        If ($sourceFile -eq "c") {Break}
+        $sourceXlsx = ($xlsxDisplayObject | Where-Object {$_.id -eq $sourceFile}).FileName
 
-    #Get Choices
-    LogMessage -type INFO -message "Getting choices from source file $sourceXlsx"
-    $choicesHash = @{}
-    $counter = 1
-    Do
-    {
-        $namedCellName = $sourceWorkbook.Workbook.Names[$counter].Name | Where-Object {$sourceWorkbook.Workbook.Names[$counter].Name -like "*chosen"}
-        $namedCellValue = $sourceWorkbook.Workbook.Names[$counter].Value | Where-Object {$sourceWorkbook.Workbook.Names[$counter].Name -like "*chosen"}
-        If ($namedCellName)
+        #Get Template File
+        Write-Host ""; Show-PnPFilesInFolder
+        Do
         {
-            $choicesHash.Add($namedCellName, $namedCellValue)
-        }
-        $counter++
-    }Until ($counter -gt $noOfNamedCells)
+            Write-Host ""; Write-Host " Choose the ID of the current VCF Planning & Preparation Workbook template to transfer data to (or C to cancel): " -ForegroundColor Yellow -nonewline
+            $templateFile = Read-Host
+        } Until (($templateFile -in $xlsxDisplayObject.ID) -OR ($templateFile -eq "c"))
+        If ($templateFile -eq "c") {Break}
+        $targetXlsx = ($xlsxDisplayObject | Where-Object {$_.id -eq $templateFile}).FileName
 
-    Function insertValuesToExcelObject
-    {
-        Param(
-        [Parameter(mandatory=$true)][hashtable]$hash,
-        [Parameter(mandatory=$true)][object]$changedNames
-        )
-        foreach ($h in $hash.GetEnumerator()) {
-            If (($h.name -ne $null) -AND ($h.value -ne $null))
+        #Create New Target File from Template
+        $newBlankFile = "Updated-"+($sourceXlsx.split(".xlsx")[0])+".xlsx"
+        If (Test-Path -path $newBlankFile)
+        {
+            Remove-Item $newBlankFile
+        }
+        Copy-Item $targetXlsx $newBlankFile
+
+        #Open and Check Excel Files
+        $sourceWorkbook = Open-ExcelPackage -Path $sourceXlsx
+        $sourceWorkbookUserVersion = [INT](($sourceWorkbook.Workbook.Names["pnp_version_number"].Value).split("v",2)[1]).replace(".","")
+        If ($sourceWorkbookUserVersion -lt $baseSupportedUserVersion)
+        {
+            LogMessage -type ERROR -message "Source file $sourceXlsx is not supported for content transfer"
+            LogMessage -type ERROR -message "Source file is $($sourceWorkbook.Workbook.Names["pnp_version_number"].Value) but must be version v1.9.0.005 or higher"
+            anyKey
+            Break
+        }
+        else
+        {
+            LogMessage -type INFO -message "Source file $sourceXlsx is supported for content transfer"
+        }
+
+        $targetWorkbook = Open-ExcelPackage -Path $newBlankFile
+        $targetWorkbookAutomationVersion = [INT]($targetWorkbook.Workbook.Names["pnp_version_history"].Value)
+        If ($targetWorkbookAutomationVersion -eq $supportedAutomationVersion)
+        {
+            LogMessage -type INFO -message "Template file $targetXlsx is the correct version for VCF.JSONGenerator"
+            $changedNamesOld = @($targetWorkbook.Workbook.Names["change_control_old"].Value | Where-Object {$_ -ne $null})
+            $changedNamesNew = @($targetWorkbook.Workbook.Names["change_control_new"].Value | Where-Object {$_ -ne $null})
+        }
+        else
+        {
+            LogMessage -type ERROR -message "Template file $targetXlsx is the not correct version for VCF.JSONGenerator" 
+            LogMessage -type ERROR -message "Please source the latest version from the Broadcom website"
+            anyKey
+            Break
+        }
+        
+        #Get Named Cell Count in source workbook
+        $noOfNamedCells = $sourceWorkbook.Workbook.Names.Count
+
+        #Get Inputs
+        LogMessage -type INFO -message "Getting inputs from source file $sourceXlsx"
+        $inputsHash = @{}
+        $counter = 1
+        Do
+        {
+            $namedCellName = $sourceWorkbook.Workbook.Names[$counter].Name | Where-Object {$sourceWorkbook.Workbook.Names[$counter].Name -like "input*"}
+            $namedCellValue = $sourceWorkbook.Workbook.Names[$counter].Value | Where-Object {$sourceWorkbook.Workbook.Names[$counter].Name -like "input*"}
+            If ($namedCellName)
             {
-                If ($targetWorkbook.Workbook.Names[$h.name])
+                $inputsHash.Add($namedCellName, $namedCellValue)
+            }
+            $counter++
+        } Until ($counter -gt $noOfNamedCells)
+
+        #Get Choices
+        LogMessage -type INFO -message "Getting choices from source file $sourceXlsx"
+        $choicesHash = @{}
+        $counter = 1
+        Do
+        {
+            $namedCellName = $sourceWorkbook.Workbook.Names[$counter].Name | Where-Object {$sourceWorkbook.Workbook.Names[$counter].Name -like "*chosen"}
+            $namedCellValue = $sourceWorkbook.Workbook.Names[$counter].Value | Where-Object {$sourceWorkbook.Workbook.Names[$counter].Name -like "*chosen"}
+            If ($namedCellName)
+            {
+                $choicesHash.Add($namedCellName, $namedCellValue)
+            }
+            $counter++
+        }Until ($counter -gt $noOfNamedCells)
+
+        Function insertValuesToExcelObject
+        {
+            Param(
+            [Parameter(mandatory=$true)][hashtable]$hash,
+            [Parameter(mandatory=$true)][array]$changedNamesOld,
+            [Parameter(mandatory=$true)][array]$changedNamesNew
+            )
+            foreach ($h in $hash.GetEnumerator()) {
+                If (($h.name -ne $null) -AND ($h.value -ne $null))
                 {
-                    $targetWorkbook.Workbook.Names[$h.name].Value = $h.value
-                }
-                else
-                {
-                    $newNameLookup = $changedNames | where {$_.oldName -eq $($h.name)}
-                    If ($newNameLookup)
-                    {	
-                        LogMessage -type INFO -message "$($h.name) was remapped to $($newNameLookup.newName)"
-                        $targetWorkbook.Workbook.Names[$newNameLookup.newName].Value = $h.value
+                    If ($targetWorkbook.Workbook.Names[$h.name])
+                    {
+                        $targetWorkbook.Workbook.Names[$h.name].Value = $h.value
                     }
                     else
                     {
-                        LogMessage -type INFO -message "$($h.name) was deprecated"
+                        If ($h.name -in $changedNamesOld)
+                        {
+                            $oldName = $h.name
+                            Do{            
+                                $index = [array]::IndexOf($changedNamesOld, $oldName)
+                                $newName = $changedNamesNew[$index]
+                                $oldName = $newName
+                            }Until ($newname -notin $changedNamesOld)
+                            LogMessage -type INFO -message "$($h.name) was remapped to $($newName)"
+                            If ($targetWorkbook.Workbook.Names[$newName])
+                            {
+                                $targetWorkbook.Workbook.Names[$newName].Value = $h.value
+                            }
+                            else
+                            {
+                                LogMessage -type ERROR -message "Failed to remap $($h.name) to $($newName) as could not find target cell"
+                                LogMessage -type ERROR -message "Please report bug on Planning & Preparation Workbook"
+                            }                    
+                        }
+                        else
+                        {
+                            LogMessage -type INFO -message "$($h.name) was deprecated"
+                        }
                     }
                 }
             }
         }
-    }
-    LogMessage -type INFO -message "Injecting inputs into target file $newBlankFile"
-    insertValuesToExcelObject -hash $inputsHash -changedNames $changedNames
-    LogMessage -type INFO -message "Injecting choices into target file $newBlankFile"
-    insertValuesToExcelObject -hash $choicesHash -changedNames $changedNames
-    Close-ExcelPackage $targetWorkbook -calculate
-    LogMessage -type NOTE -message "Transfer to $newBlankFile complete."
-    LogMessage -type WARNING -message "Review updated file and populate fields that are new/unique to the latest workbook version."
+        LogMessage -type INFO -message "Injecting inputs into target file $newBlankFile"
+        insertValuesToExcelObject -hash $inputsHash -changedNamesOld $changedNamesOld -changedNamesNew $changedNamesNew
+        LogMessage -type INFO -message "Injecting choices into target file $newBlankFile"
+        insertValuesToExcelObject -hash $choicesHash -changedNamesOld $changedNamesOld -changedNamesNew $changedNamesNew
+        Close-ExcelPackage $targetWorkbook -calculate
+        LogMessage -type NOTE -message "Transfer to $newBlankFile complete"
+        LogMessage -type WARNING -message "Review updated file and populate fields that are new/unique to the latest workbook version"
+    } 
+    
 }
+
+
 
 # Generate Global Objects
 Function New-SharedInstanceObject
@@ -1619,7 +1675,7 @@ Function New-SharedInstanceObject
             $vcfOperationsObject | Add-Member -notepropertyname 'nodeBFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_nodeb_fqdn"].Value
             $vcfOperationsObject | Add-Member -notepropertyname 'nodeCFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_nodec_fqdn"].Value
             $vcfOperationsObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_virtual_fqdn"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'applianceSize' -notepropertyvalue ($pnpWorkbook.Workbook.Names["xreg_vrops_appliance_size_chosen"].Value).tolower()
+            $vcfOperationsObject | Add-Member -notepropertyname 'applianceSize' -notepropertyvalue ($pnpWorkbook.Workbook.Names["mgmt_vcfops_appliance_size_chosen"].Value).tolower()
             $vcfOperationsObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_admin_password"].Value
             $vcfOperationsObject | Add-Member -notepropertyname 'rootUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_root_password"].Value
             $vcfOperationsObject | Add-Member -notepropertyname 'opsCollectorFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_collector_fqdn"].Value
@@ -1720,7 +1776,7 @@ Function New-SharedInstanceObject
         $vcfIdbObject | Add-Member -notepropertyname 'rootUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_vidb_password"].Value
         $vcfIdbObject | Add-Member -notepropertyname 'nodePrefix' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_vidb_node_prefix"].Value
         $vcfIdbObject | Add-Member -notepropertyname 'internalClusterCidr' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_vidb_internal_cidr_chosen"].Value
-        $vcfIdbObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_vidb_fqdn"].Value
+        $vcfIdbObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_vidb_vip_fqdn"].Value
 
         $vcfLogsObject = New-Object -TypeName psobject
         $vcfLogsObject | Add-Member -notepropertyname 'deploymentType' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_logs_ha_mode_chosen"].Value
@@ -1854,7 +1910,7 @@ Function New-ManagementInstanceObject
         $vcenterServerObject | Add-Member -notepropertyname 'nsxRp' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsx_rp"].Value
         $vcenterServerObject | Add-Member -notepropertyname 'userEdgeRp' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_user_edge_rp"].Value
         $vcenterServerObject | Add-Member -notepropertyname 'userVmRp' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_user_vm_rp"].Value
-        $vcenterServerObject | Add-Member -notepropertyname 'vcSize' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_vc_size"].Value
+        $vcenterServerObject | Add-Member -notepropertyname 'vcSize' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_vcenter_appliance_size_chosen"].Value
         If ($pnpWorkbook.Workbook.Names["mgmt_domain_existing_vcenter_chosen"].Value -eq 'Unselected')
         {
             $vcenterServerObject | Add-Member -notepropertyname 'useExisting' -notepropertyvalue $false
@@ -1869,16 +1925,43 @@ Function New-ManagementInstanceObject
             'vdsName' = $pnpWorkbook.Workbook.Names["mgmt_cl01_vds01_name"].Value
             'pNics' = $pnpWorkbook.Workbook.Names["mgmt_cl01_vds01_pnics"].Value
             'mtu' = $pnpWorkbook.Workbook.Names["mgmt_cl01_vds01_mtu"].Value -as [STRING]
+            'type' = $pnpWorkbook.Workbook.Names["mgmt_cl01_vds01_link_type_chosen"].Value
+        }
+        If ($vdsArray[0].type -eq "VDS LAG")
+        {
+            $vdsArray[0] | Add-Member -notePropertyName 'lagName' -notePropertyValue $pnpWorkbook.Workbook.Names["mgmt_cl01_vds01_lag_name"].Value
+            $vdsArray[0] | Add-Member -notePropertyName 'lagMode' -notePropertyValue $pnpWorkbook.Workbook.Names["mgmt_cl01_vds01_lacp_mode_chosen"].Value
+            $vdsArray[0] | Add-Member -notePropertyName 'lagLoadBalancing' -notePropertyValue $pnpWorkbook.Workbook.Names["mgmt_cl01_vds01_lag_lbt_chosen"].Value
+            $vdsArray[0] | Add-Member -notePropertyName 'lagTimeout' -notePropertyValue $pnpWorkbook.Workbook.Names["mgmt_cl01_vds01_lacp_timeout_chosen"].Value
+            $vdsArray[0] | Add-Member -notePropertyName 'uplinkCount' -notePropertyValue $pnpWorkbook.Workbook.Names["mgmt_cl01_vds01_uplink_count"].Value            
         }
         $vdsArray += [PSCustomObject]@{
             'vdsName' = $pnpWorkbook.Workbook.Names["mgmt_cl01_vds02_name"].Value
             'pNics' = $pnpWorkbook.Workbook.Names["mgmt_cl01_vds02_pnics"].Value
             'mtu' = $pnpWorkbook.Workbook.Names["mgmt_cl01_vds02_mtu"].Value -as [STRING]
+            'type' = $pnpWorkbook.Workbook.Names["mgmt_cl01_vds02_link_type_chosen"].Value
+        }
+        If ($vdsArray[1].type -eq "VDS LAG")
+        {
+            $vdsArray[1] | Add-Member -notePropertyName 'lagName' -notePropertyValue $pnpWorkbook.Workbook.Names["mgmt_cl01_vds02_lag_name"].Value
+            $vdsArray[1] | Add-Member -notePropertyName 'lagMode' -notePropertyValue $pnpWorkbook.Workbook.Names["mgmt_cl01_vds02_lacp_mode_chosen"].Value
+            $vdsArray[1] | Add-Member -notePropertyName 'lagLoadBalancing' -notePropertyValue $pnpWorkbook.Workbook.Names["mgmt_cl01_vds02_lag_lbt_chosen"].Value
+            $vdsArray[1] | Add-Member -notePropertyName 'lagTimeout' -notePropertyValue $pnpWorkbook.Workbook.Names["mgmt_cl01_vds02_lacp_timeout_chosen"].Value
+            $vdsArray[1] | Add-Member -notePropertyName 'uplinkCount' -notePropertyValue $pnpWorkbook.Workbook.Names["mgmt_cl01_vds02_uplink_count"].Value
         }
         $vdsArray += [PSCustomObject]@{
             'vdsName' = $pnpWorkbook.Workbook.Names["mgmt_cl01_vds03_name"].Value
             'pNics' = $pnpWorkbook.Workbook.Names["mgmt_cl01_vds03_pnics"].Value
             'mtu' = $pnpWorkbook.Workbook.Names["mgmt_cl01_vds03_mtu"].Value -as [STRING]
+            'type' = $pnpWorkbook.Workbook.Names["mgmt_cl01_vds03_link_type_chosen"].Value
+        }
+        If ($vdsArray[2].type -eq "VDS LAG")
+        {
+            $vdsArray[2] | Add-Member -notePropertyName 'lagName' -notePropertyValue $pnpWorkbook.Workbook.Names["mgmt_cl01_vds03_lag_name"].Value
+            $vdsArray[2] | Add-Member -notePropertyName 'lagMode' -notePropertyValue $pnpWorkbook.Workbook.Names["mgmt_cl01_vds03_lacp_mode_chosen"].Value
+            $vdsArray[2] | Add-Member -notePropertyName 'lagLoadBalancing' -notePropertyValue $pnpWorkbook.Workbook.Names["mgmt_cl01_vds03_lag_lbt_chosen"].Value
+            $vdsArray[2] | Add-Member -notePropertyName 'lagTimeout' -notePropertyValue $pnpWorkbook.Workbook.Names["mgmt_cl01_vds03_lacp_timeout_chosen"].Value
+            $vdsArray[2] | Add-Member -notePropertyName 'uplinkCount' -notePropertyValue $pnpWorkbook.Workbook.Names["mgmt_cl01_vds03_uplink_count"].Value
         }
         
         $az1PortGroups = New-Object -TypeName psobject
@@ -1917,7 +2000,7 @@ Function New-ManagementInstanceObject
 
         $nsxtManagerObject = New-Object -TypeName psobject
         $nsxtManagerObject | Add-Member -notepropertyname 'hostname' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_hostname"].Value
-        $nsxtManagerObject | Add-Member -notepropertyname 'ipAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_ip"].Value
+        $nsxtManagerObject | Add-Member -notepropertyname 'ipAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_vip_ip"].Value
         $nsxtManagerObject | Add-Member -notepropertyname 'fqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_vip_fqdn"].Value
         $nsxtManagerObject | Add-Member -notepropertyname 'adminUser' -notepropertyvalue "admin"
         $nsxtManagerObject | Add-Member -notepropertyname 'adminPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["nsxt_lm_admin_password"].Value
@@ -1926,7 +2009,7 @@ Function New-ManagementInstanceObject
         $nsxtManagerObject | Add-Member -notepropertyname 'nodeAFQDN' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_mgra_fqdn"].Value
         $nsxtManagerObject | Add-Member -notepropertyname 'nodeBFQDN' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_mgrb_fqdn"].Value
         $nsxtManagerObject | Add-Member -notepropertyname 'nodeCFQDN' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_mgrc_fqdn"].Value
-        $nsxtManagerObject | Add-Member -notepropertyname 'mgrFormfactor' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_mgr_formfactor"].Value
+        $nsxtManagerObject | Add-Member -notepropertyname 'mgrFormfactor' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_appliance_size_chosen"].Value
         If ($pnpWorkbook.Workbook.Names["mgmt_domain_existing_nsx_manager_chosen"].Value -eq 'Unselected')
         {
             $nsxtManagerObject | Add-Member -notepropertyname 'useExisting' -notepropertyvalue $false
@@ -2400,23 +2483,50 @@ Function New-WorkloadInstanceObject
         $vcenterServerObject | Add-Member -notepropertyname 'rootUser' -notepropertyvalue 'root'
         $vcenterServerObject | Add-Member -notepropertyname 'adminPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_administrator_vsphere_local_password"].Value
         $vcenterServerObject | Add-Member -notepropertyname 'rootPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_vcenter_root_password"].Value
-        $vcenterServerObject | Add-Member -notepropertyname 'datacenter' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_datacenter"].Value
+        $vcenterServerObject | Add-Member -notepropertyname 'datacenter' -notepropertyvalue "$($domainName)-dc"
 
         $vdsArray = @()
         $vdsArray += [PSCustomObject]@{
             'vdsName' = $pnpWorkbook.Workbook.Names["wld_cl01_vds01_name"].Value
             'pNics' = $pnpWorkbook.Workbook.Names["wld_cl01_vds01_pnics"].Value
             'mtu' = $pnpWorkbook.Workbook.Names["wld_cl01_vds01_mtu"].Value -as [STRING]
+            'type' = $pnpWorkbook.Workbook.Names["wld_cl01_vds01_link_type_chosen"].Value
+        }
+        If ($vdsArray[0].type -eq "VDS LAG")
+        {
+            $vdsArray[0] | Add-Member -notePropertyName 'lagName' -notePropertyValue $pnpWorkbook.Workbook.Names["wld_cl01_vds01_lag_name"].Value
+            $vdsArray[0] | Add-Member -notePropertyName 'lagMode' -notePropertyValue $pnpWorkbook.Workbook.Names["wld_cl01_vds01_lacp_mode_chosen"].Value
+            $vdsArray[0] | Add-Member -notePropertyName 'lagLoadBalancing' -notePropertyValue $pnpWorkbook.Workbook.Names["wld_cl01_vds01_lag_lbt_chosen"].Value
+            $vdsArray[0] | Add-Member -notePropertyName 'lagTimeout' -notePropertyValue $pnpWorkbook.Workbook.Names["wld_cl01_vds01_lacp_timeout_chosen"].Value
+            $vdsArray[0] | Add-Member -notePropertyName 'uplinkCount' -notePropertyValue $pnpWorkbook.Workbook.Names["wld_cl01_vds01_uplink_count"].Value            
         }
         $vdsArray += [PSCustomObject]@{
             'vdsName' = $pnpWorkbook.Workbook.Names["wld_cl01_vds02_name"].Value
             'pNics' = $pnpWorkbook.Workbook.Names["wld_cl01_vds02_pnics"].Value
             'mtu' = $pnpWorkbook.Workbook.Names["wld_cl01_vds02_mtu"].Value -as [STRING]
+            'type' = $pnpWorkbook.Workbook.Names["wld_cl01_vds02_link_type_chosen"].Value
+        }
+        If ($vdsArray[1].type -eq "VDS LAG")
+        {
+            $vdsArray[1] | Add-Member -notePropertyName 'lagName' -notePropertyValue $pnpWorkbook.Workbook.Names["wld_cl01_vds02_lag_name"].Value
+            $vdsArray[1] | Add-Member -notePropertyName 'lagMode' -notePropertyValue $pnpWorkbook.Workbook.Names["wld_cl01_vds02_lacp_mode_chosen"].Value
+            $vdsArray[1] | Add-Member -notePropertyName 'lagLoadBalancing' -notePropertyValue $pnpWorkbook.Workbook.Names["wld_cl01_vds02_lag_lbt_chosen"].Value
+            $vdsArray[1] | Add-Member -notePropertyName 'lagTimeout' -notePropertyValue $pnpWorkbook.Workbook.Names["wld_cl01_vds02_lacp_timeout_chosen"].Value
+            $vdsArray[1] | Add-Member -notePropertyName 'uplinkCount' -notePropertyValue $pnpWorkbook.Workbook.Names["wld_cl01_vds02_uplink_count"].Value
         }
         $vdsArray += [PSCustomObject]@{
             'vdsName' = $pnpWorkbook.Workbook.Names["wld_cl01_vds03_name"].Value
             'pNics' = $pnpWorkbook.Workbook.Names["wld_cl01_vds03_pnics"].Value
             'mtu' = $pnpWorkbook.Workbook.Names["wld_cl01_vds03_mtu"].Value -as [STRING]
+            'type' = $pnpWorkbook.Workbook.Names["wld_cl01_vds03_link_type_chosen"].Value
+        }
+        If ($vdsArray[2].type -eq "VDS LAG")
+        {
+            $vdsArray[2] | Add-Member -notePropertyName 'lagName' -notePropertyValue $pnpWorkbook.Workbook.Names["wld_cl01_vds03_lag_name"].Value
+            $vdsArray[2] | Add-Member -notePropertyName 'lagMode' -notePropertyValue $pnpWorkbook.Workbook.Names["wld_cl01_vds03_lacp_mode_chosen"].Value
+            $vdsArray[2] | Add-Member -notePropertyName 'lagLoadBalancing' -notePropertyValue $pnpWorkbook.Workbook.Names["wld_cl01_vds03_lag_lbt_chosen"].Value
+            $vdsArray[2] | Add-Member -notePropertyName 'lagTimeout' -notePropertyValue $pnpWorkbook.Workbook.Names["wld_cl01_vds03_lacp_timeout_chosen"].Value
+            $vdsArray[2] | Add-Member -notePropertyName 'uplinkCount' -notePropertyValue $pnpWorkbook.Workbook.Names["wld_cl01_vds03_uplink_count"].Value
         }
 
         $az1PortGroups = New-Object -TypeName psobject
@@ -2462,7 +2572,7 @@ Function New-WorkloadInstanceObject
 
         $nsxtManagerObject = New-Object -TypeName psobject
         $nsxtManagerObject | Add-Member -notepropertyname 'hostname' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_nsxt_hostname"].Value
-        $nsxtManagerObject | Add-Member -notepropertyname 'ipAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_nsxt_ip"].Value
+        $nsxtManagerObject | Add-Member -notepropertyname 'ipAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_nsxt_vip_ip"].Value
         $nsxtManagerObject | Add-Member -notepropertyname 'fqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_nsxt_vip_fqdn"].Value
         $nsxtManagerObject | Add-Member -notepropertyname 'adminUser' -notepropertyvalue "admin"
         $nsxtManagerObject | Add-Member -notepropertyname 'adminPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_nsxt_lm_admin_password"].Value
@@ -2892,16 +3002,43 @@ Function New-ClusterObject
             'vdsName' = $pnpWorkbook.Workbook.Names["cluster_vds01_name"].Value
             'pNics' = $pnpWorkbook.Workbook.Names["cluster_vds01_pnics"].Value
             'mtu' = $pnpWorkbook.Workbook.Names["cluster_vds01_mtu"].Value -as [STRING]
+            'type' = $pnpWorkbook.Workbook.Names["cluster_vds01_link_type_chosen"].Value
+        }
+        If ($vdsArray[0].type -eq "VDS LAG")
+        {
+            $vdsArray[0] | Add-Member -notePropertyName 'lagName' -notePropertyValue $pnpWorkbook.Workbook.Names["cluster_vds01_lag_name"].Value
+            $vdsArray[0] | Add-Member -notePropertyName 'lagMode' -notePropertyValue $pnpWorkbook.Workbook.Names["cluster_vds01_lacp_mode_chosen"].Value
+            $vdsArray[0] | Add-Member -notePropertyName 'lagLoadBalancing' -notePropertyValue $pnpWorkbook.Workbook.Names["cluster_vds01_lag_lbt_chosen"].Value
+            $vdsArray[0] | Add-Member -notePropertyName 'lagTimeout' -notePropertyValue $pnpWorkbook.Workbook.Names["cluster_vds01_lacp_timeout_chosen"].Value
+            $vdsArray[0] | Add-Member -notePropertyName 'uplinkCount' -notePropertyValue $pnpWorkbook.Workbook.Names["cluster_vds01_uplink_count"].Value            
         }
         $vdsArray += [PSCustomObject]@{
             'vdsName' = $pnpWorkbook.Workbook.Names["cluster_vds02_name"].Value
             'pNics' = $pnpWorkbook.Workbook.Names["cluster_vds02_pnics"].Value
             'mtu' = $pnpWorkbook.Workbook.Names["cluster_vds02_mtu"].Value -as [STRING]
+            'type' = $pnpWorkbook.Workbook.Names["cluster_vds02_link_type_chosen"].Value
+        }
+        If ($vdsArray[1].type -eq "VDS LAG")
+        {
+            $vdsArray[1] | Add-Member -notePropertyName 'lagName' -notePropertyValue $pnpWorkbook.Workbook.Names["cluster_vds02_lag_name"].Value
+            $vdsArray[1] | Add-Member -notePropertyName 'lagMode' -notePropertyValue $pnpWorkbook.Workbook.Names["cluster_vds02_lacp_mode_chosen"].Value
+            $vdsArray[1] | Add-Member -notePropertyName 'lagLoadBalancing' -notePropertyValue $pnpWorkbook.Workbook.Names["cluster_vds02_lag_lbt_chosen"].Value
+            $vdsArray[1] | Add-Member -notePropertyName 'lagTimeout' -notePropertyValue $pnpWorkbook.Workbook.Names["cluster_vds02_lacp_timeout_chosen"].Value
+            $vdsArray[1] | Add-Member -notePropertyName 'uplinkCount' -notePropertyValue $pnpWorkbook.Workbook.Names["cluster_vds02_uplink_count"].Value
         }
         $vdsArray += [PSCustomObject]@{
             'vdsName' = $pnpWorkbook.Workbook.Names["cluster_vds03_name"].Value
             'pNics' = $pnpWorkbook.Workbook.Names["cluster_vds03_pnics"].Value
             'mtu' = $pnpWorkbook.Workbook.Names["cluster_vds03_mtu"].Value -as [STRING]
+            'type' = $pnpWorkbook.Workbook.Names["cluster_vds03_link_type_chosen"].Value
+        }
+        If ($vdsArray[2].type -eq "VDS LAG")
+        {
+            $vdsArray[2] | Add-Member -notePropertyName 'lagName' -notePropertyValue $pnpWorkbook.Workbook.Names["cluster_vds03_lag_name"].Value
+            $vdsArray[2] | Add-Member -notePropertyName 'lagMode' -notePropertyValue $pnpWorkbook.Workbook.Names["cluster_vds03_lacp_mode_chosen"].Value
+            $vdsArray[2] | Add-Member -notePropertyName 'lagLoadBalancing' -notePropertyValue $pnpWorkbook.Workbook.Names["cluster_vds03_lag_lbt_chosen"].Value
+            $vdsArray[2] | Add-Member -notePropertyName 'lagTimeout' -notePropertyValue $pnpWorkbook.Workbook.Names["cluster_vds03_lacp_timeout_chosen"].Value
+            $vdsArray[2] | Add-Member -notePropertyName 'uplinkCount' -notePropertyValue $pnpWorkbook.Workbook.Names["cluster_vds03_uplink_count"].Value
         }
 
         $az1PortGroups = New-Object -TypeName psobject
@@ -3115,7 +3252,7 @@ Function New-ClusterObject
             'storageModel' = $pnpWorkbook.Workbook.Names["cluster_principal_storage_chosen"].Value
             'imageName' = $pnpWorkbook.Workbook.Names["cluster_image_name"].Value
             'secondaryStorage' = $pnpWorkbook.Workbook.Names["cluster_secondary_storage_chosen"].Value
-            'vsanType' = $pnpWorkbook.Workbook.Names["cluster_vsan_type_chosen"].Value
+            'vsanType' = $pnpWorkbook.Workbook.Names["cluster_vsan_type"].Value
         }
 
         $clusterObject = New-Object -type pscustomobject
@@ -3599,6 +3736,582 @@ Function New-ManagementDomainJsonFile
             }
         }
 
+        #dvsSpecsObject
+        $vmotionMtu = $instanceObject.az1.rack1.network.vmotionMtu -as [int]
+        $vsanMtu = $instanceObject.az1.rack1.network.vsanMtu -as [int]
+        $vdsMtu = $instanceObject.vsphereClusters[0].vds[0].mtu -as [int]
+
+        $networks = New-Object System.Collections.ArrayList
+        [Array]$networks = "MANAGEMENT", "VMOTION", "VSAN","VM_MANAGEMENT"
+
+        If ($instanceObject.vsphereClusters[0].nsxOperationDefaultMode -eq "Selected")
+        {
+            $operationMode = "ENS_INTERRUPT"
+        }
+        else
+        {
+            If ($instanceObject.vsphereClusters[0].nsxOperationSelectedMode -eq "Standard")
+            {
+                $operationMode = "STANDARD"
+            }
+            elseif ($instanceObject.vsphereClusters[0].nsxOperationSelectedMode -eq "Enhanced Datapath Standard")
+            {
+                $operationMode = "ENS_INTERRUPT"
+            }
+            else 
+            {
+                $operationMode = "ENS"
+            }
+        }
+
+        $overlayTransportZone = [pscustomobject]@{
+            'name'          = "overlay-tz-$($instanceObject.nsxtManager.hostname)"
+            'transportType' = "OVERLAY"
+        }
+        
+        
+        $dvsObject = @()
+        If ($instanceObject.vsphereClusters[0].vdsProfile -eq "Default")
+        {
+            ##### VDS 1 #####
+            #Figure out nsxtSwitchConfig
+            $nsxtSwitchConfigObject = New-Object -type psobject
+            $vlanTransportZone = [pscustomobject]@{
+                'name'          = "nsx-vlan-transportzone-0"
+                'transportType' = "VLAN"
+            }
+            $transportZoneArray = @()
+            $transportZoneArray += $vlanTransportZone
+            $transportZoneArray += $overlayTransportZone
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZoneArray
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
+
+            #figure out teamingArray
+            If ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
+            {
+                $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[0].lagName)
+                $policy = "FAILOVER_ORDER"
+                $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[0].lagName)-0"
+                $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[0].lagName)-1"
+            }
+            else
+            {
+                $activeUplinksArray = @("uplink1","uplink2")
+                $policy = "LOADBALANCE_SRCID"
+                $uplink1Name = "uplink1"
+                $uplink2Name = "uplink2"
+            }
+            $teamingsArray = @()
+            $teamingsArray += [pscustomobject]@{
+                'policy' = $policy
+                'standByUplinks' = @()
+                'activeUplinks' = $activeUplinksArray
+            }
+        
+            $vmnicObject = @()
+            $vmnicObject += [pscustomobject]@{
+                'id'      =  $instanceObject.vsphereClusters[0].vds[0].pnics.split(",")[0]
+                'uplink' = $uplink1Name
+            }
+            $vmnicObject += [pscustomobject]@{
+                'id'      =  $instanceObject.vsphereClusters[0].vds[0].pnics.split(",")[1]
+                'uplink' = $uplink2Name
+            }
+            $dvsObject += [pscustomobject]@{
+                'dvsName'  = $instanceObject.vsphereClusters[0].vds[0].vdsName
+                'networks' = $networks
+                'mtu' = $vdsMtu
+                'vmnicsToUplinks' = $vmnicObject
+                'nsxtSwitchConfig' = $nsxtSwitchConfigObject
+                'nsxTeamings' = $teamingsArray
+            }
+            If  ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
+            {
+                $lagSpecsObject = @()
+                $lagSpecsObject += [pscustomobject]@{
+                    'name' = $instanceObject.vsphereClusters[0].vds[0].lagName
+                    'lacpMode' = ($instanceObject.vsphereClusters[0].vds[0].lagMode).toUpper()
+                    'loadBalancingMode' = (($instanceObject.vsphereClusters[0].vds[0].lagLoadBalancing).replace(" ","_")).toUpper()
+                    'lacpTimeoutMode' = ($instanceObject.vsphereClusters[0].vds[0].lagTimeout).toUpper()
+                    'uplinksCount' = $instanceObject.vsphereClusters[0].vds[0].uplinkCount -as [INT]
+                }
+                $dvsObject[0] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
+            }
+        }
+        elseif ($instanceObject.vsphereClusters[0].vdsProfile -eq "Storage Traffic Separation")
+        {
+            ##### VDS 1 #####
+            #Figure out nsxtSwitchConfig
+            $nsxtSwitchConfigObject = New-Object -type psobject
+            $vlanTransportZone = [pscustomobject]@{
+                'name'          = "nsx-vlan-transportzone-0"
+                'transportType' = "VLAN"
+            }
+            $transportZoneArray = @()
+            $transportZoneArray += $vlanTransportZone
+            $transportZoneArray += $overlayTransportZone
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZoneArray
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
+
+            #figure out teamingArray
+            If  ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
+            {
+                $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[0].lagName)
+                $policy = "FAILOVER_ORDER"
+                $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[0].lagName)-0"
+                $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[0].lagName)-1"
+            }
+            else
+            {
+                $activeUplinksArray = @("uplink1","uplink2")
+                $policy = "LOADBALANCE_SRCID"
+                $uplink1Name = "uplink1"
+                $uplink2Name = "uplink2"
+            }
+            $teamingsArray = @()
+            $teamingsArray += [pscustomobject]@{
+                'policy' = $policy
+                'standByUplinks' = @()
+                'activeUplinks' = $activeUplinksArray
+            }
+        
+            $vmnicObject = @()
+            $vmnicObject += [pscustomobject]@{
+                'id'      =  $instanceObject.vsphereClusters[0].vds[0].pnics.split(",")[0]
+                'uplink' = $uplink1Name
+            }
+            $vmnicObject += [pscustomobject]@{
+                'id'      =  $instanceObject.vsphereClusters[0].vds[0].pnics.split(",")[1]
+                'uplink' = $uplink2Name
+            }
+            $dvsObject += [pscustomobject]@{
+                'dvsName'  = $instanceObject.vsphereClusters[0].vds[0].vdsName
+                'networks' = $networks | Where-Object {$_ -in "MANAGEMENT","VM_MANAGEMENT","VMOTION"}
+                'mtu' = $vdsMtu
+                'vmnicsToUplinks' = $vmnicObject
+                'nsxtSwitchConfig' = $nsxtSwitchConfigObject
+                'nsxTeamings' = $teamingsArray
+            }
+            If  ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
+            {
+                $lagSpecsObject = @()
+                $lagSpecsObject += [pscustomobject]@{
+                    'name' = $instanceObject.vsphereClusters[0].vds[0].lagName
+                    'lacpMode' = ($instanceObject.vsphereClusters[0].vds[0].lagMode).toUpper()
+                    'loadBalancingMode' = (($instanceObject.vsphereClusters[0].vds[0].lagLoadBalancing).replace(" ","_")).toUpper()
+                    'lacpTimeoutMode' = ($instanceObject.vsphereClusters[0].vds[0].lagTimeout).toUpper()
+                    'uplinksCount' = $instanceObject.vsphereClusters[0].vds[0].uplinkCount -as [INT]
+                }
+                $dvsObject[0] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
+            }
+
+            ##### VDS 2 #####
+            #Figure out nsxtSwitchConfig
+            $nsxtSwitchConfigObject = New-Object -type psobject
+            $vlanTransportZone = [pscustomobject]@{
+                'name'          = "nsx-vlan-transportzone-1"
+                'transportType' = "VLAN"
+            }
+            $transportZoneArray = @()
+            $transportZoneArray += $vlanTransportZone
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZoneArray
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
+
+            #figure out teamingArray
+            If  ($instanceObject.vsphereClusters[0].vds[1].type -eq "VDS LAG")
+            {
+                $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[1].lagName)
+                $policy = "FAILOVER_ORDER"
+                $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[1].lagName)-0"
+                $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[1].lagName)-1"
+            }
+            else
+            {
+                $activeUplinksArray = @("uplink1","uplink2")
+                $policy = "LOADBALANCE_SRCID"
+                $uplink1Name = "uplink1"
+                $uplink2Name = "uplink2"
+            }
+            $teamingsArray = @()
+            $teamingsArray += [pscustomobject]@{
+                'policy' = $policy
+                'standByUplinks' = @()
+                'activeUplinks' = $activeUplinksArray
+            }
+
+            $vmnicObject = @()
+            $vmnicObject += [pscustomobject]@{
+                'id'      = $instanceObject.vsphereClusters[0].vds[1].pnics.split(",")[0]
+                'uplink' = $uplink1Name
+            }
+            $vmnicObject += [pscustomobject]@{
+                'id'      = $instanceObject.vsphereClusters[0].vds[1].pnics.split(",")[1]
+                'uplink' = $uplink2Name
+            }
+            $dvsObject += [pscustomobject]@{
+                'dvsName'  = $instanceObject.vsphereClusters[0].vds[1].vdsName
+                'networks' =  @($networks | Where-Object {$_ -in "VSAN"})
+                'mtu'      = $vdsMtu
+                'vmnicsToUplinks' = $vmnicObject
+            }
+            If  ($instanceObject.vsphereClusters[0].vds[1].type -eq "VDS LAG")
+            {
+                $lagSpecsObject = @()
+                $lagSpecsObject += [pscustomobject]@{
+                    'name' = $instanceObject.vsphereClusters[0].vds[1].lagName
+                    'lacpMode' = ($instanceObject.vsphereClusters[0].vds[1].lagMode).toUpper()
+                    'loadBalancingMode' = (($instanceObject.vsphereClusters[0].vds[1].lagLoadBalancing).replace(" ","_")).toUpper()
+                    'lacpTimeoutMode' = ($instanceObject.vsphereClusters[0].vds[1].lagTimeout).toUpper()
+                    'uplinksCount' = $instanceObject.vsphereClusters[0].vds[1].uplinkCount -as [INT]
+                }
+                If ($instanceObject.version -in "9.0.0.0","9.0.1.0")
+                {
+                    $dvsObject[1] | Add-Member -notePropertyName 'nsxtSwitchConfig' -notePropertyValue $nsxtSwitchConfigObject
+                    $dvsObject[1] | Add-Member -notePropertyName 'nsxTeamings' -notePropertyValue $teamingsArray     
+                }
+                $dvsObject[1] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
+            }
+        }
+        elseif ($instanceObject.vsphereClusters[0].vdsProfile -eq "NSX Traffic Separation")
+        {
+            ##### VDS 1 #####
+            #Figure out nsxtSwitchConfig
+            $nsxtSwitchConfigObject = New-Object -type psobject
+            $vlanTransportZone = [pscustomobject]@{
+                'name'          = "nsx-vlan-transportzone-0"
+                'transportType' = "VLAN"
+            }
+            $transportZoneArray = @()
+            $transportZoneArray += $vlanTransportZone
+            $transportZoneArray += $overlayTransportZone
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZoneArray
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
+
+            #figure out teamingArray
+            If  ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
+            {
+                $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[0].lagName)
+                $policy = "FAILOVER_ORDER"
+                $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[0].lagName)-0"
+                $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[0].lagName)-1"
+            }
+            else
+            {
+                $activeUplinksArray = @("uplink1","uplink2")
+                $policy = "LOADBALANCE_SRCID"
+                $uplink1Name = "uplink1"
+                $uplink2Name = "uplink2"
+            }
+            $teamingsArray = @()
+            $teamingsArray += [pscustomobject]@{
+                'policy' = $policy
+                'standByUplinks' = @()
+                'activeUplinks' = $activeUplinksArray
+            }
+        
+            $vmnicObject = @()
+            $vmnicObject += [pscustomobject]@{
+                'id'      =  $instanceObject.vsphereClusters[0].vds[0].pnics.split(",")[0]
+                'uplink' = $uplink1Name
+            }
+            $vmnicObject += [pscustomobject]@{
+                'id'      =  $instanceObject.vsphereClusters[0].vds[0].pnics.split(",")[1]
+                'uplink' = $uplink2Name
+            }
+            $dvsObject += [pscustomobject]@{
+                'dvsName'  = $instanceObject.vsphereClusters[0].vds[0].vdsName
+                'networks' = $networks | Where-Object {$_ -in "MANAGEMENT","VM_MANAGEMENT","VMOTION","VSAN"}
+                'mtu' = $vdsMtu
+                'vmnicsToUplinks' = $vmnicObject
+            }
+            If  ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
+            {
+                $lagSpecsObject = @()
+                $lagSpecsObject += [pscustomobject]@{
+                    'name' = $instanceObject.vsphereClusters[0].vds[0].lagName
+                    'lacpMode' = ($instanceObject.vsphereClusters[0].vds[0].lagMode).toUpper()
+                    'loadBalancingMode' = (($instanceObject.vsphereClusters[0].vds[0].lagLoadBalancing).replace(" ","_")).toUpper()
+                    'lacpTimeoutMode' = ($instanceObject.vsphereClusters[0].vds[0].lagTimeout).toUpper()
+                    'uplinksCount' = $instanceObject.vsphereClusters[0].vds[0].uplinkCount -as [INT]
+                }
+                $dvsObject[0] | Add-Member -notePropertyName 'nsxtSwitchConfig' -notePropertyValue $nsxtSwitchConfigObject
+                $dvsObject[0] | Add-Member -notePropertyName 'nsxTeamings' -notePropertyValue $teamingsArray
+                $dvsObject[0] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
+            }
+
+            ##### VDS 2 #####
+            #Figure out nsxtSwitchConfig
+            $nsxtSwitchConfigObject = New-Object -type psobject
+            $vlanTransportZone = [pscustomobject]@{
+                'name'          = "nsx-vlan-transportzone-1"
+                'transportType' = "VLAN"
+            }
+            $transportZoneArray = @()
+            $transportZoneArray += $vlanTransportZone
+            $transportZoneArray += $overlayTransportZone
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZoneArray
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
+
+            #figure out teamingArray
+            If  ($instanceObject.vsphereClusters[0].vds[1].type -eq "VDS LAG")
+            {
+                $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[1].lagName)
+                $policy = "FAILOVER_ORDER"
+                $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[1].lagName)-0"
+                $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[1].lagName)-1"
+            }
+            else
+            {
+                $activeUplinksArray = @("uplink1","uplink2")
+                $policy = "LOADBALANCE_SRCID"
+                $uplink1Name = "uplink1"
+                $uplink2Name = "uplink2"
+            }
+            $teamingsArray = @()
+            $teamingsArray += [pscustomobject]@{
+                'policy' = $policy
+                'standByUplinks' = @()
+                'activeUplinks' = $activeUplinksArray
+            }
+
+            $vmnicObject = @()
+            $vmnicObject += [pscustomobject]@{
+                'id'      = $instanceObject.vsphereClusters[0].vds[1].pnics.split(",")[0]
+                'uplink' = $uplink1Name
+            }
+            $vmnicObject += [pscustomobject]@{
+                'id'      = $instanceObject.vsphereClusters[0].vds[1].pnics.split(",")[1]
+                'uplink' = $uplink2Name
+            }
+
+            $dvsObject += [pscustomobject]@{
+                'dvsName'  = $instanceObject.vsphereClusters[0].vds[1].vdsName
+                'mtu'      = $vdsMtu
+                'vmnicsToUplinks' = $vmnicObject
+                'nsxtSwitchConfig' = $nsxtSwitchConfigObject
+                'nsxTeamings' = $teamingsArray
+            }
+            If  ($instanceObject.vsphereClusters[0].vds[1].type -eq "VDS LAG")
+            {
+                $lagSpecsObject = @()
+                $lagSpecsObject += [pscustomobject]@{
+                    'name' = $instanceObject.vsphereClusters[0].vds[1].lagName
+                    'lacpMode' = ($instanceObject.vsphereClusters[0].vds[1].lagMode).toUpper()
+                    'loadBalancingMode' = (($instanceObject.vsphereClusters[0].vds[1].lagLoadBalancing).replace(" ","_")).toUpper()
+                    'lacpTimeoutMode' = ($instanceObject.vsphereClusters[0].vds[1].lagTimeout).toUpper()
+                    'uplinksCount' = $instanceObject.vsphereClusters[0].vds[1].uplinkCount -as [INT]
+                }
+                $dvsObject[1] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
+            }
+        }
+        else
+        {
+            ##### VDS 1 #####
+            #Figure out nsxtSwitchConfig
+            $nsxtSwitchConfigObject = New-Object -type psobject
+            $vlanTransportZone = [pscustomobject]@{
+                'name'          = "nsx-vlan-transportzone-0"
+                'transportType' = "VLAN"
+            }
+            $transportZoneArray = @()
+            $transportZoneArray += $vlanTransportZone
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZoneArray
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
+
+            #figure out teamingArray
+            If  ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
+            {
+                $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[0].lagName)
+                $policy = "FAILOVER_ORDER"
+                $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[0].lagName)-0"
+                $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[0].lagName)-1"
+            }
+            else
+            {
+                $activeUplinksArray = @("uplink1","uplink2")
+                $policy = "LOADBALANCE_SRCID"
+                $uplink1Name = "uplink1"
+                $uplink2Name = "uplink2"
+            }
+            $teamingsArray = @()
+            $teamingsArray += [pscustomobject]@{
+                'policy' = $policy
+                'standByUplinks' = @()
+                'activeUplinks' = $activeUplinksArray
+            }
+
+            $vmnicObject = @()
+            $vmnicObject += [pscustomobject]@{
+                'id'      =  $instanceObject.vsphereClusters[0].vds[0].pnics.split(",")[0]
+                'uplink' = $uplink1Name
+            }
+            $vmnicObject += [pscustomobject]@{
+                'id'      =  $instanceObject.vsphereClusters[0].vds[0].pnics.split(",")[1]
+                'uplink' = $uplink2Name
+            }
+
+            $dvsObject += [pscustomobject]@{
+                'dvsName'  = $instanceObject.vsphereClusters[0].vds[0].vdsName
+                'networks' = $networks | Where-Object {$_ -in "MANAGEMENT","VM_MANAGEMENT","VMOTION"}
+                'mtu'      = $vdsMtu
+                'vmnicsToUplinks' = $vmnicObject
+            }
+            If  ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
+            {
+                $lagSpecsObject = @()
+                $lagSpecsObject += [pscustomobject]@{
+                    'name' = $instanceObject.vsphereClusters[0].vds[0].lagName
+                    'lacpMode' = ($instanceObject.vsphereClusters[0].vds[0].lagMode).toUpper()
+                    'loadBalancingMode' = (($instanceObject.vsphereClusters[0].vds[0].lagLoadBalancing).replace(" ","_")).toUpper()
+                    'lacpTimeoutMode' = ($instanceObject.vsphereClusters[0].vds[0].lagTimeout).toUpper()
+                    'uplinksCount' = $instanceObject.vsphereClusters[0].vds[0].uplinkCount -as [INT]
+                }
+                $dvsObject[0] | Add-Member -notePropertyName 'nsxtSwitchConfig' -notePropertyValue $nsxtSwitchConfigObject
+                $dvsObject[0] | Add-Member -notePropertyName 'nsxTeamings' -notePropertyValue $teamingsArray
+                $dvsObject[0] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
+            }
+
+            ##### VDS 2 #####
+            #Figure out nsxtSwitchConfig
+            $nsxtSwitchConfigObject = New-Object -type psobject
+            $vlanTransportZone = [pscustomobject]@{
+                'name'          = "nsx-vlan-transportzone-1"
+                'transportType' = "VLAN"
+            }
+            $transportZoneArray = @()
+            $transportZoneArray += $vlanTransportZone
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZoneArray
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
+
+            #figure out teamingArray
+            If  ($instanceObject.vsphereClusters[0].vds[1].type -eq "VDS LAG")
+            {
+                $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[1].lagName)
+                $policy = "FAILOVER_ORDER"
+                $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[1].lagName)-0"
+                $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[1].lagName)-1"
+            }
+            else
+            {
+                $activeUplinksArray = @("uplink1","uplink2")
+                $policy = "LOADBALANCE_SRCID"
+                $uplink1Name = "uplink1"
+                $uplink2Name = "uplink2"
+            }
+            $teamingsArray = @()
+            $teamingsArray += [pscustomobject]@{
+                'policy' = $policy
+                'standByUplinks' = @()
+                'activeUplinks' = $activeUplinksArray
+            }
+ 
+           $vmnicObject = @()
+           $vmnicObject += [pscustomobject]@{
+               'id'      = $instanceObject.vsphereClusters[0].vds[1].pnics.split(",")[0]
+               'uplink' = $uplink1Name
+           }
+           $vmnicObject += [pscustomobject]@{
+               'id'      = $instanceObject.vsphereClusters[0].vds[1].pnics.split(",")[1]
+               'uplink' = $uplink2Name
+           }
+           $dvsObject += [pscustomobject]@{
+               'dvsName'  = $instanceObject.vsphereClusters[0].vds[1].vdsName
+               'networks' =  @($networks | Where-Object {$_ -in "VSAN"})
+               'mtu'      = $vdsMtu
+               'vmnicsToUplinks' = $vmnicObject
+           }
+           If  ($instanceObject.vsphereClusters[0].vds[1].type -eq "VDS LAG")
+           {
+               $lagSpecsObject = @()
+               $lagSpecsObject += [pscustomobject]@{
+                   'name' = $instanceObject.vsphereClusters[0].vds[1].lagName
+                   'lacpMode' = ($instanceObject.vsphereClusters[0].vds[1].lagMode).toUpper()
+                   'loadBalancingMode' = (($instanceObject.vsphereClusters[0].vds[1].lagLoadBalancing).replace(" ","_")).toUpper()
+                   'lacpTimeoutMode' = ($instanceObject.vsphereClusters[0].vds[1].lagTimeout).toUpper()
+                   'uplinksCount' = $instanceObject.vsphereClusters[0].vds[1].uplinkCount -as [INT]
+               }
+               If ($instanceObject.version -in "9.0.0.0","9.0.1.0")
+               {
+                   $dvsObject[1] | Add-Member -notePropertyName 'nsxtSwitchConfig' -notePropertyValue $nsxtSwitchConfigObject
+                   $dvsObject[1] | Add-Member -notePropertyName 'nsxTeamings' -notePropertyValue $teamingsArray     
+               }
+               $dvsObject[1] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
+           }
+
+            ##### VDS 3 #####
+            #Figure out nsxtSwitchConfig
+            $nsxtSwitchConfigObject = New-Object -type psobject
+            If ($instanceObject.version -in "9.0.0.0","9.0.1.0")
+            {
+                $vlanTransportZoneName = "nsx-vlan-transportzone-2"
+            }
+            else 
+            {
+                $vlanTransportZoneName = "nsx-vlan-transportzone-1"
+            }
+            $vlanTransportZone = [pscustomobject]@{
+                'name'          = $vlanTransportZoneName
+                'transportType' = "VLAN"
+            }
+            $transportZoneArray = @()
+            $transportZoneArray += $vlanTransportZone
+            $transportZoneArray += $overlayTransportZone
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZoneArray
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
+
+            #figure out teamingArray
+            If  ($instanceObject.vsphereClusters[0].vds[2].type -eq "VDS LAG")
+            {
+                $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[2].lagName)
+                $policy = "FAILOVER_ORDER"
+                $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[2].lagName)-0"
+                $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[2].lagName)-1"
+            }
+            else
+            {
+                $activeUplinksArray = @("uplink1","uplink2")
+                $policy = "LOADBALANCE_SRCID"
+                $uplink1Name = "uplink1"
+                $uplink2Name = "uplink2"
+            }
+            $teamingsArray = @()
+            $teamingsArray += [pscustomobject]@{
+                'policy' = $policy
+                'standByUplinks' = @()
+                'activeUplinks' = $activeUplinksArray
+            }
+
+            $vmnicObject = @()
+            $vmnicObject += [pscustomobject]@{
+                'id'      = $instanceObject.vsphereClusters[0].vds[2].pnics.split(",")[0]
+                'uplink' = $uplink1Name
+            }
+            $vmnicObject += [pscustomobject]@{
+                'id'      = $instanceObject.vsphereClusters[0].vds[2].pnics.split(",")[1]
+                'uplink' = $uplink2Name
+            }
+
+            $dvsObject += [pscustomobject]@{
+                'dvsName'  = $instanceObject.vsphereClusters[0].vds[2].vdsName
+                'mtu'      = $vdsMtu
+                'vmnicsToUplinks' = $vmnicObject
+                'nsxtSwitchConfig' = $nsxtSwitchConfigObject
+                'nsxTeamings' = $teamingsArray
+            }
+            If  ($instanceObject.vsphereClusters[0].vds[2].type -eq "VDS LAG")
+            {
+                $lagSpecsObject = @()
+                $lagSpecsObject += [pscustomobject]@{
+                    'name' = $instanceObject.vsphereClusters[0].vds[2].lagName
+                    'lacpMode' = ($instanceObject.vsphereClusters[0].vds[2].lagMode).toUpper()
+                    'loadBalancingMode' = (($instanceObject.vsphereClusters[0].vds[2].lagLoadBalancing).replace(" ","_")).toUpper()
+                    'lacpTimeoutMode' = ($instanceObject.vsphereClusters[0].vds[2].lagTimeout).toUpper()
+                    'uplinksCount' = $instanceObject.vsphereClusters[0].vds[2].uplinkCount -as [INT]
+                }
+                $dvsObject[2] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
+            }
+        }
+
         #networkSpecsObject
         $vmotionIpObject = @()
         $vmotionIpObject += [pscustomobject]@{
@@ -3611,21 +4324,7 @@ Function New-ManagementDomainJsonFile
             'startIpAddress' = $instanceObject.az1.rack1.network.vsanPoolStartIP
             'endIpAddress'   = $instanceObject.az1.rack1.network.vsanPoolEndIP
         }
-        If ($commonObject.environment.networkingModel -eq "Isolated")
-        {
-            $vmotionMtu = ([INT]$instanceObject.az1.rack1.network.vmotionMtu -100)  -as [int]
-            $vsanMtu = ([INT]$instanceObject.az1.rack1.network.vsanMtu -100)  -as [int]
-            $vdsMtu = ([INT]$instanceObject.vsphereClusters[0].vds[0].mtu -100)  -as [int]
-        }
-        else
-        {
-            $vmotionMtu = $instanceObject.az1.rack1.network.vmotionMtu  -as [int]
-            $vsanMtu = $instanceObject.az1.rack1.network.vsanMtu  -as [int]
-            $vdsMtu = $instanceObject.vsphereClusters[0].vds[0].mtu  -as [int]
-        }
-        $activeUplinksArray = @()
-        $activeUplinksArray += "uplink1"
-        $activeUplinksArray += "uplink2"
+
         $networkObject = @()
         $networkObject += [pscustomobject]@{
             'networkType'  = "VM_MANAGEMENT"
@@ -3684,187 +4383,21 @@ Function New-ManagementDomainJsonFile
             'portGroupKey' = $instanceObject.vsphereClusters[0].portgroupNames.az1.vsan
         }
 
-        #dvsSpecsObject
-        $networks = New-Object System.Collections.ArrayList
-        [Array]$networks = "MANAGEMENT", "VMOTION", "VSAN","VM_MANAGEMENT"
-
-        $transportZoneArray = @()
-        $transportZoneArray += [pscustomobject]@{
-            'name'          = "nsx-vlan-transportzone"
-            'transportType' = "VLAN"
-        }
-        $transportZoneArray += [pscustomobject]@{
-            'name'          = "overlay-tz-$($instanceObject.nsxtManager.hostname)"
-            'transportType' = "OVERLAY"
-        }
-        
-        $nsxtSwitchConfigObject = New-Object -type psobject
-        If ($instanceObject.vsphereClusters[0].nsxOperationDefaultMode -eq "Selected")
+        # Update activeUplinks if Lag is required
+        Foreach ($network in $networkObject)
         {
-            $operationMode = "ENS_INTERRUPT"
-        }
-        else
-        {
-            If ($instanceObject.vsphereClusters[0].nsxOperationSelectedMode -eq "Standard")
+            $networkType = $network.networkType
+            $matchingDvsSpec = $dvsObject | Where-Object { $networkType -in $_.networks } | Select-Object -First 1
+            $dvsName = $matchingDvsSpec.dvsName
+            $matchingVds = $instanceObject.vsphereClusters[0].vds | Where-Object { $_.vdsName -eq $dvsName } | Select-Object -First 1
+            If ($matchingVds.type -eq "VDS LAG")
             {
-                $operationMode = "STANDARD"
+                $network.activeUplinks = @($matchingVds.lagName)
+                $network.teamingPolicy = "failover_explicit"
             }
-            elseif ($instanceObject.vsphereClusters[0].nsxOperationSelectedMode -eq "Enhanced Datapath Standard")
+            else
             {
-                $operationMode = "ENS_INTERRUPT"
-            }
-            else 
-            {
-                < $operationMode = "ENS"
-            }
-        }
-        $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
-        $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZoneArray
-
-        $teamingsArray = @()
-        $teamingsArray += [pscustomobject]@{
-            'policy' = "LOADBALANCE_SRCID"
-            'standByUplinks' = @()
-            'activeUplinks' = $activeUplinksArray
-        }
-
-        $dvsObject = @()
-        If ($instanceObject.vsphereClusters[0].vdsProfile -eq "Default")
-        {
-            $vmnicObject = @()
-            $vmnicObject += [pscustomobject]@{
-                'id'      = $instanceObject.vsphereClusters[0].vds[0].pnics.split(",")[0]
-                'uplink' = "uplink1"
-            }
-            $vmnicObject += [pscustomobject]@{
-                'id'      = $instanceObject.vsphereClusters[0].vds[0].pnics.split(",")[1]
-                'uplink' = "uplink2"
-            }
-            $dvsObject += [pscustomobject]@{
-                'dvsName'  = $instanceObject.vsphereClusters[0].vds[0].vdsName
-                'networks' = $networks
-                'mtu' = $vdsMtu
-                'nsxtSwitchConfig' = $nsxtSwitchConfigObject
-                'vmnicsToUplinks' = $vmnicObject
-                'nsxTeamings' = $teamingsArray
-            }
-        }
-        elseif ($instanceObject.vsphereClusters[0].vdsProfile -eq "Storage Traffic Separation")
-        {
-            $vmnicObject = @()
-            $vmnicObject += [pscustomobject]@{
-                'id'      = $instanceObject.vsphereClusters[0].vds[0].pnics.split(",")[0]
-                'uplink' = "uplink1"
-            }
-            $vmnicObject += [pscustomobject]@{
-                'id'      = $instanceObject.vsphereClusters[0].vds[0].pnics.split(",")[1]
-                'uplink' = "uplink2"
-            }
-            $dvsObject += [pscustomobject]@{
-                'dvsName'  = $instanceObject.vsphereClusters[0].vds[0].vdsName
-                'networks' = $networks | Where-Object {$_ -in "MANAGEMENT","VM_MANAGEMENT","VMOTION"}
-                'mtu'      = $vdsMtu
-                'nsxtSwitchConfig' = $nsxtSwitchConfigObject
-                'vmnicsToUplinks' = $vmnicObject
-                'nsxTeamings' = $teamingsArray
-            }
-            $vmnicObject = @()
-            $vmnicObject += [pscustomobject]@{
-                'id'      = $instanceObject.vsphereClusters[0].vds[1].pnics.split(",")[0]
-                'uplink' = "uplink1"
-            }
-            $vmnicObject += [pscustomobject]@{
-                'id'      = $instanceObject.vsphereClusters[0].vds[1].pnics.split(",")[1]
-                'uplink' = "uplink2"
-            }
-            $dvsObject += [pscustomobject]@{
-                'dvsName'  = $instanceObject.vsphereClusters[0].vds[1].vdsName
-                'networks' =  @($networks | Where-Object {$_ -in "VSAN"})
-                'mtu'      = $vdsMtu
-                'vmnicsToUplinks' = $vmnicObject
-            }
-        }
-        elseif ($instanceObject.vsphereClusters[0].vdsProfile -eq "NSX Traffic Separation")
-        {
-            $vmnicObject = @()
-            $vmnicObject += [pscustomobject]@{
-                'id'      = $instanceObject.vsphereClusters[0].vds[0].pnics.split(",")[0]
-                'uplink' = "uplink1"
-            }
-            $vmnicObject += [pscustomobject]@{
-                'id'      = $instanceObject.vsphereClusters[0].vds[0].pnics.split(",")[1]
-                'uplink' = "uplink2"
-            }
-            $dvsObject += [pscustomobject]@{
-                'dvsName'  = $instanceObject.vsphereClusters[0].vds[0].vdsName
-                'networks' = $networks | Where-Object {$_ -in "MANAGEMENT","VM_MANAGEMENT","VMOTION","VSAN"}
-                'mtu'      = $vdsMtu
-                'vmnicsToUplinks' = $vmnicObject
-            }
-            $vmnicObject = @()
-            $vmnicObject += [pscustomobject]@{
-                'id'      = $instanceObject.vsphereClusters[0].vds[1].pnics.split(",")[0]
-                'uplink' = "uplink1"
-            }
-            $vmnicObject += [pscustomobject]@{
-                'id'      = $instanceObject.vsphereClusters[0].vds[1].pnics.split(",")[1]
-                'uplink' = "uplink2"
-            }
-            $dvsObject += [pscustomobject]@{
-                'dvsName'  = $instanceObject.vsphereClusters[0].vds[1].vdsName
-                'nsxtSwitchConfig' = $nsxtSwitchConfigObject
-                'mtu'      = $vdsMtu
-                'vmnicsToUplinks' = $vmnicObject
-                'nsxTeamings' = $teamingsArray
-            }
-        }
-        else
-        {
-            $vmnicObject = @()
-            $vmnicObject += [pscustomobject]@{
-                'id'      = $instanceObject.vsphereClusters[0].vds[0].pnics.split(",")[0]
-                'uplink' = "uplink1"
-            }
-            $vmnicObject += [pscustomobject]@{
-                'id'      = $instanceObject.vsphereClusters[0].vds[0].pnics.split(",")[1]
-                'uplink' = "uplink2"
-            }
-            $dvsObject += [pscustomobject]@{
-                'dvsName'  = $instanceObject.vsphereClusters[0].vds[0].vdsName
-                'networks' = $networks | Where-Object {$_ -in "MANAGEMENT","VM_MANAGEMENT","VMOTION"}
-                'mtu'      = $vdsMtu
-                'vmnicsToUplinks' = $vmnicObject
-            }
-            $vmnicObject = @()
-            $vmnicObject += [pscustomobject]@{
-                'id'      = $instanceObject.vsphereClusters[0].vds[1].pnics.split(",")[0]
-                'uplink' = "uplink1"
-            }
-            $vmnicObject += [pscustomobject]@{
-                'id'      = $instanceObject.vsphereClusters[0].vds[1].pnics.split(",")[1]
-                'uplink' = "uplink2"
-            }
-            $dvsObject += [pscustomobject]@{
-                'dvsName'  = $instanceObject.vsphereClusters[0].vds[1].vdsName
-                'networks' =  @($networks | Where-Object {$_ -in "VSAN"})
-                'mtu'      = $vdsMtu
-                'vmnicsToUplinks' = $vmnicObject
-            }
-            $vmnicObject = @()
-            $vmnicObject += [pscustomobject]@{
-                'id'      = $instanceObject.vsphereClusters[0].vds[2].pnics.split(",")[0]
-                'uplink' = "uplink1"
-            }
-            $vmnicObject += [pscustomobject]@{
-                'id'      = $instanceObject.vsphereClusters[0].vds[2].pnics.split(",")[1]
-                'uplink' = "uplink2"
-            }
-            $dvsObject += [pscustomobject]@{
-                'dvsName'  = $instanceObject.vsphereClusters[0].vds[2].vdsName
-                'nsxtSwitchConfig' = $nsxtSwitchConfigObject
-                'mtu'      = $vdsMtu
-                'vmnicsToUplinks' = $vmnicObject
-                'nsxTeamings' = $teamingsArray
+                $network.activeUplinks = @("uplink1", "uplink2")
             }
         }
 
@@ -3977,7 +4510,7 @@ Function New-WorkloadDomainJsonFile
                 New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
                 If (!($accessToken))
                 {
-                    LogMessage -type ERROR -message "Failed to connect to $sddcMgrFqdn. Please check details and try again."
+                    LogMessage -type ERROR -message "Failed to connect to $sddcMgrFqdn. Please check details and try again"
                 }
             } Until ($accessToken)
         }
@@ -4027,50 +4560,90 @@ Function New-WorkloadDomainJsonFile
         }
 
         $vmnicObject = @()
+        If ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
+        {
+            $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[0].lagName)-0"
+            $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[0].lagName)-1"
+        }
+        else
+        {
+            $uplink1Name = "uplink1"
+            $uplink2Name = "uplink2"
+        }
         $vmnicObject += [pscustomobject]@{
             'id'      = $instanceObject.vsphereClusters[0].vds[0].pnics.split(",")[0]
             'vdsName' = $instanceObject.vsphereClusters[0].vds[0].vdsName
-            'uplink' = "uplink1"
+            'uplink' = $uplink1Name
         }
         $vmnicObject += [pscustomobject]@{
             'id'      = $instanceObject.vsphereClusters[0].vds[0].pnics.split(",")[1]
             'vdsName' = $instanceObject.vsphereClusters[0].vds[0].vdsName
-            'uplink' = "uplink2"
+            'uplink' = $uplink2Name
         }
         If ($instanceObject.vsphereClusters[0].vdsProfile -in "Storage Traffic Separation","NSX Traffic Separation")
         {
+            If ($instanceObject.vsphereClusters[0].vds[1].type -eq "VDS LAG")
+            {
+                $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[1].lagName)-0"
+                $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[1].lagName)-1"
+            }
+            else
+            {
+                $uplink1Name = "uplink1"
+                $uplink2Name = "uplink2"
+            }
             $vmnicObject += [pscustomobject]@{
                 'id'      = $instanceObject.vsphereClusters[0].vds[1].pnics.split(",")[0]
                 'vdsName' = $instanceObject.vsphereClusters[0].vds[1].vdsName
-                'uplink' = "uplink1"
+                'uplink' = $uplink1Name
             }
             $vmnicObject += [pscustomobject]@{
                 'id'      = $instanceObject.vsphereClusters[0].vds[1].pnics.split(",")[1]
                 'vdsName' = $instanceObject.vsphereClusters[0].vds[1].vdsName
-                'uplink' = "uplink2"
+                'uplink' = $uplink2Name
             }
         }
         If ($instanceObject.vsphereClusters[0].vdsProfile -eq "Storage Traffic and NSX Traffic Separation")
         {
+            If ($instanceObject.vsphereClusters[0].vds[1].type -eq "VDS LAG")
+            {
+                $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[1].lagName)-0"
+                $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[1].lagName)-1"
+            }
+            else
+            {
+                $uplink1Name = "uplink1"
+                $uplink2Name = "uplink2"
+            } 
             $vmnicObject += [pscustomobject]@{
                 'id'      = $instanceObject.vsphereClusters[0].vds[1].pnics.split(",")[0]
                 'vdsName' = $instanceObject.vsphereClusters[0].vds[1].vdsName
-                'uplink' = "uplink1"
+                'uplink' = $uplink1Name
             }
             $vmnicObject += [pscustomobject]@{
                 'id'      = $instanceObject.vsphereClusters[0].vds[1].pnics.split(",")[1]
                 'vdsName' = $instanceObject.vsphereClusters[0].vds[1].vdsName
-                'uplink' = "uplink2"
+                'uplink' = $uplink2Name
             }
+            If ($instanceObject.vsphereClusters[0].vds[2].type -eq "VDS LAG")
+            {
+                $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[2].lagName)-0"
+                $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[2].lagName)-1"
+            }
+            else
+            {
+                $uplink1Name = "uplink1"
+                $uplink2Name = "uplink2"
+            } 
             $vmnicObject += [pscustomobject]@{
                 'id'      = $instanceObject.vsphereClusters[0].vds[2].pnics.split(",")[0]
                 'vdsName' = $instanceObject.vsphereClusters[0].vds[2].vdsName
-                'uplink' = "uplink1"
+                'uplink' = $uplink1Name
             }
             $vmnicObject += [pscustomobject]@{
                 'id'      = $instanceObject.vsphereClusters[0].vds[2].pnics.split(",")[1]
                 'vdsName' = $instanceObject.vsphereClusters[0].vds[2].vdsName
-                'uplink' = "uplink2"
+                'uplink' = $uplink2Name
             }
         }
 
@@ -4130,51 +4703,118 @@ Function New-WorkloadDomainJsonFile
             LogMessage -type ERROR -message "Your cluster configuration exceeds the maximum limit of $maxClusterNodeCount. Please adjust the total node count across racks and retry"
         }
 
-        $activeUplinksArray = @()
-        $activeUplinksArray += "uplink1"
-        $activeUplinksArray += "uplink2"
-
+        #work out portgroup configuration based on lag or not, by portgroup type
         $portgroupObject = @()
+        
+        #managment portgroup, always on vds1
+        If ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
+        {
+            $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[0].lagName)
+            $teamingPolicy = "failover_explicit"
+        }
+        else
+        {
+            $activeUplinksArray = @()
+            $activeUplinksArray += "uplink1"
+            $activeUplinksArray += "uplink2"
+            $teamingPolicy = "loadbalance_loadbased"
+        }        
         $portgroupObject += [pscustomobject]@{
             'name'          = $instanceObject.vsphereClusters[0].portgroupNames.az1.mgmt
             'transportType' = "MANAGEMENT"
             'standByUplinks' = @()
-            'teamingPolicy' = "loadbalance_loadbased"
+            'teamingPolicy' = $teamingPolicy
             'activeUplinks' = $activeUplinksArray
         }
+
+        #vmotion portgroup, always on vds1
+        If ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
+        {
+            $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[0].lagName) 
+            $teamingPolicy = "failover_explicit"
+        }
+        else
+        {
+            $activeUplinksArray = @()
+            $activeUplinksArray += "uplink1"
+            $activeUplinksArray += "uplink2"
+            $teamingPolicy = "loadbalance_loadbased"
+        }   
         $portgroupObject += [pscustomobject]@{
             'name'          = $instanceObject.vsphereClusters[0].portgroupNames.az1.vmotion
             'transportType' = "VMOTION"
             'standByUplinks' = @()
-            'teamingPolicy' = "loadbalance_loadbased"
+            'teamingPolicy' = $teamingPolicy
             'activeUplinks' = $activeUplinksArray
+        }
+
+        #vsan portgroup, always on vds1 or vds2
+        If ($instanceObject.vsphereClusters[0].vdsProfile -in "Default","NSX Traffic Separation")
+        {
+            #vsan is on first vds
+            If ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
+            {
+                $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[0].lagName) 
+                $teamingPolicy = "failover_explicit"
+            }
+            else
+            {
+                $activeUplinksArray = @()
+                $activeUplinksArray += "uplink1"
+                $activeUplinksArray += "uplink2"
+                $teamingPolicy = "loadbalance_loadbased"
+            }  
+        }
+        else
+        {
+            #vsan is on second vds
+            If ($instanceObject.vsphereClusters[0].vds[1].type -eq "VDS LAG")
+            {
+                $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[1].lagName) 
+                $teamingPolicy = "failover_explicit"
+            }
+            else
+            {
+                $activeUplinksArray = @()
+                $activeUplinksArray += "uplink1"
+                $activeUplinksArray += "uplink2"
+                $teamingPolicy = "loadbalance_loadbased"
+            }
         }
         $portgroupObject += [pscustomobject]@{
             'name'          = $instanceObject.vsphereClusters[0].portgroupNames.az1.vsan
             'transportType' = "VSAN"
             'standByUplinks' = @()
-            'teamingPolicy' = "loadbalance_loadbased"
+            'teamingPolicy' = $teamingPolicy
             'activeUplinks' = $activeUplinksArray
         }
         
+        #vsan external portgroup. always on first vds, and must be in a multi-vds configuration
         If (($instanceObject.vsphereClusters[0].storageModel -eq "vSAN Storage Cluster") -and ($instanceObject.vsphereClusters[0].secondaryStorage -eq "vSAN Storage Client Network") -and ($instanceObject.vsphereClusters[0].vdsProfile -ne "Default"))
         {
+            If ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
+            {
+                $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[0].lagName) 
+                $teamingPolicy = "failover_explicit"
+            }
+            else
+            {
+                $activeUplinksArray = @()
+                $activeUplinksArray += "uplink1"
+                $activeUplinksArray += "uplink2"
+                $teamingPolicy = "loadbalance_loadbased"
+            }   
             $portgroupObject += [pscustomobject]@{
                 'name'          = $instanceObject.vsphereClusters[0].portgroupNames.az1.vsanClient
                 'transportType' = "VSAN_EXTERNAL"
                 'standByUplinks' = @()
-                'teamingPolicy' = "loadbalance_loadbased"
+                'teamingPolicy' = $teamingPolicy
                 'activeUplinks' = $activeUplinksArray
             }
         }
         
         $vdsMtu = $([INT]$instanceObject.vsphereClusters[0].vds[0].mtu)
-        $transportZoneArray = @()
-        $transportZoneArray += [pscustomobject]@{
-            'name'          = "nsx-vlan-transportzone"
-            'transportType' = "VLAN"
-        }
-        $transportZoneArray += [pscustomobject]@{
+        $overlayTransportZone = [pscustomobject]@{
             'name'          = "overlay-tz-$($instanceObject.nsxtManager.hostname)"
             'transportType' = "OVERLAY"
         }
@@ -4199,86 +4839,291 @@ Function New-WorkloadDomainJsonFile
                 < $operationMode = "ENS"
             }
         }
-        $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
-        $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZoneArray
 
-        $vdsObject = @()
+        $vdsSpecObject = @()
         If ($instanceObject.vsphereClusters[0].vdsProfile -eq "Default")
         {
-            $vdsObject += [pscustomobject]@{
+            ##### VDS 1 #####
+            #Figure out nsxtSwitchConfig
+            $nsxtSwitchConfigObject = New-Object -type psobject
+            $vlanTransportZone = [pscustomobject]@{
+                'name'          = "nsx-vlan-transportzone-0"
+                'transportType' = "VLAN"
+            }
+            $transportZoneArray = @()
+            $transportZoneArray += $vlanTransportZone
+            $transportZoneArray += $overlayTransportZone
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZoneArray
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
+            $vdsSpecObject += [pscustomobject]@{
                 'name'         = $instanceObject.vsphereClusters[0].vds[0].vdsName
                 'mtu' = $vdsMtu
                 'portGroupSpecs' = $portgroupObject
                 'nsxtSwitchConfig' = $nsxtSwitchConfigObject
             }
+            If ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
+            {
+                $lagSpecsObject = @()
+                $lagSpecsObject += [pscustomobject]@{
+                    'name' = $instanceObject.vsphereClusters[0].vds[0].lagName
+                    'lacpMode' = ($instanceObject.vsphereClusters[0].vds[0].lagMode).toUpper()
+                    'loadBalancingMode' = (($instanceObject.vsphereClusters[0].vds[0].lagLoadBalancing).replace(" ","_")).toUpper()
+                    'lacpTimeoutMode' = ($instanceObject.vsphereClusters[0].vds[0].lagTimeout).toUpper()
+                    'uplinksCount' = $instanceObject.vsphereClusters[0].vds[0].uplinkCount -as [INT]
+                }
+                $vdsSpecObject[0] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
+            }
         }
         elseif ($instanceObject.vsphereClusters[0].vdsProfile -eq "Storage Traffic Separation")
         {
-            $vdsObject += [pscustomobject]@{
+            ##### VDS 1 #####
+            #Figure out nsxtSwitchConfig
+            $nsxtSwitchConfigObject = New-Object -type psobject
+            $vlanTransportZone = [pscustomobject]@{
+                'name'          = "nsx-vlan-transportzone-0"
+                'transportType' = "VLAN"
+            }
+            $transportZoneArray = @()
+            $transportZoneArray += $vlanTransportZone
+            $transportZoneArray += $overlayTransportZone
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZoneArray
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
+            $vdsSpecObject += [pscustomobject]@{
                 'name'         = $instanceObject.vsphereClusters[0].vds[0].vdsName
                 'mtu' = $vdsMtu
                 'portGroupSpecs' = $portgroupObject | Where-Object {$_.transportType -in "MANAGEMENT","VMOTION","VSAN_EXTERNAL"}
                 'nsxtSwitchConfig' = $nsxtSwitchConfigObject
             }
-            $vdsObject += [pscustomobject]@{
+            If ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
+            {
+                $lagSpecsObject = @()
+                $lagSpecsObject += [pscustomobject]@{
+                    'name' = $instanceObject.vsphereClusters[0].vds[0].lagName
+                    'lacpMode' = ($instanceObject.vsphereClusters[0].vds[0].lagMode).toUpper()
+                    'loadBalancingMode' = (($instanceObject.vsphereClusters[0].vds[0].lagLoadBalancing).replace(" ","_")).toUpper()
+                    'lacpTimeoutMode' = ($instanceObject.vsphereClusters[0].vds[0].lagTimeout).toUpper()
+                    'uplinksCount' = $instanceObject.vsphereClusters[0].vds[0].uplinkCount -as [INT]
+                }
+                $vdsSpecObject[0] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
+            }
+            
+            ##### VDS 2 #####
+            $vdsSpecObject += [pscustomobject]@{
                 'name'         = $instanceObject.vsphereClusters[0].vds[1].vdsName
                 'mtu' = $vdsMtu
                 'portGroupSpecs' = @($portgroupObject | Where-Object {$_.transportType -in "VSAN"})
+            }
+            If ($instanceObject.vsphereClusters[0].vds[1].type -eq "VDS LAG")
+            {
+                $lagSpecsObject = @()
+                $lagSpecsObject += [pscustomobject]@{
+                    'name' = $instanceObject.vsphereClusters[0].vds[1].lagName
+                    'lacpMode' = ($instanceObject.vsphereClusters[0].vds[1].lagMode).toUpper()
+                    'loadBalancingMode' = (($instanceObject.vsphereClusters[0].vds[1].lagLoadBalancing).replace(" ","_")).toUpper()
+                    'lacpTimeoutMode' = ($instanceObject.vsphereClusters[0].vds[1].lagTimeout).toUpper()
+                    'uplinksCount' = $instanceObject.vsphereClusters[0].vds[1].uplinkCount -as [INT]
+                }
+                $vdsSpecObject[1] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
             }
         }
         elseif ($instanceObject.vsphereClusters[0].vdsProfile -eq "NSX Traffic Separation")
         {
-            $vdsObject += [pscustomobject]@{
+            ##### VDS 1 #####
+            $vdsSpecObject += [pscustomobject]@{
                 'name'         = $instanceObject.vsphereClusters[0].vds[0].vdsName
                 'mtu' = $vdsMtu
                 'portGroupSpecs' = $portgroupObject | Where-Object {$_.transportType -in "MANAGEMENT","VMOTION","VSAN","VSAN_EXTERNAL"}
             }
-            $vdsObject += [pscustomobject]@{
+            If ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
+            {
+                $lagSpecsObject = @()
+                $lagSpecsObject += [pscustomobject]@{
+                    'name' = $instanceObject.vsphereClusters[0].vds[0].lagName
+                    'lacpMode' = ($instanceObject.vsphereClusters[0].vds[0].lagMode).toUpper()
+                    'loadBalancingMode' = (($instanceObject.vsphereClusters[0].vds[0].lagLoadBalancing).replace(" ","_")).toUpper()
+                    'lacpTimeoutMode' = ($instanceObject.vsphereClusters[0].vds[0].lagTimeout).toUpper()
+                    'uplinksCount' = $instanceObject.vsphereClusters[0].vds[0].uplinkCount -as [INT]
+                }
+                $vdsSpecObject[0] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
+            }
+            
+            ##### VDS 2 #####
+            #Figure out nsxtSwitchConfig
+            $nsxtSwitchConfigObject = New-Object -type psobject
+            $vlanTransportZone = [pscustomobject]@{
+                'name'          = "nsx-vlan-transportzone-0"
+                'transportType' = "VLAN"
+            }
+            $transportZoneArray = @()
+            $transportZoneArray += $vlanTransportZone
+            $transportZoneArray += $overlayTransportZone
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZoneArray
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
+            $vdsSpecObject += [pscustomobject]@{
                 'name'         = $instanceObject.vsphereClusters[0].vds[1].vdsName
                 'mtu' = $vdsMtu
                 'nsxtSwitchConfig' = $nsxtSwitchConfigObject
             }
+            If ($instanceObject.vsphereClusters[0].vds[1].type -eq "VDS LAG")
+            {
+                $lagSpecsObject = @()
+                $lagSpecsObject += [pscustomobject]@{
+                    'name' = $instanceObject.vsphereClusters[0].vds[1].lagName
+                    'lacpMode' = ($instanceObject.vsphereClusters[0].vds[1].lagMode).toUpper()
+                    'loadBalancingMode' = (($instanceObject.vsphereClusters[0].vds[1].lagLoadBalancing).replace(" ","_")).toUpper()
+                    'lacpTimeoutMode' = ($instanceObject.vsphereClusters[0].vds[1].lagTimeout).toUpper()
+                    'uplinksCount' = $instanceObject.vsphereClusters[0].vds[1].uplinkCount -as [INT]
+                }
+                $vdsSpecObject[1] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
+            }
         }
         else
         {
-            $vdsObject += [pscustomobject]@{
+            ##### VDS 1 #####
+            $vdsSpecObject += [pscustomobject]@{
                 'name'         = $instanceObject.vsphereClusters[0].vds[0].vdsName
                 'mtu' = $vdsMtu
                 'portGroupSpecs' = $portgroupObject | Where-Object {$_.transportType -in "MANAGEMENT","VMOTION","VSAN_EXTERNAL"}
             }
-            $vdsObject += [pscustomobject]@{
+            If ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
+            {
+                $lagSpecsObject = @()
+                $lagSpecsObject += [pscustomobject]@{
+                    'name' = $instanceObject.vsphereClusters[0].vds[0].lagName
+                    'lacpMode' = ($instanceObject.vsphereClusters[0].vds[0].lagMode).toUpper()
+                    'loadBalancingMode' = (($instanceObject.vsphereClusters[0].vds[0].lagLoadBalancing).replace(" ","_")).toUpper()
+                    'lacpTimeoutMode' = ($instanceObject.vsphereClusters[0].vds[0].lagTimeout).toUpper()
+                    'uplinksCount' = $instanceObject.vsphereClusters[0].vds[0].uplinkCount -as [INT]
+                }
+                $vdsSpecObject[0] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
+            }
+
+            ##### VDS 2 #####
+            $vdsSpecObject += [pscustomobject]@{
                 'name'         = $instanceObject.vsphereClusters[0].vds[1].vdsName
                 'mtu' = $vdsMtu
                 'portGroupSpecs' = @($portgroupObject | Where-Object {$_.transportType -in "VSAN"})
             }
-            $vdsObject += [pscustomobject]@{
+            If ($instanceObject.vsphereClusters[0].vds[1].type -eq "VDS LAG")
+            {
+                $lagSpecsObject = @()
+                $lagSpecsObject += [pscustomobject]@{
+                    'name' = $instanceObject.vsphereClusters[0].vds[1].lagName
+                    'lacpMode' = ($instanceObject.vsphereClusters[0].vds[1].lagMode).toUpper()
+                    'loadBalancingMode' = (($instanceObject.vsphereClusters[0].vds[1].lagLoadBalancing).replace(" ","_")).toUpper()
+                    'lacpTimeoutMode' = ($instanceObject.vsphereClusters[0].vds[1].lagTimeout).toUpper()
+                    'uplinksCount' = $instanceObject.vsphereClusters[0].vds[1].uplinkCount -as [INT]
+                }
+                $vdsSpecObject[1] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
+            }
+
+            ##### VDS 3 #####
+            #Figure out nsxtSwitchConfig
+            $nsxtSwitchConfigObject = New-Object -type psobject
+            $vlanTransportZone = [pscustomobject]@{
+                'name'          = "nsx-vlan-transportzone-0"
+                'transportType' = "VLAN"
+            }
+            $transportZoneArray = @()
+            $transportZoneArray += $vlanTransportZone
+            $transportZoneArray += $overlayTransportZone
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZoneArray
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
+            $vdsSpecObject += [pscustomobject]@{
                 'name'         = $instanceObject.vsphereClusters[0].vds[2].vdsName
                 'mtu' = $vdsMtu
                 'nsxtSwitchConfig' = $nsxtSwitchConfigObject
             }
-        }
-
-        $vdsUplinkToNsxUplinkArray = @()
-        $vdsUplinkToNsxUplinkArray += [pscustomobject]@{
-            'nsxUplinkName' = "uplink1"
-            'vdsUplinkName' = "uplink1"
-        }
-        $vdsUplinkToNsxUplinkArray += [pscustomobject]@{
-            'nsxUplinkName' = "uplink2"
-            'vdsUplinkName' = "uplink2"
+            If ($instanceObject.vsphereClusters[0].vds[2].type -eq "VDS LAG")
+            {
+                $lagSpecsObject = @()
+                $lagSpecsObject += [pscustomobject]@{
+                    'name' = $instanceObject.vsphereClusters[0].vds[2].lagName
+                    'lacpMode' = ($instanceObject.vsphereClusters[0].vds[2].lagMode).toUpper()
+                    'loadBalancingMode' = (($instanceObject.vsphereClusters[0].vds[2].lagLoadBalancing).replace(" ","_")).toUpper()
+                    'lacpTimeoutMode' = ($instanceObject.vsphereClusters[0].vds[2].lagTimeout).toUpper()
+                    'uplinksCount' = $instanceObject.vsphereClusters[0].vds[2].uplinkCount -as [INT]
+                }
+                $vdsSpecObject[2] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
+            }
         }
 
         If ($instanceObject.vsphereClusters[0].vdsProfile -in "NSX Traffic Separation")
         {
+            $vdsNumber = 1
             $vdsName = $instanceObject.vsphereClusters[0].vds[1].vdsName
+            If ($instanceObject.vsphereClusters[0].vds[1].type -eq "VDS LAG")
+            {
+                $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[1].lagName)-0"
+                $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[1].lagName)-1"
+                $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[1].lagName)
+                $policy = "FAILOVER_ORDER"
+            }
+            else
+            {
+                $uplink1Name = "uplink1"
+                $uplink2Name = "uplink2"
+                $activeUplinksArray = @("uplink1","uplink2")
+                $policy = "LOADBALANCE_SRCID"
+            }
         }
         elseIf ($instanceObject.vsphereClusters[0].vdsProfile -in "Storage Traffic and NSX Traffic Separation")
         {
+            $vdsNumber = 2
             $vdsName = $instanceObject.vsphereClusters[0].vds[2].vdsName
+            If ($instanceObject.vsphereClusters[0].vds[2].type -eq "VDS LAG")
+            {
+                $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[2].lagName)-0"
+                $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[2].lagName)-1"
+                $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[2].lagName)
+                $policy = "FAILOVER_ORDER"
+            }
+            else
+            {
+                $uplink1Name = "uplink1"
+                $uplink2Name = "uplink2"
+                $activeUplinksArray = @("uplink1","uplink2")
+                $policy = "LOADBALANCE_SRCID"
+            }
         }
         else
         {
+            $vdsNumber = 0
             $vdsName = $instanceObject.vsphereClusters[0].vds[0].vdsName
+            If ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
+            {
+                $uplink1Name = "$($instanceObject.vsphereClusters[0].vds[0].lagName)-0"
+                $uplink2Name = "$($instanceObject.vsphereClusters[0].vds[0].lagName)-1"
+                $activeUplinksArray = @($instanceObject.vsphereClusters[0].vds[0].lagName)
+                $policy = "FAILOVER_ORDER"
+            }
+            else
+            {
+                $uplink1Name = "uplink1"
+                $uplink2Name = "uplink2"
+                $activeUplinksArray = @("uplink1","uplink2")
+                $policy = "LOADBALANCE_SRCID"
+            }
+        }
+
+        $vdsUplinkToNsxUplinkArray = @()
+        If ($instanceObject.vsphereClusters[0].vds[$vdsNumber].type -eq "VDS LAG")
+        {
+            $vdsUplinkToNsxUplinkArray += [pscustomobject]@{
+                'nsxUplinkName' = $instanceObject.vsphereClusters[0].vds[$vdsNumber].lagName
+                'vdsUplinkName' =$instanceObject.vsphereClusters[0].vds[$vdsNumber].lagName
+            }    
+        }
+        else
+        {
+            $vdsUplinkToNsxUplinkArray += [pscustomobject]@{
+                'nsxUplinkName' = $uplink1Name
+                'vdsUplinkName' = $uplink1Name
+            }
+            $vdsUplinkToNsxUplinkArray += [pscustomobject]@{
+                'nsxUplinkName' = $uplink2Name
+                'vdsUplinkName' = $uplink2Name
+            }    
         }
 
         $rackArray = @(($instanceObject.az1 | Get-Member -type NoteProperty).name)
@@ -4346,7 +5191,7 @@ Function New-WorkloadDomainJsonFile
         $teamingsArray = @()
         $teamingsArray += [pscustomobject]@{
             'name' = "DEFAULT"
-            'policy' = "LOADBALANCE_SRCID"
+            'policy' = $policy
             'standByUplinks' = @()
             'activeUplinks' = $activeUplinksArray
         }
@@ -4377,7 +5222,7 @@ Function New-WorkloadDomainJsonFile
 
         $networkObject = @()
         $networkObject += [pscustomobject]@{
-            'vdsSpecs'       = $vdsObject
+            'vdsSpecs'       = $vdsSpecObject
             'networkProfiles' = @($networkProfilesArray | Select-Object)
             'nsxClusterSpec' = ($nsxClusterObject | Select-Object -Skip 0)
         }
@@ -4641,7 +5486,7 @@ Function New-RackBasedHostCommissioning
             New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
             If (!($accessToken))
             {
-                LogMessage -type ERROR -message "Failed to connect to $sddcMgrFqdn. Please check details and try again."
+                LogMessage -type ERROR -message "Failed to connect to $sddcMgrFqdn. Please check details and try again"
             }
         } Until ($accessToken)
     }
@@ -4656,6 +5501,10 @@ Function New-RackBasedHostCommissioning
         {
             $azs = @("az1")
         }
+    }
+    else
+    {
+        $azs = @($az)
     }
     
     Foreach ($az in $azs)
@@ -4769,7 +5618,7 @@ Function New-L2vSphereClusterJsonFile
             New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
             If (!($accessToken))
             {
-                LogMessage -type ERROR -message "Failed to connect to $sddcMgrFqdn. Please check details and try again."
+                LogMessage -type ERROR -message "Failed to connect to $sddcMgrFqdn. Please check details and try again"
             }
         } Until ($accessToken)
         If ($clusterObject.determinedClusterConfig -eq "Single-Rack Compute Only")
@@ -4786,7 +5635,7 @@ Function New-L2vSphereClusterJsonFile
                 $vCenterConnection = Connect-VIServer -server $vCenterFQDN -user $vCenterAdminUser -password $decodedvCenterPassword -errorAction SilentlyContinue
                 If (!($vCenterConnection))
                 {
-                    LogMessage -type ERROR -message "Failed to connect to successfully read information from $vCenterFqdn. Please check details and try again."
+                    LogMessage -type ERROR -message "Failed to connect to successfully read information from $vCenterFqdn. Please check details and try again"
                 }
             } Until ($vCenterConnection)
         }
@@ -5306,7 +6155,7 @@ Function New-L3vSphereClusterJsonFile
             New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
             If (!($accessToken))
             {
-                LogMessage -type ERROR -message "Failed to connect to $sddcMgrFqdn. Please check details and try again."
+                LogMessage -type ERROR -message "Failed to connect to $sddcMgrFqdn. Please check details and try again"
             }
         } Until ($accessToken)
         If ($clusterObject.determinedClusterConfig -eq "Multi-Rack Compute Only")
@@ -5323,7 +6172,7 @@ Function New-L3vSphereClusterJsonFile
                 $vCenterConnection = Connect-VIServer -server $vCenterFQDN -user $vCenterAdminUser -password $decodedvCenterPassword -errorAction SilentlyContinue
                 If (!($vCenterConnection))
                 {
-                    LogMessage -type ERROR -message "Failed to connect to successfully read information from $vCenterFqdn. Please check details and try again."
+                    LogMessage -type ERROR -message "Failed to connect to successfully read information from $vCenterFqdn. Please check details and try again"
                 }
             } Until ($vCenterConnection)
         }
@@ -5822,7 +6671,7 @@ Function New-L3vSphereClusterJsonFile
 
 Function New-StretchedClusterJsonFile
 {
-Param (
+    Param (
         [Parameter (Mandatory = $true)] [Object]$instanceObject
     )
 
@@ -5846,7 +6695,7 @@ Param (
             New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
             If (!($accessToken))
             {
-                LogMessage -type ERROR -message "Failed to connect to $sddcMgrFqdn. Please check details and try again."
+                LogMessage -type ERROR -message "Failed to connect to $sddcMgrFqdn. Please check details and try again"
             }
         } Until ($accessToken)
     }
@@ -6104,7 +6953,7 @@ Function New-SingleOperationStretchedComputeClusterJsonFile
             New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
             If (!($accessToken))
             {
-                LogMessage -type ERROR -message "Failed to connect to $sddcMgrFqdn. Please check details and try again."
+                LogMessage -type ERROR -message "Failed to connect to $sddcMgrFqdn. Please check details and try again"
             }
         } Until ($accessToken)
         Do
@@ -6119,7 +6968,7 @@ Function New-SingleOperationStretchedComputeClusterJsonFile
             $vCenterConnection = Connect-VIServer -server $vCenterFQDN -user $vCenterAdminUser -password $decodedvCenterPassword -errorAction SilentlyContinue
             If (!($vCenterConnection))
             {
-                LogMessage -type ERROR -message "Failed to connect to successfully read information from $vCenterFqdn. Please check details and try again."
+                LogMessage -type ERROR -message "Failed to connect to successfully read information from $vCenterFqdn. Please check details and try again"
             }
         } Until ($vCenterConnection)
     }
@@ -6732,7 +7581,7 @@ Function New-EdgeJSONFile
             $overlayTransportZoneId = (Get-NsxTransportZones -nsxtManagerFqdn $nsxtManagerFqdn -nsxtusername $nsxtManagerAdminUser -nsxtpassword $decodedNsxPassword | Where-Object {$_.tz_type -in "OVERLAY_STANDARD","OVERLAY_BACKED" -and $_.is_default -eq "True"}).nsx_id
             If (!($overlayTransportZoneId))
             {
-                LogMessage -type ERROR -message "Failed to connect to successfully read information from $nsxtManagerFqdn. Please check details and try again."
+                LogMessage -type ERROR -message "Failed to connect to successfully read information from $nsxtManagerFqdn. Please check details and try again"
             }
         } Until ($overlayTransportZoneId)
         Do
@@ -6747,7 +7596,7 @@ Function New-EdgeJSONFile
             $vCenterConnection = Connect-VIServer -server $vCenterFQDN -user $vCenterAdminUser -password $decodedvCenterPassword -errorAction SilentlyContinue
             If (!($vCenterConnection))
             {
-                LogMessage -type ERROR -message "Failed to connect to successfully read information from $vCenterFqdn. Please check details and try again."
+                LogMessage -type ERROR -message "Failed to connect to successfully read information from $vCenterFqdn. Please check details and try again"
             }
         } Until ($vCenterConnection)
     }
@@ -7625,7 +8474,7 @@ Function New-DayNIdbJsonFile
             }
             If (!($fmResponse))
             {
-                LogMessage -type ERROR -message "Failed to connect to successfully read information from $fleetManagerFqdn. Please check details and try again."
+                LogMessage -type ERROR -message "Failed to connect to successfully read information from $fleetManagerFqdn. Please check details and try again"
             }
         } Until ($fmResponse)
     }
@@ -7765,7 +8614,7 @@ Function New-DayNLogsJsonFile
             }
             If (!($fmResponse))
             {
-                LogMessage -type ERROR -message "Failed to connect to successfully read information from $fleetManagerFqdn. Please check details and try again."
+                LogMessage -type ERROR -message "Failed to connect to successfully read information from $fleetManagerFqdn. Please check details and try again"
             }
         } Until ($fmResponse)
     }
@@ -7988,7 +8837,7 @@ Function New-DayNNetworksJsonFile
             }
             If (!($fmResponse))
             {
-                LogMessage -type ERROR -message "Failed to connect to successfully read information from $fleetManagerFqdn. Please check details and try again."
+                LogMessage -type ERROR -message "Failed to connect to successfully read information from $fleetManagerFqdn. Please check details and try again"
             }
         } Until ($fmResponse)
     }

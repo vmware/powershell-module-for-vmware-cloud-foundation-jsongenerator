@@ -1,15 +1,6 @@
-
 # VCF.JSONGenerator
 
-[![PS Version](https://img.shields.io/powershellgallery/v/VCF.JSONGenerator?label=Version)](https://www.powershellgallery.com/packages/VCF.JSONGenerator)
-[![PS Downloads](https://img.shields.io/powershellgallery/dt/VCF.JSONGenerator?label=Downloads)](https://www.powershellgallery.com/packages/VCF.JSONGenerator)
-[![GitHub Glone](https://img.shields.io/badge/dynamic/json?color=success&label=Clones&query=count&url=https://gist.githubusercontent.com/nathanthaler/cd078a6cd4cc8bbf8bcf859ad2dd4f18/raw/clone.json&logo=github)](https://gist.githubusercontent.com/nathanthaler/cd078a6cd4cc8bbf8bcf859ad2dd4f18/raw/clone.json)
-[![License](https://img.shields.io/badge/License-Broadcom-green.svg)](LICENSE.md)
-[![PowerShell](https://img.shields.io/badge/PowerShell-7.2%2B-blue.svg)](https://github.com/PowerShell/PowerShell)
-[![Changelog](https://img.shields.io/badge/Changelog-Read-blue)](CHANGELOG.md)
-
 ## Author
-
 Thank you for your interest in the project. Whether it's a bug report, enhancement, correction, or
 additional documentation, I greatly value feedback and contributions from our community.
 
@@ -19,7 +10,7 @@ Ken Gould       | Creator      | [:fontawesome-brands-github:](https://github.co
 
 ## Overview
 
-VCF.JSONGenerator is provided as is, as a companion tool for the VCF 9.0 Planning & Preparation (P&P) workbook. Its intent is to help automate the task of creation JSON payloads for submission to the VCF management components.
+VCF.JSONGenerator is provided as is, as a companion tool for the VCF 9.0 Planning & Preparation (P&P) workbook. Its intent is to help automate the task of creation JSON payloads for submission to the VCF management components. 
 
 ## Support Platforms
 - Windows (tested with Server 2022 Datacenter edition)
@@ -51,7 +42,7 @@ The following are the list of tested / supported permutations.
 - When P&P operation is configured to be `Deploy a new VCF fleet` or `Deploy a VCF Instance in an existing VCF fleet`
 - [Supported/Tested]
     - Deploy a new VCF Fleet
-    - Simple Deployment Model
+    - Simple Deployment Model 
     - Highly Available Deployment Model
     - Deployment of VCF Operations and VCF Automation Day-N
     - Deployment of VCF Operations with VCF Autuomation
@@ -72,11 +63,11 @@ The following are the list of tested / supported permutations.
         - [Supported/Tested]
             - Single-Rack / Layer-2 Multi-Rack HCI Cluster
             - Single-Rack / Layer-2 Multi-Rack Storage Cluster
-            - Single-Rack / Layer-2 Multi-Rack Compute Only Cluster
+            - Single-Rack / Layer-2 Multi-Rack Compute Only Cluster  
         - [Unsupported]
             - Multi-Rack / Layer-2 Multi-Rack HCI Cluster
             - Multi-Rack / Layer-2 Multi-Rack Storage Cluster
-            - Multi-Rack / Layer-2 Multi-Rack Compute Only Cluster
+            - Multi-Rack / Layer-2 Multi-Rack Compute Only Cluster  
 
 ### Workload Domains
 - First workload domain when P&P Operation is set to `Deploy a new VCF fleet` or `Deploy a VCF Instance in an existing VCF fleet`
@@ -132,4 +123,4 @@ The following are the list of tested / supported permutations.
         - NSX VLAN segment
 
 ## Troubleshooting
-- There is a very tight coupling between the version of the Planning & Preparation file you use and the version of the VCF.JSONGenerator Powershell Module. Bug resolution may involve a change to either or both of these elements. Please ensure that all required values in the Planning & Preparation workbook are populated in the desired format. In time, depending on the appetite for this module, I may introduce input format validation and cross-checking
+- There is a very tight coupling between the version of the Planning & Preparation file you use and the version of the VCF.JSONGenerator Powershell Module. Bug resolution may involve a change to either or both of these elements. Please ensure that all required values in the Planning & Preparation workbook are populated in the desired format. In time, depending on the appetite for this module, I may introduce input format validation and cross-checking 
