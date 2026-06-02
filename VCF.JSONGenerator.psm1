@@ -857,7 +857,7 @@ Function Start-VCFJsonGeneration
                         }
                         else
                         {
-                            New-DayNAutomationViaOpsJsonFile -sharedInstanceObject $sharedInstanceObject
+                            New-DayNAutomationModernJsonFile -sharedInstanceObject $sharedInstanceObject
                         }
                     }
                     else
@@ -873,11 +873,11 @@ Function Start-VCFJsonGeneration
                     {
                         If ($sharedInstanceObject.version -like "9.0*")
                         {
-                            New-DayNLogsViaFleetManagerJsonFile -sharedInstanceObject $sharedInstanceObject
+                            New-DayNLogsLegacyJsonFile -sharedInstanceObject $sharedInstanceObject
                         }
                         else
                         {
-                            New-DayNLogsViaOpsJsonFile -sharedInstanceObject $sharedInstanceObject
+                            New-DayNLogsModernJsonFile -sharedInstanceObject $sharedInstanceObject
                         }
                     }
                     else
@@ -893,11 +893,11 @@ Function Start-VCFJsonGeneration
                     {
                         If ($sharedInstanceObject.version -like "9.0*")
                         {
-                            New-DayNNetworksViaFleetManagerJsonFile -sharedInstanceObject $sharedInstanceObject
+                            New-DayNNetworksLegacyJsonFile -sharedInstanceObject $sharedInstanceObject
                         }
                         else
                         {
-                            New-DayNNetworksViaOpsJsonFile -sharedInstanceObject $sharedInstanceObject
+                            New-DayNNetworksModernJsonFile -sharedInstanceObject $sharedInstanceObject
                         }
                     }
                     else
@@ -9731,7 +9731,7 @@ Function New-DayNIdbJsonFile
 #EndRegion IDB
 
 #Region Log Managment
-Function New-DayNLogsViaFleetManagerJsonFile
+Function New-DayNLogsLegacyJsonFile
 {
     Param (
         [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
@@ -9968,7 +9968,7 @@ Function New-DayNLogsViaFleetManagerJsonFile
     ConvertTo-Json $logsJsonObject -depth 20 | Out-File "opsLogsDeploymentSpec-$(($sharedInstanceObject.logs.vipFqdn).split(".")[0]).json"
 }
 
-Function New-DayNLogsViaOpsJsonFile
+Function New-DayNLogsModernJsonFile
 {
     Param (
         [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
@@ -10018,7 +10018,7 @@ Function New-DayNLogsViaOpsJsonFile
 #EndRegion Log Managment
 
 #Region Ops for Networks
-Function New-DayNNetworksViaFleetManagerJsonFile
+Function New-DayNNetworksLegacyJsonFile
 {
     Param (
         [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
@@ -10242,7 +10242,7 @@ Function New-DayNNetworksViaFleetManagerJsonFile
     ConvertTo-Json $networksJsonObject -depth 20 | Out-File "opsNetworksDeploymentSpec-$(($sharedInstanceObject.networks.nodeAFqdn).split(".")[0]).json"
 }
 
-Function New-DayNNetworksViaOpsJsonFile
+Function New-DayNNetworksModernJsonFile
 {
     Param (
         [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
@@ -10375,7 +10375,7 @@ Function New-DayNRealTimeMetrics
 #EndRegion RealTimeMetrics
 
 #Region Automation
-Function New-DayNAutomationViaOpsJsonFile
+Function New-DayNAutomationModernJsonFile
 {
     Param (
         [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
