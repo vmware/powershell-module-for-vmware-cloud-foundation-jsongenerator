@@ -857,7 +857,7 @@ Function Start-VCFJsonGeneration
                         }
                         else
                         {
-                            New-DayNAutomationModern -sharedInstanceObject $sharedInstanceObject -managementObject $managementObject
+                            New-DayNAutomationViaOpsJsonFile -sharedInstanceObject $sharedInstanceObject
                         }
                     }
                     else
@@ -10305,7 +10305,7 @@ Function New-DayNRealTimeMetrics
 #EndRegion RealTimeMetrics
 
 #Region Automation
-Function New-DayNAutomationModern
+Function New-DayNAutomationViaOpsJsonFile
 {
     Param (
         [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
