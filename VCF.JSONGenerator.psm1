@@ -1765,6 +1765,8 @@ Function Get-PnPInputFileInputs
         If ($workbookProfile.granularOperation -eq "Deploy a new VCF fleet")
         {
             $Global:workbookProfile | Add-Member -NotePropertyName 'opsAutomationDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value
+            $Global:workbookProfile | Add-Member -NotePropertyName 'automationDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_automation_later_chosen"].Value
+            $Global:workbookProfile | Add-Member -NotePropertyName 'opsDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_ops_later_chosen"].Value
             $Global:workbookProfile | Add-Member -NotePropertyName 'idbDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_vidb_chosen"].Value
             $Global:workbookProfile | Add-Member -NotePropertyName 'logsDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_logs_chosen"].Value
             $Global:workbookProfile | Add-Member -NotePropertyName 'networksDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_net_chosen"].Value
@@ -2175,8 +2177,8 @@ Function New-SharedInstanceObject
             }
         }
 
+        #Ops Object
         $vcfOperationsObject = New-Object -TypeName psobject
-        $vcfAutomationObject = New-Object -TypeName psobject
         If ($workbookProfile.opsAutomationDayNDeployment -eq "Unselected")
         {
             $vcfOperationsObject | Add-Member -notepropertyname 'nodeAFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_nodea_fqdn"].Value
@@ -2205,80 +2207,151 @@ Function New-SharedInstanceObject
             $vcfOperationsObject | Add-Member -notepropertyname 'rootUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_root_password"].Value
             $vcfOperationsObject | Add-Member -notepropertyname 'opsCollectorFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_collector_fqdn"].Value
             $vcfOperationsObject | Add-Member -notepropertyname 'opsCollectorRootUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_collector_root_password"].Value
-
-            $vcfAutomationObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_auto_sr_fqdn"].Value        
-            $vcfAutomationObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodea_ip"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodeb_ip"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodec_ip"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'nodeDIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_noded_ip"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'nodeEIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodee_ip"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'nodeFIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodef_ip"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'extraNodeIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_noded_ip"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_virtual_fqdn"].Value
+        }
+        else
+        {
+            If (($vcfVersion -like "9.0*") -or ($userPromptBypass))
+            {
+                $vcfOperationsObject | Add-Member -notepropertyname 'nodeAFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_nodea_fqdn"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'nodeBFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_nodeb_fqdn"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'nodeCFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_nodec_fqdn"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_vip_fqdn"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'applianceSize' -notepropertyvalue ($pnpWorkbook.Workbook.Names["flt_custom_network_ops_size_chosen"].Value).tolower()
+                $vcfOperationsObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_admin_password"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'rootUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_root_password"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'opsCollectorFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_collector_fqdn"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'opsCollectorRootUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_collector_root_password"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'fltMgmtPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_x_reg_pg"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'fltMgmtSubnetMask' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_x_reg_mask"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'fltMgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_x_reg_gateway_ip"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'collectorMgmtPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_pg"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'collectorMgmtSubnetMask' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_mask"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'collectorMgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_gateway_ip"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'fleetManagementDeploymentModel' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ha_mode_chosen"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'collectorApplianceSize' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_collector_size_chosen"].Value
+                If ($pnpWorkbook.Workbook.Names["mgmt_domain_existing_vcf_operations_chosen"].Value -eq 'Unselected')
+                {
+                    $vcfOperationsObject | Add-Member -notepropertyname 'useExisting' -notepropertyvalue $false
+                }
+                else
+                {
+                    $vcfOperationsObject | Add-Member -notepropertyname 'useExisting' -notepropertyvalue $true
+                }
+            }
+            else
+            {
+                $vcfOperationsObject | Add-Member -notepropertyname 'nodeAFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_nodea_fqdn"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'nodeBFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_nodeb_fqdn"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'nodeCFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_nodec_fqdn"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_virtual_fqdn"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'applianceSize' -notepropertyvalue ($pnpWorkbook.Workbook.Names["flt_def_vcf_operations_size_chosen"].Value).tolower()
+                $vcfOperationsObject | Add-Member -notepropertyname 'opsCollectorFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["lt_def_vcf_operations_proxy_fqdn"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'fltMgmtPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_az1_vcf_mgmt_pg"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'fltMgmtGwCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_az1_vcf_mgmt_gateway_cidr"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'fleetManagementDeploymentModel' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_ha_mode_chosen"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'useExisting' -notepropertyvalue $false
+            }
+            
+        }  
+        
+        #Automation Object
+        $vcfAutomationObject = New-Object -TypeName psobject
+        If ($workbookProfile.automationDayNDeployment -eq "Selected")
+        {
+            $vcfAutomationObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_auto_sr_fqdn"].Value        
+            $vcfAutomationObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_nodea_ip"].Value
+            $vcfAutomationObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_nodeb_ip"].Value
+            $vcfAutomationObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_nodec_ip"].Value
+            $vcfAutomationObject | Add-Member -notepropertyname 'nodeDIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_noded_ip"].Value
+            $vcfAutomationObject | Add-Member -notepropertyname 'nodeEIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_nodee_ip"].Value
+            $vcfAutomationObject | Add-Member -notepropertyname 'nodeFIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_nodef_ip"].Value
+            $vcfAutomationObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_vip_fqdn"].Value
             $vcfAutomationObject | Add-Member -notepropertyname 'internalClusterCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_k8s_cluster_cidr_chosen"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_admin_password"].Value
+            $vcfAutomationObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_admin_password"].Value
             $vcfAutomationObject | Add-Member -notepropertyname 'vcfaNodePrefix' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_prefix"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue "small"
+            $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_size_chosen"].Value
+        }
+        else
+        {
+            If ($workbookProfile.opsAutomationDayNDeployment -eq "Unselected")
+            {
+                $vcfAutomationObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_auto_sr_fqdn"].Value        
+                $vcfAutomationObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodea_ip"].Value
+                $vcfAutomationObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodeb_ip"].Value
+                $vcfAutomationObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodec_ip"].Value
+                $vcfAutomationObject | Add-Member -notepropertyname 'nodeDIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_noded_ip"].Value
+                $vcfAutomationObject | Add-Member -notepropertyname 'nodeEIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodee_ip"].Value
+                $vcfAutomationObject | Add-Member -notepropertyname 'nodeFIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodef_ip"].Value
+                $vcfAutomationObject | Add-Member -notepropertyname 'extraNodeIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_noded_ip"].Value
+                $vcfAutomationObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_virtual_fqdn"].Value
+                $vcfAutomationObject | Add-Member -notepropertyname 'internalClusterCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_k8s_cluster_cidr_chosen"].Value
+                $vcfAutomationObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_admin_password"].Value
+                $vcfAutomationObject | Add-Member -notepropertyname 'vcfaNodePrefix' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_prefix"].Value
+                $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue "small"
+            }
+            else
+            {
+                If (($vcfVersion -like "9.0*") -or ($userPromptBypass))
+                {
+                    $vcfAutomationObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_auto_sr_fqdn"].Value     
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_nodea_ip"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_nodeb_ip"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_nodec_ip"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeDIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_noded_ip"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeEIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_nodee_ip"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeFIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_nodef_ip"].Value            
+                    $vcfAutomationObject | Add-Member -notepropertyname 'extraNodeIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_noded_ip"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_vip_fqdn"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'internalClusterCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_cluster_cidr_chosen"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_admin_password"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'vcfaNodePrefix' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_prefix"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'fltMgmtPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_x_reg_pg"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'fltMgmtSubnetMask' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_x_reg_mask"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'fltMgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_x_reg_gateway_ip"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'collectorMgmtPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_pg"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'collectorMgmtSubnetMask' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_mask"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'collectorMgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_gateway_ip"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'fleetManagementDeploymentModel' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ha_mode_chosen"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_size_chosen"].Value
+                }
+                else
+                {
+                    $vcfAutomationObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_auto_sr_fqdn"].Value                   
+                    $vcfAutomationObject | Add-Member -notepropertyname 'startIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_auto_node_pool_start_ip"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'endIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_auto_node_pool_end_ip"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vra_virtual_fqdn"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'fltMgmtPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_az1_vcf_mgmt_pg"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'fltMgmtGwCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_az1_vcf_mgmt_gateway_cidr"].Value
+                }
+            }
+        }
 
-            $vcfFleetManagerObject = New-Object -TypeName psobject
+        #license Object
+        $vcfLicenseServerObject = New-Object -TypeName psobject
+        If ($workbookProfile.opsAutomationDayNDeployment -eq "Unselected")
+        {
+            $vcfLicenseServerObject | Add-Member -notepropertyname 'fqdn' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_lc_fqdn"].Value
+        }
+        else
+        {
+            $vcfLicenseServerObject | Add-Member -notepropertyname 'fqdn' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_def_vcf_operations_lc_fqdn"].Value
+        }
+        
+          
+        #Fleet Manager Object
+        $vcfFleetManagerObject = New-Object -TypeName psobject
+        If ($workbookProfile.opsAutomationDayNDeployment -eq "Unselected")
+        {
             $vcfFleetManagerObject | Add-Member -notepropertyname 'fqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrslcm_fqdn"].Value
             $vcfFleetManagerObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["vrslcm_admin_password"].Value
             $vcfFleetManagerObject | Add-Member -notepropertyname 'rootUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["vrslcm_root_password"].Value
         }
         else
         {
-            $vcfOperationsObject | Add-Member -notepropertyname 'nodeAFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_nodea_fqdn"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'nodeBFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_nodeb_fqdn"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'nodeCFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_nodec_fqdn"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_vip_fqdn"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'applianceSize' -notepropertyvalue ($pnpWorkbook.Workbook.Names["flt_custom_network_ops_size_chosen"].Value).tolower()
-            $vcfOperationsObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_admin_password"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'rootUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_root_password"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'opsCollectorFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_collector_fqdn"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'opsCollectorRootUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_collector_root_password"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'fltMgmtPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_x_reg_pg"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'fltMgmtSubnetMask' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_x_reg_mask"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'fltMgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_x_reg_gateway_ip"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'collectorMgmtPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_pg"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'collectorMgmtSubnetMask' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_mask"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'collectorMgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_gateway_ip"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'fleetManagementDeploymentModel' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ha_mode_chosen"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'collectorApplianceSize' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_collector_size_chosen"].Value
-            If ($pnpWorkbook.Workbook.Names["mgmt_domain_existing_vcf_operations_chosen"].Value -eq 'Unselected')
-            {
-                $vcfOperationsObject | Add-Member -notepropertyname 'useExisting' -notepropertyvalue $false
-            }
-            else
-            {
-                $vcfOperationsObject | Add-Member -notepropertyname 'useExisting' -notepropertyvalue $true
-            } 
-            
-            $vcfAutomationObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_auto_sr_fqdn"].Value     
-            $vcfAutomationObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_nodea_ip"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_nodeb_ip"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_nodec_ip"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'nodeDIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_noded_ip"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'nodeEIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_nodee_ip"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'nodeFIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_nodef_ip"].Value            
-            $vcfAutomationObject | Add-Member -notepropertyname 'extraNodeIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_noded_ip"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_vip_fqdn"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'internalClusterCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_cluster_cidr_chosen"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_admin_password"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'vcfaNodePrefix' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_prefix"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'fltMgmtPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_x_reg_pg"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'fltMgmtSubnetMask' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_x_reg_mask"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'fltMgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_x_reg_gateway_ip"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'collectorMgmtPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_pg"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'collectorMgmtSubnetMask' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_mask"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'collectorMgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_gateway_ip"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'fleetManagementDeploymentModel' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ha_mode_chosen"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_size_chosen"].Value
-
-            $vcfFleetManagerObject = New-Object -TypeName psobject
             $vcfFleetManagerObject | Add-Member -notepropertyname 'fqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_flt_fqdn"].Value
             $vcfFleetManagerObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_flt_admin_password"].Value
             $vcfFleetManagerObject | Add-Member -notepropertyname 'rootUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_flt_root_password"].Value
-        }        
+        }  
         
         $vcfIdbObject = New-Object -TypeName psobject
         $vcfIdbObject | Add-Member -notepropertyname 'certAlias' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_vidb_cert_alias"].Value
@@ -2378,9 +2451,6 @@ Function New-SharedInstanceObject
         $vcfNetworksObject | Add-Member -notepropertyname 'proxyNetmask' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_prxy_mask"].Value
         $vcfNetworksObject | Add-Member -notepropertyname 'fipsMode' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_fips_mode_chosen"].Value
         $vcfNetworksObject | Add-Member -notepropertyname 'configureAffinity' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_affinty_rule_chosen"].Value
-
-        $vcfLicenseServerObject = New-Object -TypeName psobject
-        $vcfLicenseServerObject | Add-Member -notepropertyname 'fqdn' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_lc_fqdn"].Value
 
         $vspObject = New-Object -TypeName psobject
         $vspObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_sr_fqdn"].Value
@@ -10348,13 +10418,13 @@ Function New-DayNAutomationViaOpsJsonFile
     $vspClusterSpecObject | Add-Member -NotePropertyName 'deploymentType' -NotePropertyValue 'VspClusterSpec'
     #$vspClusterSpecObject | Add-Member -NotePropertyName 'sddcLcmId' -NotePropertyValue ''
     $vspClusterSpecObject | Add-Member -NotePropertyName 'platformFqdn' -NotePropertyValue $sharedInstanceObject.automation.platformFqdn
-    $vspClusterSpecObject | Add-Member -NotePropertyName 'systemUserPassword' -NotePropertyValue $sharedInstanceObject.automation.adminUserPassword #review
-    $vspClusterSpecObject | Add-Member -NotePropertyName 'size' -NotePropertyValue $sharedInstanceObject.automation.size #review
+    $vspClusterSpecObject | Add-Member -NotePropertyName 'systemUserPassword' -NotePropertyValue $sharedInstanceObject.automation.adminUserPassword
+    $vspClusterSpecObject | Add-Member -NotePropertyName 'size' -NotePropertyValue $sharedInstanceObject.automation.size
     $vspClusterSpecObject | Add-Member -NotePropertyName 'ipv4Pool' -NotePropertyValue $ipv4PoolObject
 
     $configSpecObject = New-Object -type psobject
-    $configSpecObject | Add-Member -NotePropertyName 'size' -NotePropertyValue $sharedInstanceObject.automation.size #review
-    $configSpecObject | Add-Member -NotePropertyName 'adminSystemPassword' -NotePropertyValue $sharedInstanceObject.automation.adminUserPassword #review
+    $configSpecObject | Add-Member -NotePropertyName 'size' -NotePropertyValue $sharedInstanceObject.automation.size
+    $configSpecObject | Add-Member -NotePropertyName 'adminSystemPassword' -NotePropertyValue $sharedInstanceObject.automation.adminUserPassword
 
     $componentSpecObject = New-Object -type psobject
     $componentSpecObject | Add-Member -NotePropertyName 'componentType' -NotePropertyValue 'VCFA'
