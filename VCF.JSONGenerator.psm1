@@ -1765,7 +1765,7 @@ Function Get-PnPInputFileInputs
         If ($workbookProfile.granularOperation -eq "Deploy a new VCF fleet")
         {
             $Global:workbookProfile | Add-Member -NotePropertyName 'opsAutomationDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value
-            $Global:workbookProfile | Add-Member -NotePropertyName 'automationDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_automation_later_chosen"].Value
+            $Global:workbookProfile | Add-Member -NotePropertyName 'automationDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_vcf_automation_later_chosen"].Value
             $Global:workbookProfile | Add-Member -NotePropertyName 'opsDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_ops_later_chosen"].Value
             $Global:workbookProfile | Add-Member -NotePropertyName 'idbDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_vidb_chosen"].Value
             $Global:workbookProfile | Add-Member -NotePropertyName 'logsDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_logs_chosen"].Value
