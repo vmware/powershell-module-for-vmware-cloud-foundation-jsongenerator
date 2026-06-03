@@ -1794,22 +1794,29 @@ Function Get-PnPInputFileInputs
             #QFuture 9.1.1)
             $Global:workbookProfile | Add-Member -NotePropertyName 'opsDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_vcf_ops_later_chosen"].Value
         }
-        If ($pnpWorkbook.Workbook.Names["vcf_granular_option_chosen"].Value -eq "Create Cluster")
+        Try
         {
-            $Global:clusterObject = New-ClusterObject -pnpWorkbook $pnpWorkbook
-        }
-        elseIf ($pnpWorkbook.Workbook.Names["vcf_granular_option_chosen"].Value -eq "Create VI Workload Domain")
-        {
-            $Global:workloadObject = New-WorkloadInstanceObject -pnpWorkbook $pnpWorkbook
-        }
-        else
-        {
-            $Global:sharedInstanceObject = New-SharedInstanceObject -pnpWorkbook $pnpWorkbook
-            $Global:managementObject = New-ManagementInstanceObject -pnpWorkbook $pnpWorkbook
-            If ($pnpWorkbook.Workbook.Names["wld_domain_chosen"].Value -in "Deploy Workload Domain with a Single-Rack / Multi-Rack Layer 2 Cluster","Deploy Workload Domain with a Multi-Rack Layer 3 Cluster")
+            If ($pnpWorkbook.Workbook.Names["vcf_granular_option_chosen"].Value -eq "Create Cluster")
+            {
+                $Global:clusterObject = New-ClusterObject -pnpWorkbook $pnpWorkbook
+            }
+            elseIf ($pnpWorkbook.Workbook.Names["vcf_granular_option_chosen"].Value -eq "Create VI Workload Domain")
             {
                 $Global:workloadObject = New-WorkloadInstanceObject -pnpWorkbook $pnpWorkbook
-            }        
+            }
+            else
+            {
+                $Global:sharedInstanceObject = New-SharedInstanceObject -pnpWorkbook $pnpWorkbook
+                $Global:managementObject = New-ManagementInstanceObject -pnpWorkbook $pnpWorkbook
+                If ($pnpWorkbook.Workbook.Names["wld_domain_chosen"].Value -in "Deploy Workload Domain with a Single-Rack / Multi-Rack Layer 2 Cluster","Deploy Workload Domain with a Multi-Rack Layer 3 Cluster")
+                {
+                    $Global:workloadObject = New-WorkloadInstanceObject -pnpWorkbook $pnpWorkbook
+                }        
+            }
+        }
+        Catch
+        {
+            anyKey
         }
     }
     else{
@@ -2543,7 +2550,7 @@ Function New-SharedInstanceObject
         LogMessage -type ERROR -message "At $($_.InvocationInfo.ScriptName):$($_.InvocationInfo.ScriptLineNumber)"
         LogMessage -type ERROR -message "$($_.InvocationInfo.Line.Trim())"
         LogMessage -type ERROR -message "$($_.Exception.Message)"
-        Break
+        Throw $_
     }
 }
 
@@ -3233,7 +3240,7 @@ Function New-ManagementInstanceObject
         LogMessage -type ERROR -message "At $($_.InvocationInfo.ScriptName):$($_.InvocationInfo.ScriptLineNumber)"
         LogMessage -type ERROR -message "$($_.InvocationInfo.Line.Trim())"
         LogMessage -type ERROR -message "$($_.Exception.Message)"
-        Break
+        Throw $_
     }
 }
 
@@ -3857,6 +3864,7 @@ Function New-WorkloadInstanceObject
         LogMessage -type ERROR -message "At $($_.InvocationInfo.ScriptName):$($_.InvocationInfo.ScriptLineNumber)"
         LogMessage -type ERROR -message "$($_.InvocationInfo.Line.Trim())"
         LogMessage -type ERROR -message "$($_.Exception.Message)"
+        Throw $_
     }
 }
 
@@ -4224,7 +4232,10 @@ Function New-ClusterObject
     Catch 
     {
         LogMessage -type ERROR -message "Cluster object failed to generate. Please consult the error message and remediate"
-        $($_.Exception.Message)
+        LogMessage -type ERROR -message "At $($_.InvocationInfo.ScriptName):$($_.InvocationInfo.ScriptLineNumber)"
+        LogMessage -type ERROR -message "$($_.InvocationInfo.Line.Trim())"
+        LogMessage -type ERROR -message "$($_.Exception.Message)"
+        Throw $_
     } 
     
 }
