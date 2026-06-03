@@ -117,12 +117,12 @@ Function Start-VCFJsonGeneration
                 }
                 If ($managementObject.edgeCluster)
                 {
-                    $menuItem14 = "Edge Cluster"
+                    $menuItem14 = "Centralized TransitGateway"
                     $managementMenuEdgeClusterColour = $enabledColour    
                 }
                 else
                 {
-                    $menuItem14 = "Edge Cluster (Disabled: Edges not required)"
+                    $menuItem14 = "Centralized TransitGateway (Disabled: Centralized TransitGateway not required)"
                     $managementMenuEdgeClusterColour = $disabledColour
                 }
             }
