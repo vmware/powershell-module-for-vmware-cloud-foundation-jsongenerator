@@ -1757,7 +1757,6 @@ Function Get-PnPInputFileInputs
         Remove-Variable workloadObject -scope Global -ErrorAction SilentlyContinue
         Remove-Variable clusterObject -scope Global -ErrorAction SilentlyContinue
 
-        New-WorkbookDeploymentProfile -pnpWorkbook $pnpWorkbook -vcfVersion $vcfVersionChosen -
         $Global:workbookProfile = New-Object -type psobject
         $Global:workbookProfile | Add-Member -NotePropertyName 'granularOperation' -NotePropertyValue $pnpWorkbook.Workbook.Names["vcf_granular_option_chosen"].Value
         $Global:workbookProfile | Add-Member -NotePropertyName 'deploymentSpecification' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_deployment_type_chosen"].Value
