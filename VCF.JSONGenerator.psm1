@@ -136,7 +136,7 @@ Function Start-VCFJsonGeneration
                 $managementMenuStretchedClusterColour = $disabledColour
                 $menuItem13 = "Stretch Initial Cluster"
                 $managementMenuStretchedClusterColour = $disabledColour
-                $menuItem14 = "Edge Cluster"
+                $menuItem14 = "Centralized TransitGateway"
                 $managementMenuEdgeClusterColour = $disabledColour
             }
 
@@ -174,12 +174,12 @@ Function Start-VCFJsonGeneration
                 }
                 If ($workloadObject.edgecluster)
                 {
-                    $menuItem24 = "Edge Cluster"
+                    $menuItem24 = "Centralized TransitGateway"
                     $workloadMenuEdgeClusterColour = $enabledColour    
                 }
                 else
                 {
-                       $menuItem24 = "Edge Cluster"
+                       $menuItem24 = "Centralized TransitGateway"
                        $workloadMenuEdgeClusterColour = $disabledColour
                 }
             }
@@ -193,7 +193,7 @@ Function Start-VCFJsonGeneration
                 $menuItem21 = "Commission Hosts"
                 $menuItem22 = "Workload Domain JSON for use in SDDC Manager"
                 $menuItem23 = "Stretch Initial Cluster"
-                $menuItem24 = "Edge Cluster"
+                $menuItem24 = "Centralized TransitGateway"
             }
             
             If ($clusterObject)
