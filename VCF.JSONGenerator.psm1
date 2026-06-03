@@ -396,7 +396,7 @@ Function Start-VCFJsonGeneration
                 $menuItem40 = "VCF Complete Fleet Deployment (Disabled: Not applicable for VCF 9.0)"
                 $completeFleetDayNColour = $disabledColour
             }
-            elseIf ($workbookProfile.deferredFleetCompletion -eq $true)
+            elseIf ($workbookProfile.opsAutomationDayNDeployment -eq $true)
             {
                 $menuItem40 = "VCF Complete Fleet Deployment"
                 $completeFleetDayNColour = $enabledColour
@@ -836,7 +836,7 @@ Function Start-VCFJsonGeneration
                 40
                 {
                     Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem40" -Foregroundcolor Cyan; Write-Host -Object ''
-                    If (($sharedInstanceObject) -and ($sharedInstanceObject.version -notlike "9.0*") -and ($workbookProfile.deferredFleetCompletion -eq $true))
+                    If (($sharedInstanceObject) -and ($sharedInstanceObject.version -notlike "9.0*") -and ($workbookProfile.opsAutomationDayNDeployment -eq $true))
                     {
                         New-DayNCompleteFleet -sharedInstanceObject $sharedInstanceObject -managementObject $managementObject
                     }
@@ -1756,31 +1756,50 @@ Function Get-PnPInputFileInputs
         Remove-Variable managementObject -scope Global -ErrorAction SilentlyContinue
         Remove-Variable workloadObject -scope Global -ErrorAction SilentlyContinue
         Remove-Variable clusterObject -scope Global -ErrorAction SilentlyContinue
+
+        New-WorkbookDeploymentProfile -pnpWorkbook $pnpWorkbook -vcfVersion $vcfVersionChosen -
         $Global:workbookProfile = New-Object -type psobject
         $Global:workbookProfile | Add-Member -NotePropertyName 'granularOperation' -NotePropertyValue $pnpWorkbook.Workbook.Names["vcf_granular_option_chosen"].Value
         $Global:workbookProfile | Add-Member -NotePropertyName 'deploymentSpecification' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_deployment_type_chosen"].Value
         $Global:workbookProfile | Add-Member -NotePropertyName 'instance' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value
         $Global:workbookProfile | Add-Member -NotePropertyName 'chosenWorkbook' -NotePropertyValue $chosenWorkBook
         $Global:workbookProfile | Add-Member -NotePropertyName 'clusterResult' -NotePropertyValue $pnpWorkbook.Workbook.Names["cluster_result"].Value
-        If ($workbookProfile.granularOperation -eq "Deploy a new VCF fleet")
+        If ($pnpWorkbook.Workbook.Names["vcf_granular_option_chosen"].Value -eq "Deploy a new VCF fleet")
         {
-            $Global:workbookProfile | Add-Member -NotePropertyName 'opsAutomationDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value
+            #Q1
             $Global:workbookProfile | Add-Member -NotePropertyName 'automationDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_vcf_automation_later_chosen"].Value
-            $Global:workbookProfile | Add-Member -NotePropertyName 'opsDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_ops_later_chosen"].Value
+            #Q2
+            $Global:workbookProfile | Add-Member -NotePropertyName 'opsAutomationDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value
+        
+            #Yes to 1, and No to 2, 
+            #   means Ops/Ops Proxy/License Manager. 
+            #   complete the fleet is not relevant
+            #   Use DayNAutomation via Fleet Manager
+            
+            #Yes to 1, and Yes to 2
+            #   means nothing - have to use deferred deploymed Ops and Automation together. 
+            #   no option in 9.1.0 to deploy Ops on its own. thats coming in 9.1.1
+            #   can choose to put proxy on different network
+            $Global:workbookProfile | Add-Member -NotePropertyName 'opsProxyOnDifferentNetwork' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_def_vcf_custom_network_chosen"].Value
+            #Impacts only Complete the Fleet
+        
+            #9.0 Only
             $Global:workbookProfile | Add-Member -NotePropertyName 'idbDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_vidb_chosen"].Value
+            
+            #Common for 9.0 and 9.1
             $Global:workbookProfile | Add-Member -NotePropertyName 'logsDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_logs_chosen"].Value
             $Global:workbookProfile | Add-Member -NotePropertyName 'networksDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_net_chosen"].Value
-            $deferredFleetCompletionCell = $pnpWorkbook.Workbook.Names["placeholder_deferred_fleet_completion"]
-            $Global:workbookProfile | Add-Member -NotePropertyName 'deferredFleetCompletion' -NotePropertyValue ($deferredFleetCompletionCell -and $deferredFleetCompletionCell.Value -eq $true)
-            $realTimeMetricsCell = $pnpWorkbook.Workbook.Names["placeholder_real_time_metrics_chosen"]
-            $realTimeMetricsDayNDeploymentValue = If ($realTimeMetricsCell) { $realTimeMetricsCell.Value } else { 'Exclude' }
-            $Global:workbookProfile | Add-Member -NotePropertyName 'realTimeMetricsDayNDeployment' -NotePropertyValue $realTimeMetricsDayNDeploymentValue
+            
+            #9.1 Only
+            $Global:workbookProfile | Add-Member -NotePropertyName 'realTimeMetricsDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["placeholder_real_time_metrics_chosen"].value
+            #QFuture 9.1.1)
+            $Global:workbookProfile | Add-Member -NotePropertyName 'opsDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_vcf_ops_later_chosen"].Value
         }
-        If ($workbookProfile.granularOperation -eq "Create Cluster")
+        If ($pnpWorkbook.Workbook.Names["vcf_granular_option_chosen"].Value -eq "Create Cluster")
         {
             $Global:clusterObject = New-ClusterObject -pnpWorkbook $pnpWorkbook
         }
-        elseIf ($workbookProfile.granularOperation -eq "Create VI Workload Domain")
+        elseIf ($pnpWorkbook.Workbook.Names["vcf_granular_option_chosen"].Value -eq "Create VI Workload Domain")
         {
             $Global:workloadObject = New-WorkloadInstanceObject -pnpWorkbook $pnpWorkbook
         }
@@ -1974,7 +1993,8 @@ Function New-WorkbookDeploymentProfile
     Param (
         [Parameter (Mandatory=$true)][ValidateNotNullOrEmpty()][object]$pnpWorkbook,
         [Parameter (Mandatory=$true)][ValidateNotNullOrEmpty()][String]$vcfVersion,
-        [Parameter (Mandatory=$true)][ValidateNotNullOrEmpty()][ValidateSet("management", "workload")][String]$type
+        [Parameter (Mandatory=$true)][ValidateNotNullOrEmpty()][ValidateSet("management", "workload")][String]$type,
+        [Parameter (Mandatory=$false)][ValidateNotNullOrEmpty()][String]$chosenWorkBook
     )
 
     If ($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value -eq "First Instance")
@@ -2098,7 +2118,9 @@ Function New-WorkbookDeploymentProfile
     }
     
     $deploymentProfileObject = New-Object -TypeName psobject
+    $deploymentProfileObject | Add-Member -notepropertyname 'instance' -notepropertyvalue $instance
     $deploymentProfileObject | Add-Member -notepropertyname 'singleNSXTManager' -notepropertyvalue $singleNSXTManager
+    
     If ($type -eq 'management')
     {
         $deploymentProfileObject | Add-Member -notepropertyname 'skipAutomation' -notepropertyvalue $skipAutomation
@@ -2106,11 +2128,22 @@ Function New-WorkbookDeploymentProfile
         $deploymentProfileObject | Add-Member -notepropertyname 'fleetManagementDeploymentModel' -notepropertyvalue $fleetManagementDeploymentModel
         $deploymentProfileObject | Add-Member -notepropertyname 'fleetManagementTiming' -notepropertyvalue $fleetManagementTiming
         $deploymentProfileObject | Add-Member -notepropertyname 'vcfManagementNetworkModel' -notepropertyvalue $vcfManagementNetworkModel
+        $deploymentProfileObject | Add-Member -NotePropertyName 'deploymentSpecification' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_deployment_type_chosen"].Value
+        $deploymentProfileObject | Add-Member -NotePropertyName 'automationDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_vcf_automation_later_chosen"].Value
+        $deploymentProfileObject | Add-Member -NotePropertyName 'opsAutomationDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value
+        $deploymentProfileObject | Add-Member -NotePropertyName 'opsProxyOnDifferentNetwork' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_def_vcf_custom_network_chosen"].Value
+        $deploymentProfileObject | Add-Member -NotePropertyName 'idbDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_vidb_chosen"].Value
+        $deploymentProfileObject | Add-Member -NotePropertyName 'logsDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_logs_chosen"].Value
+        $deploymentProfileObject | Add-Member -NotePropertyName 'networksDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_net_chosen"].Value
+        $deploymentProfileObject | Add-Member -NotePropertyName 'realTimeMetricsDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["placeholder_real_time_metrics_chosen"].value
+        $deploymentProfileObject | Add-Member -NotePropertyName 'opsDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_vcf_ops_later_chosen"].Value        
         If ($vcfVersion -notlike "9.0*")
         {
             $deploymentProfileObject | Add-Member -notepropertyname 'vcfmsNetworkModel' -notepropertyvalue $vcfmsNetworkModel
         }                
     }
+    
+    
     Return $deploymentProfileObject
 }
 #EndRegion PnP Scraping Functions
@@ -2166,20 +2199,9 @@ Function New-SharedInstanceObject
         $ssoObject | Add-Member -notepropertyname 'domain' -notepropertyvalue $pnpWorkbook.Workbook.names["mgmt_sso_domain"].Value 
         $ssoObject | Add-Member -notepropertyname 'adminPassword' -notepropertyvalue $pnpWorkbook.Workbook.names["administrator_vsphere_local_password"].Value 
         
-        #Enable Branch Logic for userPromptBypass        
-        If ($userPromptBypass)
-        {
-            $workbookProfile = New-Object -type psobject
-            $workbookProfile | Add-Member -NotePropertyName 'granularOperation' -NotePropertyValue $pnpWorkbook.Workbook.Names["vcf_granular_option_chosen"].Value
-            If ($workbookProfile.granularOperation -eq "Deploy a new VCF fleet")
-            {
-                $workbookProfile | Add-Member -NotePropertyName 'opsAutomationDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value
-            }
-        }
-
         #Ops Object
         $vcfOperationsObject = New-Object -TypeName psobject
-        If ($workbookProfile.opsAutomationDayNDeployment -eq "Unselected")
+        If ($pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value -eq "Unselected")
         {
             $vcfOperationsObject | Add-Member -notepropertyname 'nodeAFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_nodea_fqdn"].Value
             $vcfOperationsObject | Add-Member -notepropertyname 'nodeBFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_nodeb_fqdn"].Value
@@ -2240,16 +2262,26 @@ Function New-SharedInstanceObject
             }
             else
             {
+                $opsNetworkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_az1_vcf_mgmt_gateway_cidr"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'applianceSize' -notepropertyvalue ($pnpWorkbook.Workbook.Names["flt_def_vcf_operations_size_result"].Value).tolower()
+                $vcfOperationsObject | Add-Member -notepropertyname 'fltMgmtPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_az1_vcf_mgmt_pg"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'fltMgmtGwCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_az1_vcf_mgmt_gateway_cidr"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'fltMgmtGw' -notepropertyvalue $opsNetworkDetails.gw
+                $vcfOperationsObject | Add-Member -notepropertyname 'fltMgmtSubnetMask' -notepropertyvalue $opsNetworkDetails.netmask
+                $vcfOperationsObject | Add-Member -notepropertyname 'fleetManagementDeploymentModel' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_ha_mode_chosen"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_virtual_fqdn"].Value
                 $vcfOperationsObject | Add-Member -notepropertyname 'nodeAFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_nodea_fqdn"].Value
                 $vcfOperationsObject | Add-Member -notepropertyname 'nodeBFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_nodeb_fqdn"].Value
                 $vcfOperationsObject | Add-Member -notepropertyname 'nodeCFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_nodec_fqdn"].Value
-                $vcfOperationsObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_virtual_fqdn"].Value
-                $vcfOperationsObject | Add-Member -notepropertyname 'applianceSize' -notepropertyvalue ($pnpWorkbook.Workbook.Names["flt_def_vcf_operations_size_result"].Value).tolower()
-                $vcfOperationsObject | Add-Member -notepropertyname 'opsCollectorFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_proxy_fqdn"].Value
+                
+                $collectorNetworkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_proxy_az1_vcf_mgmt_gateway_cidr"].Value
                 $vcfOperationsObject | Add-Member -notepropertyname 'collectorApplianceSize' -notepropertyvalue ($pnpWorkbook.Workbook.Names["flt_def_vcf_operations_proxy_size_result"].Value).tolower()                
-                $vcfOperationsObject | Add-Member -notepropertyname 'fltMgmtPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_az1_vcf_mgmt_pg"].Value
-                $vcfOperationsObject | Add-Member -notepropertyname 'fltMgmtGwCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_az1_vcf_mgmt_gateway_cidr"].Value
-                $vcfOperationsObject | Add-Member -notepropertyname 'fleetManagementDeploymentModel' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_ha_mode_chosen"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'collectorMgmtPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_proxy_az1_vcf_mgmt_pg"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'collectorMgmtGwCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_proxy_az1_vcf_mgmt_gateway_cidr"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'collectorMgmtGw' -notepropertyvalue $collectorNetworkDetails.gw
+                $vcfOperationsObject | Add-Member -notepropertyname 'collectorMgmtSubnetMask' -notepropertyvalue $collectorNetworkDetails.netmask
+                $vcfOperationsObject | Add-Member -notepropertyname 'opsCollectorFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_proxy_fqdn"].Value
+
                 $vcfOperationsObject | Add-Member -notepropertyname 'useExisting' -notepropertyvalue $false
             }
             
@@ -2257,7 +2289,7 @@ Function New-SharedInstanceObject
         
         #Automation Object
         $vcfAutomationObject = New-Object -TypeName psobject
-        If ($workbookProfile.automationDayNDeployment -eq "Selected")
+        If ($pnpWorkbook.Workbook.Names["mgmt_domain_vcf_automation_later_chosen"].Value -eq "Selected")
         {
             $vcfAutomationObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_auto_sr_fqdn"].Value        
             $vcfAutomationObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_nodea_ip"].Value
@@ -2274,7 +2306,7 @@ Function New-SharedInstanceObject
         }
         else
         {
-            If ($workbookProfile.opsAutomationDayNDeployment -eq "Unselected")
+            If ($pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value -eq "Unselected")
             {
                 $vcfAutomationObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_auto_sr_fqdn"].Value        
                 $vcfAutomationObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodea_ip"].Value
@@ -2329,7 +2361,7 @@ Function New-SharedInstanceObject
 
         #license Object
         $vcfLicenseServerObject = New-Object -TypeName psobject
-        If ($workbookProfile.opsAutomationDayNDeployment -eq "Unselected")
+        If ($pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value -eq "Unselected")
         {
             $vcfLicenseServerObject | Add-Member -notepropertyname 'fqdn' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_lc_fqdn"].Value
         }
@@ -2341,7 +2373,7 @@ Function New-SharedInstanceObject
           
         #Fleet Manager Object
         $vcfFleetManagerObject = New-Object -TypeName psobject
-        If ($workbookProfile.opsAutomationDayNDeployment -eq "Unselected")
+        If ($pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value -eq "Unselected")
         {
             $vcfFleetManagerObject | Add-Member -notepropertyname 'fqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrslcm_fqdn"].Value
             $vcfFleetManagerObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["vrslcm_admin_password"].Value
@@ -10820,12 +10852,17 @@ Function New-DayNCompleteFleet
     $localRegionNetworkObject | Add-Member -NotePropertyName 'networkName' -NotePropertyValue $sharedInstanceObject.operations.collectorMgmtPortgroup
     $localRegionNetworkObject | Add-Member -NotePropertyName 'subnetMask' -NotePropertyValue $sharedInstanceObject.operations.collectorMgmtSubnetMask
     $localRegionNetworkObject | Add-Member -NotePropertyName 'gateway' -NotePropertyValue $sharedInstanceObject.operations.collectorMgmtGw
+    
     $xRegionNetworkObject = New-Object -type psobject
-    $xRegionNetworkObject | Add-Member -NotePropertyName 'networkName' -NotePropertyValue $managementObject.vsphereClusters[0].portGroupNames.az1.fleetMgmt
-    $xRegionNetworkObject | Add-Member -NotePropertyName 'subnetMask' -NotePropertyValue $managementObject.az1.rack1.network.vcfManagementNetworkNetmask
-    $xRegionNetworkObject | Add-Member -NotePropertyName 'gateway' -NotePropertyValue $managementObject.az1.rack1.network.vcfManagementNetworkGw
+    $xRegionNetworkObject | Add-Member -NotePropertyName 'networkName' -NotePropertyValue $sharedInstanceObject.operations.fltMgmtPortgroup
+    $xRegionNetworkObject | Add-Member -NotePropertyName 'subnetMask' -NotePropertyValue $sharedInstanceObject.operations.fltMgmtSubnetMask
+    $xRegionNetworkObject | Add-Member -NotePropertyName 'gateway' -NotePropertyValue $sharedInstanceObject.operations.fltMgmtGw
+
     $vcfManagementComponentsInfrastructureSpecObject = New-Object -type psobject
-    $vcfManagementComponentsInfrastructureSpecObject | Add-Member -NotePropertyName 'localRegionNetwork' -NotePropertyValue $localRegionNetworkObject
+    If ($sharedInstanceObject.deploymentProfile.opsProxyOnDifferentNetwork -eq "Selected")
+    {
+        $vcfManagementComponentsInfrastructureSpecObject | Add-Member -NotePropertyName 'localRegionNetwork' -NotePropertyValue $localRegionNetworkObject
+    }
     $vcfManagementComponentsInfrastructureSpecObject | Add-Member -NotePropertyName 'xRegionNetwork' -NotePropertyValue $xRegionNetworkObject
 
     #Assemble Final Object
