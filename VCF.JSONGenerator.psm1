@@ -117,12 +117,12 @@ Function Start-VCFJsonGeneration
                 }
                 If ($managementObject.edgeCluster)
                 {
-                    $menuItem14 = "Centralized TransitGateway"
+                    $menuItem14 = "Centralized Transit Gateway"
                     $managementMenuEdgeClusterColour = $enabledColour    
                 }
                 else
                 {
-                    $menuItem14 = "Centralized TransitGateway (Disabled: Centralized TransitGateway not required)"
+                    $menuItem14 = "Centralized Transit Gateway (Disabled: Centralized Transit Gateway not required)"
                     $managementMenuEdgeClusterColour = $disabledColour
                 }
             }
@@ -136,7 +136,7 @@ Function Start-VCFJsonGeneration
                 $managementMenuStretchedClusterColour = $disabledColour
                 $menuItem13 = "Stretch Initial Cluster"
                 $managementMenuStretchedClusterColour = $disabledColour
-                $menuItem14 = "Centralized TransitGateway"
+                $menuItem14 = "Centralized Transit Gateway"
                 $managementMenuEdgeClusterColour = $disabledColour
             }
 
@@ -174,12 +174,12 @@ Function Start-VCFJsonGeneration
                 }
                 If ($workloadObject.edgecluster)
                 {
-                    $menuItem24 = "Centralized TransitGateway"
+                    $menuItem24 = "Centralized Transit Gateway"
                     $workloadMenuEdgeClusterColour = $enabledColour    
                 }
                 else
                 {
-                       $menuItem24 = "Centralized TransitGateway"
+                       $menuItem24 = "Centralized Transit Gateway"
                        $workloadMenuEdgeClusterColour = $disabledColour
                 }
             }
@@ -193,7 +193,7 @@ Function Start-VCFJsonGeneration
                 $menuItem21 = "Commission Hosts"
                 $menuItem22 = "Workload Domain JSON for use in SDDC Manager"
                 $menuItem23 = "Stretch Initial Cluster"
-                $menuItem24 = "Centralized TransitGateway"
+                $menuItem24 = "Centralized Transit Gateway"
             }
             
             If ($clusterObject)
