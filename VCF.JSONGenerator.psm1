@@ -1816,7 +1816,8 @@ Function Get-PnPInputFileInputs
         }
         Catch
         {
-            anyKey
+            # Error messages already logged by the called function.
+            # The caller's anyKey prompt will hold the screen.
         }
     }
     else{
