@@ -9572,6 +9572,41 @@ Function Get-FleetManagerLockerCertificate
         Write-Error $_.Exception.Message
     }
 }
+
+Function New-VSPBearerToken
+{
+    Param (       
+        [Parameter (Mandatory = $true)] [string]$vspFqdn,
+        [Parameter (Mandatory = $true)] [string]$vspUserName,
+        [Parameter (Mandatory = $true)] [string]$vspPassword
+    )
+
+    LogMessage -type INFO -message "[$vspFqdn] Getting Authentication token"
+    $tokenBody = @{
+        grant_type = "password"
+        username   = $vspUserName
+        password   = $vspPassword
+        }
+    $tokenResponse = Invoke-RestMethod -Method Post -Uri "https://$vspFqdn/api/v1/identity/token" -ContentType "application/x-www-form-urlencoded" -Body $tokenBody -SkipCertificateCheck
+    $token = $tokenResponse.access_token
+    Return $token
+}
+
+Function Get-SddcLcmId
+{
+    Param (       
+        [Parameter (Mandatory = $true)] [string]$vspFqdn,
+        [Parameter (Mandatory = $true)] [string]$vspUserName,
+        [Parameter (Mandatory = $true)] [string]$vspPassword
+    )
+
+    LogMessage -type INFO -message "[$vspFqdn] Getting SDDC LCM ID"
+    $token = New-VSPBearerToken -vspFqdn $vspFqdn -vspUserName $vspUserName -vspPassword $vspPassword 
+
+    $response = Invoke-RestMethod -Uri "https://$vspFqdn/fleet-lcm/v1/sddc-lcms" -Headers @{ Authorization = "Bearer $token" } -SkipCertificateCheck
+    $sddclcmid = $response.sddcLcms[0].id
+    Return $sddclcmid
+}
 #EndRegion Fleet Manager Supporting Functions
 
 #Region IDB
@@ -9993,12 +10028,55 @@ Function New-DayNLogsModernJsonFile
     }'
     #>
 
+    If ($userPromptBypass)
+    {
+        $interactiveEnabled = "Y"
+    }
+    else
+    {
+        LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve SDDC LCM ID? (Y/N): " -skipnewline            
+        Do
+        {  
+            $interactiveEnabled = Read-Host    
+        } Until ($interactiveEnabled -in "Y","N")
+        $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""
+    }
+
+    If ($interactiveEnabled)
+    { 
+        If (!$userPromptBypass)
+        {
+            Do
+            {
+                LogMessage -type INFO -message "Services Runtime FQDN: " -skipnewline
+                $vspFqdn = Read-Host
+                LogMessage -type INFO -message "Serivces Runtime Username (eg admin@vsp.local): " -skipnewline
+                $vspUserName = Read-Host
+                LogMessage -type INFO -message "Serivces Runtime Password: " -skipnewline
+                $adminPassword = Read-Host -AsSecureString
+                $vspPassword = New-DecodedPassword -securePassword $adminPassword
+                $token = New-VSPBearerToken -vspFqdn $vspFqdn -vspUserName $vspUserName -vspPassword $vspPassword
+            } Until ($token)
+        }
+        else
+        {
+            $vspFqdn =  $sharedInstanceObject.vsp.platformFqdn
+            $vspUserName = 'admin@vsp.local'
+            $vspPassword = $sharedInstanceObject.vsp.systemUserPassword
+            $sddclcmId = Get-SddcLcmId -vspUserName $vspUserName -vspPassword $vspPassword -vspFqdn $vspFqdn
+        }
+    }
+    else
+    {
+        $sddclcmId = "<-- ENTER SDDC LCM ID HERE -->"
+    }
+
     $configSpecObject = New-Object -type psobject
     $configSpecObject | Add-Member -NotePropertyName 'size' -NotePropertyValue $sharedInstanceObject.logs.nodeSize
     $configSpecObject | Add-Member -NotePropertyName 'numberOfNodes' -NotePropertyValue '' #review
 
     $componentSpecObject = New-Object -type psobject
-    #$componentSpecObject | Add-Member -NotePropertyName 'sddcLcmId' -NotePropertyValue ''
+    $componentSpecObject | Add-Member -NotePropertyName 'sddcLcmId' -NotePropertyValue $sddclcmId
     $componentSpecObject | Add-Member -NotePropertyName 'componentType' -NotePropertyValue 'OPS_LOGS'
     $componentSpecObject | Add-Member -NotePropertyName 'deploymentType' -NotePropertyValue 'VspComponentSpec'
     $componentSpecObject | Add-Member -NotePropertyName 'version' -NotePropertyValue $sharedInstanceObject.version
@@ -10290,6 +10368,49 @@ Function New-DayNNetworksModernJsonFile
         }'
     #> 
 
+    If ($userPromptBypass)
+    {
+        $interactiveEnabled = "Y"
+    }
+    else
+    {
+        LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve SDDC LCM ID? (Y/N): " -skipnewline            
+        Do
+        {  
+            $interactiveEnabled = Read-Host    
+        } Until ($interactiveEnabled -in "Y","N")
+        $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""
+    }
+
+    If ($interactiveEnabled)
+    { 
+        If (!$userPromptBypass)
+        {
+            Do
+            {
+                LogMessage -type INFO -message "Services Runtime FQDN: " -skipnewline
+                $vspFqdn = Read-Host
+                LogMessage -type INFO -message "Serivces Runtime Username (eg admin@vsp.local): " -skipnewline
+                $vspUserName = Read-Host
+                LogMessage -type INFO -message "Serivces Runtime Password: " -skipnewline
+                $adminPassword = Read-Host -AsSecureString
+                $vspPassword = New-DecodedPassword -securePassword $adminPassword
+                $token = New-VSPBearerToken -vspFqdn $vspFqdn -vspUserName $vspUserName -vspPassword $vspPassword
+            } Until ($token)
+        }
+        else
+        {
+            $vspFqdn =  $sharedInstanceObject.vsp.platformFqdn
+            $vspUserName = 'admin@vsp.local'
+            $vspPassword = $sharedInstanceObject.vsp.systemUserPassword
+            $sddclcmId = Get-SddcLcmId -vspUserName $vspUserName -vspPassword $vspPassword -vspFqdn $vspFqdn
+        }
+    }
+    else
+    {
+        $sddclcmId = "<-- ENTER SDDC LCM ID HERE -->"
+    }
+
     $ipv4SettingsPlatformObject = New-Object -type psobject
     $ipv4SettingsPlatformObject | Add-Member -NotePropertyName 'address' -NotePropertyValue $sharedInstanceObject.networks.nodeAIpAddress
 
@@ -10324,7 +10445,7 @@ Function New-DayNNetworksModernJsonFile
     $configSpecObject | Add-Member -NotePropertyName 'adminPassword' -NotePropertyValue $sharedInstanceObject.networks.systemUserPassword #review
 
     $componentSpecObject = New-Object -type psobject
-    #$componentSpecObject | Add-Member -NotePropertyName 'sddcLcmId' -NotePropertyValue ''
+    $componentSpecObject | Add-Member -NotePropertyName 'sddcLcmId' -NotePropertyValue $sddclcmId
     $componentSpecObject | Add-Member -NotePropertyName 'componentType' -NotePropertyValue 'OPS_NETWORKS'
     $componentSpecObject | Add-Member -NotePropertyName 'deploymentType' -NotePropertyValue 'OvaComponentSpec'
     $componentSpecObject | Add-Member -NotePropertyName 'nodeSpecs' -NotePropertyValue @($nodeSpecsArray)
@@ -10359,8 +10480,51 @@ Function New-DayNRealTimeMetrics
     }'
     #>
 
+    If ($userPromptBypass)
+    {
+        $interactiveEnabled = "Y"
+    }
+    else
+    {
+        LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve SDDC LCM ID? (Y/N): " -skipnewline            
+        Do
+        {  
+            $interactiveEnabled = Read-Host    
+        } Until ($interactiveEnabled -in "Y","N")
+        $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""
+    }
+
+    If ($interactiveEnabled)
+    { 
+        If (!$userPromptBypass)
+        {
+            Do
+            {
+                LogMessage -type INFO -message "Services Runtime FQDN: " -skipnewline
+                $vspFqdn = Read-Host
+                LogMessage -type INFO -message "Serivces Runtime Username (eg admin@vsp.local): " -skipnewline
+                $vspUserName = Read-Host
+                LogMessage -type INFO -message "Serivces Runtime Password: " -skipnewline
+                $adminPassword = Read-Host -AsSecureString
+                $vspPassword = New-DecodedPassword -securePassword $adminPassword
+                $token = New-VSPBearerToken -vspFqdn $vspFqdn -vspUserName $vspUserName -vspPassword $vspPassword
+            } Until ($token)
+        }
+        else
+        {
+            $vspFqdn =  $sharedInstanceObject.vsp.platformFqdn
+            $vspUserName = 'admin@vsp.local'
+            $vspPassword = $sharedInstanceObject.vsp.systemUserPassword
+            $sddclcmId = Get-SddcLcmId -vspUserName $vspUserName -vspPassword $vspPassword -vspFqdn $vspFqdn
+        }
+    }
+    else
+    {
+        $sddclcmId = "<-- ENTER SDDC LCM ID HERE -->"
+    }
+
     $componentSpecObject = New-Object -type psobject
-    #$componentSpecObject | Add-Member -NotePropertyName 'sddcLcmId' -NotePropertyValue ''
+    $componentSpecObject | Add-Member -NotePropertyName 'sddcLcmId' -NotePropertyValue $sddclcmId
     $componentSpecObject | Add-Member -NotePropertyName 'deploymentType' -NotePropertyValue 'VspComponentSpec'
     $componentSpecObject | Add-Member -NotePropertyName 'componentType' -NotePropertyValue 'OPS_DATA_PLATFORM'
     $componentSpecObject | Add-Member -NotePropertyName 'version' -NotePropertyValue $sharedInstanceObject.version
@@ -10411,12 +10575,56 @@ Function New-DayNAutomationModernJsonFile
     }
     '
     #>
+
+    If ($userPromptBypass)
+    {
+        $interactiveEnabled = "Y"
+    }
+    else
+    {
+        LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve SDDC LCM ID? (Y/N): " -skipnewline            
+        Do
+        {  
+            $interactiveEnabled = Read-Host    
+        } Until ($interactiveEnabled -in "Y","N")
+        $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""
+    }
+
+    If ($interactiveEnabled)
+    { 
+        If (!$userPromptBypass)
+        {
+            Do
+            {
+                LogMessage -type INFO -message "Services Runtime FQDN: " -skipnewline
+                $vspFqdn = Read-Host
+                LogMessage -type INFO -message "Serivces Runtime Username (eg admin@vsp.local): " -skipnewline
+                $vspUserName = Read-Host
+                LogMessage -type INFO -message "Serivces Runtime Password: " -skipnewline
+                $adminPassword = Read-Host -AsSecureString
+                $vspPassword = New-DecodedPassword -securePassword $adminPassword
+                $token = New-VSPBearerToken -vspFqdn $vspFqdn -vspUserName $vspUserName -vspPassword $vspPassword
+            } Until ($token)
+        }
+        else
+        {
+            $vspFqdn =  $sharedInstanceObject.vsp.platformFqdn
+            $vspUserName = 'admin@vsp.local'
+            $vspPassword = $sharedInstanceObject.vsp.systemUserPassword
+            $sddclcmId = Get-SddcLcmId -vspUserName $vspUserName -vspPassword $vspPassword -vspFqdn $vspFqdn
+        }
+    }
+    else
+    {
+        $sddclcmId = "<-- ENTER SDDC LCM ID HERE -->"
+    }
+
     $ipv4PoolObject = New-Object -type psobject
     $ipv4PoolObject | Add-Member -NotePropertyName 'cidr' -NotePropertyValue "$($sharedInstanceObject.automation.nodeAIpAddress)/29" #review
 
     $vspClusterSpecObject = New-Object -type psobject
     $vspClusterSpecObject | Add-Member -NotePropertyName 'deploymentType' -NotePropertyValue 'VspClusterSpec'
-    #$vspClusterSpecObject | Add-Member -NotePropertyName 'sddcLcmId' -NotePropertyValue ''
+    $vspClusterSpecObject | Add-Member -NotePropertyName 'sddcLcmId' -NotePropertyValue $sddclcmId
     $vspClusterSpecObject | Add-Member -NotePropertyName 'platformFqdn' -NotePropertyValue $sharedInstanceObject.automation.platformFqdn
     $vspClusterSpecObject | Add-Member -NotePropertyName 'systemUserPassword' -NotePropertyValue $sharedInstanceObject.automation.adminUserPassword
     $vspClusterSpecObject | Add-Member -NotePropertyName 'size' -NotePropertyValue $sharedInstanceObject.automation.size
