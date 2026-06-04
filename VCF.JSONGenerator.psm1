@@ -5192,7 +5192,7 @@ Function New-ManagementDomainJsonFile
             }
             $dvsObject += [pscustomobject]@{
                 'dvsName'  = $instanceObject.vsphereClusters[0].vds[0].vdsName
-                'networks' = $networks | Where-Object {$_ -in "MANAGEMENT","VM_MANAGEMENT","VMOTION","VSAN"}
+                'networks' = $networks | Where-Object {$_ -in "MANAGEMENT","VM_MANAGEMENT","VMOTION","VSAN","FLEET_MANAGEMENT"}
                 'mtu' = $instanceObject.vsphereClusters[0].vds[0].mtu -as [int]
                 'vmnicsToUplinks' = $vmnicObject
             }
@@ -5331,7 +5331,7 @@ Function New-ManagementDomainJsonFile
 
             $dvsObject += [pscustomobject]@{
                 'dvsName'  = $instanceObject.vsphereClusters[0].vds[0].vdsName
-                'networks' = $networks | Where-Object {$_ -in "MANAGEMENT","VM_MANAGEMENT","VMOTION"}
+                'networks' = $networks | Where-Object {$_ -in "MANAGEMENT","VM_MANAGEMENT","VMOTION","FLEET_MANAGEMENT"}
                 'mtu'      = $instanceObject.vsphereClusters[0].vds[0].mtu -as [int]
                 'vmnicsToUplinks' = $vmnicObject
             }
