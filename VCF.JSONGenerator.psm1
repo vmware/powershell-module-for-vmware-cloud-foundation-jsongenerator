@@ -10088,7 +10088,7 @@ Function New-DayNLogsModernJsonFile
         $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""
     }
 
-    If ($interactiveEnabled)
+    If ($interactiveEnabled -eq "Y")
     { 
         If (!$userPromptBypass)
         {
@@ -10428,7 +10428,7 @@ Function New-DayNNetworksModernJsonFile
         $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""
     }
 
-    If ($interactiveEnabled)
+    If ($interactiveEnabled -eq "Y")
     { 
         If (!$userPromptBypass)
         {
@@ -10540,7 +10540,7 @@ Function New-DayNRealTimeMetrics
         $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""
     }
 
-    If ($interactiveEnabled)
+    If ($interactiveEnabled -eq "Y")
     { 
         If (!$userPromptBypass)
         {
@@ -10636,7 +10636,7 @@ Function New-DayNAutomationModernJsonFile
         $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""
     }
 
-    If ($interactiveEnabled)
+    If ($interactiveEnabled -eq "Y")
     { 
         If (!$userPromptBypass)
         {
