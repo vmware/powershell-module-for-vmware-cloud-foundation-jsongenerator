@@ -10821,9 +10821,22 @@ Function New-DayNCompleteFleet
     #vcfOperationsSpec
     $opsNodesArray = @()
     $opsNodesArray += [pscustomobject]@{
-        'hostname'         = $sharedInstanceObject.operations.vipFqdn
+        'hostname'         = $sharedInstanceObject.operations.nodeAFQDN
         'type'             = 'master'
         'rootUserPassword' = $sharedInstanceObject.operations.rootUserPassword
+    }
+    If ($sharedInstanceObject.fleetManagementDeploymentModel -eq "highlyAvailable")
+    {
+        $opsNodesArray += [pscustomobject]@{
+            'hostname'         = $sharedInstanceObject.operations.nodeBFQDN
+            'type'             = 'replica'
+            'rootUserPassword' = $sharedInstanceObject.operations.rootUserPassword
+        }
+        $opsNodesArray += [pscustomobject]@{
+            'hostname'         = $sharedInstanceObject.operations.nodeCFQDN
+            'type'             = 'data'
+            'rootUserPassword' = $sharedInstanceObject.operations.rootUserPassword
+        }
     }
 
     $vcfOperationsSpecObject = New-Object -type psobject
@@ -10831,7 +10844,10 @@ Function New-DayNCompleteFleet
     $vcfOperationsSpecObject | Add-Member -NotePropertyName 'adminUserPassword' -NotePropertyValue $sharedInstanceObject.operations.adminUserPassword #Review
     $vcfOperationsSpecObject | Add-Member -NotePropertyName 'applianceSize' -NotePropertyValue $sharedInstanceObject.operations.applianceSize
     $vcfOperationsSpecObject | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue $false
-    $vcfOperationsSpecObject | Add-Member -NotePropertyName 'loadBalancerFqdn' -NotePropertyValue $sharedInstanceObject.operations.vipFqdn
+    If (($sharedInstanceObject.fleetManagementDeploymentModel -eq "highlyAvailable") -and ($sharedInstanceObject.operations.vipFqdn))
+    {
+        $vcfOperationsSpecObject | Add-Member -NotePropertyName 'loadBalancerFqdn' -NotePropertyValue $sharedInstanceObject.operations.vipFqdn
+    }
 
     #vcfOperationsCollectorSpec
     $vcfOperationsCollectorSpecObject = New-Object -type psobject
