@@ -2323,18 +2323,36 @@ Function New-SharedInstanceObject
             If ($pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value -eq "Unselected")
             {
                 $vcfAutomationObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_auto_sr_fqdn"].Value        
-                $vcfAutomationObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodea_ip"].Value
-                $vcfAutomationObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodeb_ip"].Value
-                $vcfAutomationObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodec_ip"].Value
-                $vcfAutomationObject | Add-Member -notepropertyname 'nodeDIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_noded_ip"].Value
-                $vcfAutomationObject | Add-Member -notepropertyname 'nodeEIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodee_ip"].Value
-                $vcfAutomationObject | Add-Member -notepropertyname 'nodeFIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodef_ip"].Value
-                $vcfAutomationObject | Add-Member -notepropertyname 'extraNodeIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_noded_ip"].Value
                 $vcfAutomationObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_virtual_fqdn"].Value
                 $vcfAutomationObject | Add-Member -notepropertyname 'internalClusterCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_k8s_cluster_cidr_chosen"].Value
                 $vcfAutomationObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_admin_password"].Value
                 $vcfAutomationObject | Add-Member -notepropertyname 'vcfaNodePrefix' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_prefix"].Value
-                $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue "small"
+                $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue "small"    
+                If ($vcfVersion -like "9.0*")
+                {
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodea_ip"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodeb_ip"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodec_ip"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeDIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_noded_ip"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeEIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodee_ip"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeFIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodef_ip"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'extraNodeIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_noded_ip"].Value
+                }
+                else
+                {
+                    $firstIpAddress = $pnpWorkbook.Workbook.Names["flt_auto_node_pool_start_ip"].Value
+                    $lastIpAddress = $pnpWorkbook.Workbook.Names["flt_auto_node_pool_end_ip"].Value
+                    $firstIpInt = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($firstIpAddress).GetAddressBytes()[3..0], 0)
+                    $lastIpInt  = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($lastIpAddress).GetAddressBytes()[3..0], 0)
+                    $ipAddressPool = $firstIpInt..$lastIpInt | ForEach-Object {
+                        [System.Net.IPAddress]::new([System.BitConverter]::GetBytes([UInt32]$_)[3..0]).ToString()
+                    }
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $ipAddressPool[0]
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $ipAddressPool[1]
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $ipAddressPool[2]
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeDIpAddress' -notepropertyvalue $ipAddressPool[3]
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeEIpAddress' -notepropertyvalue $ipAddressPool[4]
+                }
             }
             else
             {
@@ -2364,12 +2382,23 @@ Function New-SharedInstanceObject
                 else
                 {
                     $vcfAutomationObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_auto_sr_fqdn"].Value                   
-                    $vcfAutomationObject | Add-Member -notepropertyname 'startIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_auto_node_pool_start_ip"].Value
-                    $vcfAutomationObject | Add-Member -notepropertyname 'endIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_auto_node_pool_end_ip"].Value
                     $vcfAutomationObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vra_virtual_fqdn"].Value
                     $vcfAutomationObject | Add-Member -notepropertyname 'fltMgmtPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_az1_vcf_mgmt_pg"].Value
                     $vcfAutomationObject | Add-Member -notepropertyname 'fltMgmtGwCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_az1_vcf_mgmt_gateway_cidr"].Value
                     $vcfAutomationObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_auto_admin_password"].Value
+                    
+                    $firstIpAddress = $pnpWorkbook.Workbook.Names["flt_def_auto_node_pool_start_ip"].Value
+                    $lastIpAddress = $pnpWorkbook.Workbook.Names["flt_def_auto_node_pool_end_ip"].Value
+                    $firstIpInt = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($firstIpAddress).GetAddressBytes()[3..0], 0)
+                    $lastIpInt  = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($lastIpAddress).GetAddressBytes()[3..0], 0)
+                    $ipAddressPool = $firstIpInt..$lastIpInt | ForEach-Object {
+                        [System.Net.IPAddress]::new([System.BitConverter]::GetBytes([UInt32]$_)[3..0]).ToString()
+                    }
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $ipAddressPool[0]
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $ipAddressPool[1]
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $ipAddressPool[2]
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeDIpAddress' -notepropertyvalue $ipAddressPool[3]
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeEIpAddress' -notepropertyvalue $ipAddressPool[4]
                 }
             }
         }
@@ -10905,7 +10934,7 @@ Function New-DayNCompleteFleet
     #$vcfAutomationSpecObject | Add-Member -NotePropertyName 'nodePrefix' -NotePropertyValue $sharedInstanceObject.automation.vcfaNodePrefix
     $vcfAutomationSpecObject | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue $false
     $vcfAutomationSpecObject | Add-Member -NotePropertyName 'ipPool' -NotePropertyValue $ipPoolArray
-    $vcfAutomationSpecObject | Add-Member -NotePropertyName 'internalClusterCidr' -NotePropertyValue $sharedInstanceObject.automation.internalClusterCidr
+    #$vcfAutomationSpecObject | Add-Member -NotePropertyName 'internalClusterCidr' -NotePropertyValue $sharedInstanceObject.automation.internalClusterCidr
 
     #licenseServerSpec
     $licenseServerSpecObject = New-Object -type psobject
