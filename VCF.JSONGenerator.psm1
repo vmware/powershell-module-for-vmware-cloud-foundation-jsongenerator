@@ -4345,28 +4345,28 @@ Function New-ManagementDomainJsonFile
         }
 
         #Skip Automation
-        If (!($skipAutomation))
+        If ($instanceObject.instance -eq "instanceA")
         {
-            If ($instanceObject.instance -eq "instanceA")
+            If ($userPromptBypass)
             {
-                If ($userPromptBypass)
-                {
-                    $skipAutomation = $instanceObject.deploymentProfile.skipAutomation
-                }
-                else
+                If (!($skipAutomation))
                 {
                     Do
                     {
                         LogMessage -Type QUESTION -Message "Do you wish to skip the deployment of VCF Automation? (Y/N): " -skipnewline
                         $skipAutomation = Read-Host
                     } Until ($skipAutomation -in "Y","N")
-                    $skipAutomation = $skipAutomation -replace "`t|`n|`r", ""  
+                    $skipAutomation = $skipAutomation -replace "`t|`n|`r", "" 
                 }
             }
             else
             {
-                $skipAutomation = "Y"
+                $skipAutomation = $instanceObject.deploymentProfile.skipAutomation
             }
+        }
+        else
+        {
+            $skipAutomation = "Y"
         }
 
         #Determine if component interaction is required
