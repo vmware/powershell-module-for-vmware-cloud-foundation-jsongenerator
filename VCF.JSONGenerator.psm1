@@ -2308,7 +2308,7 @@ Function New-SharedInstanceObject
         
         #Automation Object
         $vcfAutomationObject = New-Object -TypeName psobject
-        If (($pnpWorkbook.Workbook.Names["mgmt_domain_vcf_automation_later_chosen"].Value -eq "Selected") -and ($pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value -eq "Unselected"))
+        If ($pnpWorkbook.Workbook.Names["mgmt_domain_vcf_automation_later_chosen"].Value -eq "Selected")
         {
             #9.1 Automation on its own via Fleet Manager
             $vcfAutomationObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_auto_sr_fqdn"].Value
