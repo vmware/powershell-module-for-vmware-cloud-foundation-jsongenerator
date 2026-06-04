@@ -2305,6 +2305,7 @@ Function New-SharedInstanceObject
         $vcfAutomationObject = New-Object -TypeName psobject
         If (($pnpWorkbook.Workbook.Names["mgmt_domain_vcf_automation_later_chosen"].Value -eq "Selected") -and ($pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value -eq "Unselected"))
         {
+            #9.1 Automation on its own via Fleet Manager
             $vcfAutomationObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_auto_sr_fqdn"].Value
             $vcfAutomationObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_nodea_ip"].Value
             $vcfAutomationObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_nodeb_ip"].Value
@@ -2322,14 +2323,15 @@ Function New-SharedInstanceObject
         {
             If ($pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value -eq "Unselected")
             {
+                # Common Day 0 Bringup
                 $vcfAutomationObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_auto_sr_fqdn"].Value        
                 $vcfAutomationObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_virtual_fqdn"].Value
                 $vcfAutomationObject | Add-Member -notepropertyname 'internalClusterCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_k8s_cluster_cidr_chosen"].Value
                 $vcfAutomationObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_admin_password"].Value
-                $vcfAutomationObject | Add-Member -notepropertyname 'vcfaNodePrefix' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_prefix"].Value
-                $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue "small"    
+                $vcfAutomationObject | Add-Member -notepropertyname 'vcfaNodePrefix' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_prefix"].Value                
                 If ($vcfVersion -like "9.0*")
                 {
+                    # 9.0 Day 0 Bringup
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodea_ip"].Value
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodeb_ip"].Value
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodec_ip"].Value
@@ -2337,9 +2339,11 @@ Function New-SharedInstanceObject
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeEIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodee_ip"].Value
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeFIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodef_ip"].Value
                     $vcfAutomationObject | Add-Member -notepropertyname 'extraNodeIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_noded_ip"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue "small"    
                 }
                 else
                 {
+                    # 9.1 Day 0 Bringup
                     $firstIpAddress = $pnpWorkbook.Workbook.Names["flt_auto_node_pool_start_ip"].Value
                     $lastIpAddress = $pnpWorkbook.Workbook.Names["flt_auto_node_pool_end_ip"].Value
                     $firstIpInt = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($firstIpAddress).GetAddressBytes()[3..0], 0)
@@ -2351,13 +2355,14 @@ Function New-SharedInstanceObject
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $ipAddressPool[1]
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $ipAddressPool[2]
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeDIpAddress' -notepropertyvalue $ipAddressPool[3]
-                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeEIpAddress' -notepropertyvalue $ipAddressPool[4]
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeEIpAddress' -notepropertyvalue $ipAddressPool[4]                
                 }
             }
             else
             {
                 If (($vcfVersion -like "9.0*") -or ($userPromptBypass))
                 {
+                    #9.0 Day N Ops & Automation via SDDC Manager
                     $vcfAutomationObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_auto_sr_fqdn"].Value
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_nodea_ip"].Value
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_nodeb_ip"].Value
@@ -2377,10 +2382,11 @@ Function New-SharedInstanceObject
                     $vcfAutomationObject | Add-Member -notepropertyname 'collectorMgmtSubnetMask' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_mask"].Value
                     $vcfAutomationObject | Add-Member -notepropertyname 'collectorMgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_gateway_ip"].Value
                     $vcfAutomationObject | Add-Member -notepropertyname 'fleetManagementDeploymentModel' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ha_mode_chosen"].Value
-                    $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_size_chosen"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_size_chosen"].Value #review
                 }
                 else
                 {
+                    #9.1 Day N Complete the Fleet
                     $vcfAutomationObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_auto_sr_fqdn"].Value                   
                     $vcfAutomationObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vra_virtual_fqdn"].Value
                     $vcfAutomationObject | Add-Member -notepropertyname 'fltMgmtPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_az1_vcf_mgmt_pg"].Value
@@ -2399,6 +2405,14 @@ Function New-SharedInstanceObject
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $ipAddressPool[2]
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeDIpAddress' -notepropertyvalue $ipAddressPool[3]
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeEIpAddress' -notepropertyvalue $ipAddressPool[4]
+                    If ($userPromptBypass)
+                    {
+                        $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue "small"
+                    }
+                    else
+                    {
+                        $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_auto_size_result"].Value
+                    }  
                 }
             }
         }
