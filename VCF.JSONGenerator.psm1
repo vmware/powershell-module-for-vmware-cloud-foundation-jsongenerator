@@ -4415,16 +4415,31 @@ Function New-ManagementDomainJsonFile
 
         If (($joinFleet -eq "Y") -and ($instanceObject.instance -eq "InstanceB"))
         {
-            #Get FingerPrints            
-            $ops01fingerprint = (echo "Q" | openssl.exe s_client -connect "$($sharedInstanceObject.operations.nodeAFqdn):443" -showcerts 2>$null |  Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
-            If ($instanceObject.version -like "9.0*")
+            #Get FingerPrints
+            If ($interactiveEnabled -eq "Y")
             {
-                $fm01fingerprint = (echo "Q" | openssl.exe s_client -connect "$($sharedInstanceObject.fleetManager.fqdn):443" -showcerts 2>$null |  Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
+                $ops01fingerprint = (echo "Q" | openssl.exe s_client -connect "$($sharedInstanceObject.operations.nodeAFqdn):443" -showcerts 2>$null |  Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
+                If ($instanceObject.version -like "9.0*")
+                {
+                    $fm01fingerprint = (echo "Q" | openssl.exe s_client -connect "$($sharedInstanceObject.fleetManager.fqdn):443" -showcerts 2>$null |  Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
+                }
+                If ($skipAutomation -eq "N")
+                {
+                    $auto01fingerprint = (echo "Q" | openssl.exe s_client -connect "$($sharedInstanceObject.automation.vipFqdn):443" -showcerts 2>$null |  Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
+                }
             }
-            If ($skipAutomation -eq "N")
+            else
             {
-                $auto01fingerprint = (echo "Q" | openssl.exe s_client -connect "$($sharedInstanceObject.automation.vipFqdn):443" -showcerts 2>$null |  Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
-            }
+                $ops01fingerprint = "<-- ENTER OPS FINGERPRINT HERE -->"
+                If ($instanceObject.version -like "9.0*")
+                {
+                    $fm01fingerprint = "<-- ENTER FLEET MANAGER FINGERPRINT HERE -->"
+                }
+                If ($skipAutomation -eq "N")
+                {
+                    $auto01fingerprint = "<-- ENTER AUTOMATION FINGERPRINT HERE -->"
+                }
+            }            
 
             #Report on Missing Fingerprints
             If ($instanceObject.version -like "9.0*")
