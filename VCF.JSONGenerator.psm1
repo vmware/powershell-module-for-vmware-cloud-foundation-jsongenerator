@@ -4859,27 +4859,34 @@ Function New-ManagementDomainJsonFile
         }
         Foreach ($hostInstance in $hostsToProcess)
         {
-            
             If (!$noHostFingerprints)
             {
-                If ([System.Environment]::OSVersion.Platform -eq 'Win32NT')
+                If ($interactiveEnabled -eq "Y")
                 {
-                    $fingerprint = (echo "Q" | openssl.exe s_client -connect "$($hostInstance.fqdn):443" -showcerts 2>$null |  Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
+                    If ([System.Environment]::OSVersion.Platform -eq 'Win32NT')
+                    {
+                        $fingerprint = (echo "Q" | openssl.exe s_client -connect "$($hostInstance.fqdn):443" -showcerts 2>$null |  Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
+                    }
+                    else
+                    {
+                        $fingerprint = (echo "Q" | openssl s_client -connect "$($hostInstance.fqdn):443" -showcerts 2>$null |  Filter-X509 | openssl x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
+                    }
+                    If ($fingerprint)
+                    {
+                        LogMessage -Type INFO -Message "Obtaining fingerprint for host $($hostInstance.fqdn): Found"
+                        $fingerprintText = $fingerprint
+                    }
+                    else
+                    {
+                        LogMessage -Type WARNING -Message "Obtaining fingerprint for host $($hostInstance.fqdn): Not found. Adding placeholder to JSON File"
+                        $fingerprintText = "<--ENTER-ESX-THUMBPRINT-HERE-->"
+                    }
                 }
                 else
                 {
-                    $fingerprint = (echo "Q" | openssl s_client -connect "$($hostInstance.fqdn):443" -showcerts 2>$null |  Filter-X509 | openssl x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
-                }
-                If ($fingerprint)
-                {
-                    LogMessage -Type INFO -Message "Obtaining fingerprint for host $($hostInstance.fqdn): Found"
-                    $fingerprintText = $fingerprint
-                }
-                else
-                {
-                    LogMessage -Type WARNING -Message "Obtaining fingerprint for host $($hostInstance.fqdn): Not found. Adding placeholder to JSON File"
+                    LogMessage -Type INFO -Message "Adding fingerprint placeholder for host $($hostInstance.fqdn) to JSON File"
                     $fingerprintText = "<--ENTER-ESX-THUMBPRINT-HERE-->"
-                }     
+                }                     
             }
             else
             {
