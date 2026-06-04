@@ -391,6 +391,11 @@ Function Start-VCFJsonGeneration
                 $menuItem40 = "VCF Complete Fleet Deployment (Disabled: No workbook loaded)"
                 $completeFleetDayNColour = $disabledColour
             }
+            elseIf ($workbookProfile.automationDayNDeployment -eq "Selected")
+            {
+                $menuItem40 = "VCF Complete Fleet Deployment (Disabled: Not applicable based on loaded workbook)"
+                $completeFleetDayNColour = $disabledColour
+            }
             elseIf ($workbookProfile.opsAutomationDayNDeployment -eq "Selected")
             {
                 If ($sharedInstanceObject.version -like "9.0*")
@@ -838,7 +843,7 @@ Function Start-VCFJsonGeneration
                 40
                 {
                     Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem40" -Foregroundcolor Cyan; Write-Host -Object ''
-                    If (($sharedInstanceObject) -and ($workbookProfile.opsAutomationDayNDeployment -eq "Selected"))
+                    If (($sharedInstanceObject) -and ($workbookProfile.automationDayNDeployment -ne "Selected") -and ($workbookProfile.opsAutomationDayNDeployment -eq "Selected"))
                     {
                         If ($sharedInstanceObject.version -like "9.0*")
                         {
