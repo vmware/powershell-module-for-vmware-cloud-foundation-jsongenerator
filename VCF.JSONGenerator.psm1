@@ -1777,10 +1777,11 @@ Function Get-PnPInputFileInputs
             #   complete the fleet is not relevant
             #   Use DayNAutomation via Fleet Manager
             
-            #Yes to 1, and Yes to 2
-            #   means nothing - have to use deferred deploymed Ops and Automation together. 
+            #Yes to 1, and Yes to 2, or No to 1 and Yes to 2
+            #   means nothing - have to use deferred deployment Ops and Automation together. 
             #   no option in 9.1.0 to deploy Ops on its own. thats coming in 9.1.1
             #   can choose to put proxy on different network
+            #   block 1
             $Global:workbookProfile | Add-Member -NotePropertyName 'opsProxyOnDifferentNetwork' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_def_vcf_custom_network_chosen"].Value
             #Impacts only Complete the Fleet
         
@@ -2298,7 +2299,7 @@ Function New-SharedInstanceObject
         
         #Automation Object
         $vcfAutomationObject = New-Object -TypeName psobject
-        If ($pnpWorkbook.Workbook.Names["mgmt_domain_vcf_automation_later_chosen"].Value -eq "Selected")
+        If (($pnpWorkbook.Workbook.Names["mgmt_domain_vcf_automation_later_chosen"].Value -eq "Selected") -and ($pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value -eq "Unselected"))
         {
             $vcfAutomationObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_auto_sr_fqdn"].Value
             $vcfAutomationObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_nodea_ip"].Value
@@ -2335,7 +2336,7 @@ Function New-SharedInstanceObject
             {
                 If (($vcfVersion -like "9.0*") -or ($userPromptBypass))
                 {
-                    $vcfAutomationObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_auto_sr_fqdn"].Value     
+                    $vcfAutomationObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_auto_sr_fqdn"].Value
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_nodea_ip"].Value
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_nodeb_ip"].Value
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_nodec_ip"].Value
