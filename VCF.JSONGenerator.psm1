@@ -4864,7 +4864,7 @@ Function New-ManagementDomainJsonFile
             }
             else
             {
-                 ogMessage -Type INFO -Message "Adding fingerprint placeholder for host $($hostInstance.fqdn) to JSON File"
+                LogMessage -Type INFO -Message "Adding fingerprint placeholder for host $($hostInstance.fqdn) to JSON File"
                 $fingerprintText = "<--ENTER-ESX-THUMBPRINT-HERE-->"
             }
                             
