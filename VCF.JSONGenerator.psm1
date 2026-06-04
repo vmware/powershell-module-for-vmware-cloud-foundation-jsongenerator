@@ -4849,8 +4849,8 @@ Function New-ManagementDomainJsonFile
         #hostSpecsObject
         $hostCredentialsObject = @()
         $hostCredentialsObject += [pscustomobject]@{
-            'username' = $sharedInstanceObject.hostcredentials.esxiUsername
-            'password' = $sharedInstanceObject.hostcredentials.esxiPassword
+            'username' = $instanceObject.hostcredentials.esxiUsername
+            'password' = $instanceObject.hostcredentials.esxiPassword
         }
         
         $hostSpecs = @()
