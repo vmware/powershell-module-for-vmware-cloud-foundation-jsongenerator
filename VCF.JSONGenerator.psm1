@@ -2312,16 +2312,22 @@ Function New-SharedInstanceObject
         {
             #9.1 Automation on its own via Fleet Manager
             $vcfAutomationObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_sr_fqdn"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_nodea_ip"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_nodeb_ip"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_nodec_ip"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'nodeDIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_noded_ip"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'nodeEIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_nodee_ip"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'nodeFIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_nodef_ip"].Value
+
+            If ($pnpWorkbook.Workbook.Names["vcf_automation_node_pool_chosen"].Value -eq "Selected")
+            {
+                $vcfAutomationObject | Add-Member -notepropertyname 'addressingMode' -notepropertyvalue "pool"
+                $vcfAutomationObject | Add-Member -notepropertyname 'startIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_node_pool_start_ip"].Value
+                $vcfAutomationObject | Add-Member -notepropertyname 'endIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_node_pool_end_ip"].Value
+            }
+            else
+            {
+                $vcfAutomationObject | Add-Member -notepropertyname 'addressingMode' -notepropertyvalue "cidr"
+                $vcfAutomationObject | Add-Member -notepropertyname 'cidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_runtime_cidr"].Value
+            }
             $vcfAutomationObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_vip_fqdn"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'internalClusterCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_k8s_cluster_cidr_chosen"].Value
+            #$vcfAutomationObject | Add-Member -notepropertyname 'internalClusterCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_k8s_cluster_cidr_chosen"].Value
             $vcfAutomationObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_admin_password"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'vcfaNodePrefix' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_prefix"].Value
+            #$vcfAutomationObject | Add-Member -notepropertyname 'vcfaNodePrefix' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_prefix"].Value
             $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_size_chosen"].Value
         }
         else
@@ -9699,18 +9705,17 @@ Function Get-FleetManagerLockerCertificate
 Function New-VSPBearerToken
 {
     Param (       
-        [Parameter (Mandatory = $true)] [string]$vspFqdn,
-        [Parameter (Mandatory = $true)] [string]$vspUserName,
-        [Parameter (Mandatory = $true)] [string]$vspPassword
+        [Parameter (Mandatory = $true)] [string]$fleetFqdn,
+        [Parameter (Mandatory = $true)] [string]$fleetUsername,
+        [Parameter (Mandatory = $true)] [string]$fleetPassword
     )
-
-    LogMessage -type INFO -message "[$vspFqdn] Getting Authentication token"
+    LogMessage -type INFO -message "[$fleetFqdn] Getting Authentication token"
     $tokenBody = @{
         grant_type = "password"
-        username   = $vspUserName
-        password   = $vspPassword
+        username   = $fleetUsername
+        password   = $fleetPassword
         }
-    $tokenResponse = Invoke-RestMethod -Method Post -Uri "https://$vspFqdn/api/v1/identity/token" -ContentType "application/x-www-form-urlencoded" -Body $tokenBody -SkipCertificateCheck
+    $tokenResponse = Invoke-RestMethod -Method Post -Uri "https://$fleetFqdn/api/v1/identity/token" -ContentType "application/x-www-form-urlencoded" -Body $tokenBody -SkipCertificateCheck
     $token = $tokenResponse.access_token
     Return $token
 }
@@ -9718,15 +9723,14 @@ Function New-VSPBearerToken
 Function Get-SddcLcmId
 {
     Param (       
-        [Parameter (Mandatory = $true)] [string]$vspFqdn,
-        [Parameter (Mandatory = $true)] [string]$vspUserName,
-        [Parameter (Mandatory = $true)] [string]$vspPassword
+        [Parameter (Mandatory = $true)] [string]$fleetFqdn,
+        [Parameter (Mandatory = $true)] [string]$fleetUsername,
+        [Parameter (Mandatory = $true)] [string]$fleetPassword
     )
 
-    LogMessage -type INFO -message "[$vspFqdn] Getting SDDC LCM ID"
-    $token = New-VSPBearerToken -vspFqdn $vspFqdn -vspUserName $vspUserName -vspPassword $vspPassword 
-
-    $response = Invoke-RestMethod -Uri "https://$vspFqdn/fleet-lcm/v1/sddc-lcms" -Headers @{ Authorization = "Bearer $token" } -SkipCertificateCheck
+    LogMessage -type INFO -message "[$fleetFqdn] Getting SDDC LCM ID"
+    $token = New-VSPBearerToken -fleetFqdn $fleetFqdn -fleetUserName $fleetUsername -fleetPassword $fleetPassword 
+    $response = Invoke-RestMethod -Uri "https://$fleetFqdn/fleet-lcm/v1/sddc-lcms" -Headers @{ Authorization = "Bearer $token" } -SkipCertificateCheck
     $sddclcmid = $response.sddcLcms[0].id
     Return $sddclcmid
 }
@@ -10171,23 +10175,23 @@ Function New-DayNLogsModernJsonFile
         {
             Do
             {
-                LogMessage -type INFO -message "Services Runtime FQDN: " -skipnewline
-                $vspFqdn = Read-Host
-                LogMessage -type INFO -message "Serivces Runtime Username (eg admin@vsp.local): " -skipnewline
-                $vspUserName = Read-Host
-                LogMessage -type INFO -message "Serivces Runtime Password: " -skipnewline
+                LogMessage -type INFO -message "Fleet FQDN: " -skipnewline
+                $fleetFqdn = Read-Host
+                LogMessage -type INFO -message "Fleet Username (eg admin@vsp.local): " -skipnewline
+                $fleetUserName = Read-Host
+                LogMessage -type INFO -message "Fleet Password: " -skipnewline
                 $adminPassword = Read-Host -AsSecureString
-                $vspPassword = New-DecodedPassword -securePassword $adminPassword
-                $token = New-VSPBearerToken -vspFqdn $vspFqdn -vspUserName $vspUserName -vspPassword $vspPassword
+                $fleetPassword = New-DecodedPassword -securePassword $adminPassword
+                $token = New-VSPBearerToken -fleetFqdn $fleetFqdn -fleetUserName $fleetUserName -fleetPassword $fleetPassword
             } Until ($token)
-            $sddclcmId = Get-SddcLcmId -vspUserName $vspUserName -vspPassword $vspPassword -vspFqdn $vspFqdn
+            $sddclcmId = Get-SddcLcmId -fleetUserName $fleetUserName -fleetPassword $fleetPassword -fleetFqdn $fleetFqdn
         }
         else
         {
-            $vspFqdn =  $sharedInstanceObject.vsp.platformFqdn
-            $vspUserName = 'admin@vsp.local'
-            $vspPassword = $sharedInstanceObject.vsp.systemUserPassword
-            $sddclcmId = Get-SddcLcmId -vspUserName $vspUserName -vspPassword $vspPassword -vspFqdn $vspFqdn
+            $fleetFqdn =  $sharedInstanceObject.vsp.platformFqdn
+            $fleetUserName = 'admin@vsp.local'
+            $fleetPassword = $sharedInstanceObject.vsp.systemUserPassword
+            $sddclcmId = Get-SddcLcmId -fleetUserName $fleetUserName -fleetPassword $fleetPassword -fleetFqdn $fleetFqdn
         }
     }
     else
@@ -10512,23 +10516,23 @@ Function New-DayNNetworksModernJsonFile
         {
             Do
             {
-                LogMessage -type INFO -message "Services Runtime FQDN: " -skipnewline
-                $vspFqdn = Read-Host
-                LogMessage -type INFO -message "Serivces Runtime Username (eg admin@vsp.local): " -skipnewline
-                $vspUserName = Read-Host
-                LogMessage -type INFO -message "Serivces Runtime Password: " -skipnewline
+                LogMessage -type INFO -message "Fleet FQDN: " -skipnewline
+                $fleetFqdn = Read-Host
+                LogMessage -type INFO -message "Fleet Username (eg admin@vsp.local): " -skipnewline
+                $fleetUserName = Read-Host
+                LogMessage -type INFO -message "Fleet Password: " -skipnewline
                 $adminPassword = Read-Host -AsSecureString
-                $vspPassword = New-DecodedPassword -securePassword $adminPassword
-                $token = New-VSPBearerToken -vspFqdn $vspFqdn -vspUserName $vspUserName -vspPassword $vspPassword
+                $fleetPassword = New-DecodedPassword -securePassword $adminPassword
+                $token = New-VSPBearerToken -fleetFqdn $fleetFqdn -fleetUserName $fleetUserName -fleetPassword $fleetPassword
             } Until ($token)
-            $sddclcmId = Get-SddcLcmId -vspUserName $vspUserName -vspPassword $vspPassword -vspFqdn $vspFqdn
+            $sddclcmId = Get-SddcLcmId -fleetUserName $fleetUserName -fleetPassword $fleetPassword -fleetFqdn $fleetFqdn
         }
         else
         {
-            $vspFqdn =  $sharedInstanceObject.vsp.platformFqdn
-            $vspUserName = 'admin@vsp.local'
-            $vspPassword = $sharedInstanceObject.vsp.systemUserPassword
-            $sddclcmId = Get-SddcLcmId -vspUserName $vspUserName -vspPassword $vspPassword -vspFqdn $vspFqdn
+            $fleetFqdn =  $sharedInstanceObject.vsp.platformFqdn
+            $fleetUserName = 'admin@vsp.local'
+            $fleetPassword = $sharedInstanceObject.vsp.systemUserPassword
+            $sddclcmId = Get-SddcLcmId -fleetUserName $fleetUserName -fleetPassword $fleetPassword -fleetFqdn $fleetFqdn
         }
     }
     else
@@ -10625,23 +10629,23 @@ Function New-DayNRealTimeMetrics
         {
             Do
             {
-                LogMessage -type INFO -message "Services Runtime FQDN: " -skipnewline
-                $vspFqdn = Read-Host
-                LogMessage -type INFO -message "Serivces Runtime Username (eg admin@vsp.local): " -skipnewline
-                $vspUserName = Read-Host
-                LogMessage -type INFO -message "Serivces Runtime Password: " -skipnewline
+                LogMessage -type INFO -message "Fleet FQDN: " -skipnewline
+                $fleetFqdn = Read-Host
+                LogMessage -type INFO -message "Fleet Username (eg admin@vsp.local): " -skipnewline
+                $fleetUserName = Read-Host
+                LogMessage -type INFO -message "Fleet Password: " -skipnewline
                 $adminPassword = Read-Host -AsSecureString
-                $vspPassword = New-DecodedPassword -securePassword $adminPassword
-                $token = New-VSPBearerToken -vspFqdn $vspFqdn -vspUserName $vspUserName -vspPassword $vspPassword
+                $fleetPassword = New-DecodedPassword -securePassword $adminPassword
+                $token = New-VSPBearerToken -fleetFqdn $fleetFqdn -fleetUserName $fleetUserName -fleetPassword $fleetPassword
             } Until ($token)
-            $sddclcmId = Get-SddcLcmId -vspUserName $vspUserName -vspPassword $vspPassword -vspFqdn $vspFqdn
+            $sddclcmId = Get-SddcLcmId -fleetUserName $fleetUserName -fleetPassword $fleetPassword -fleetFqdn $fleetFqdn
         }
         else
         {
-            $vspFqdn =  $sharedInstanceObject.vsp.platformFqdn
-            $vspUserName = 'admin@vsp.local'
-            $vspPassword = $sharedInstanceObject.vsp.systemUserPassword
-            $sddclcmId = Get-SddcLcmId -vspUserName $vspUserName -vspPassword $vspPassword -vspFqdn $vspFqdn
+            $fleetFqdn =  $sharedInstanceObject.vsp.platformFqdn
+            $fleetUserName = 'admin@vsp.local'
+            $fleetPassword = $sharedInstanceObject.vsp.systemUserPassword
+            $sddclcmId = Get-SddcLcmId -fleetUserName $fleetUserName -fleetPassword $fleetPassword -fleetFqdn $fleetFqdn
         }
     }
     else
@@ -10722,23 +10726,23 @@ Function New-DayNAutomationModernJsonFile
         {
             Do
             {
-                LogMessage -type INFO -message "Services Runtime FQDN: " -skipnewline
-                $vspFqdn = Read-Host
-                LogMessage -type INFO -message "Serivces Runtime Username (eg admin@vsp.local): " -skipnewline
-                $vspUserName = Read-Host
-                LogMessage -type INFO -message "Serivces Runtime Password: " -skipnewline
+                LogMessage -type INFO -message "Fleet FQDN: " -skipnewline
+                $fleetFqdn = Read-Host
+                LogMessage -type INFO -message "Fleet Username (eg admin@vsp.local): " -skipnewline
+                $fleetUserName = Read-Host
+                LogMessage -type INFO -message "Fleet Password: " -skipnewline
                 $adminPassword = Read-Host -AsSecureString
-                $vspPassword = New-DecodedPassword -securePassword $adminPassword
-                $token = New-VSPBearerToken -vspFqdn $vspFqdn -vspUserName $vspUserName -vspPassword $vspPassword
+                $fleetPassword = New-DecodedPassword -securePassword $adminPassword
+                $token = New-VSPBearerToken -fleetFqdn $fleetFqdn -fleetUserName $fleetUserName -fleetPassword $fleetPassword
             } Until ($token)
-            $sddclcmId = Get-SddcLcmId -vspUserName $vspUserName -vspPassword $vspPassword -vspFqdn $vspFqdn
+            $sddclcmId = Get-SddcLcmId -fleetUserName $fleetUserName -fleetPassword $fleetPassword -fleetFqdn $fleetFqdn
         }
         else
         {
-            $vspFqdn =  $sharedInstanceObject.vsp.platformFqdn
-            $vspUserName = 'admin@vsp.local'
-            $vspPassword = $sharedInstanceObject.vsp.systemUserPassword
-            $sddclcmId = Get-SddcLcmId -vspUserName $vspUserName -vspPassword $vspPassword -vspFqdn $vspFqdn
+            $fleetFqdn =  $sharedInstanceObject.vsp.platformFqdn
+            $fleetUserName = 'admin@vsp.local'
+            $fleetPassword = $sharedInstanceObject.vsp.systemUserPassword
+            $sddclcmId = Get-SddcLcmId -fleetUserName $fleetUserName -fleetPassword $fleetPassword -fleetFqdn $fleetFqdn
         }
     }
     else
@@ -10746,15 +10750,18 @@ Function New-DayNAutomationModernJsonFile
         $sddclcmId = "<-- ENTER SDDC LCM ID HERE -->"
     }
 
-    $ipPoolObject = @()
-    $ipPoolObject += $sharedInstanceObject.automation.nodeAIpAddress
-    $ipPoolObject += $sharedInstanceObject.automation.nodeBIpAddress
-    $ipPoolObject += $sharedInstanceObject.automation.nodeCIpAddress
-    $ipPoolObject += $sharedInstanceObject.automation.nodeDIpAddress
-    $ipPoolObject += $sharedInstanceObject.automation.nodeEIpAddress
-
     $ipv4PoolObject = New-Object -type psobject
-    $ipv4PoolObject | Add-Member -NotePropertyName 'addresses' -NotePropertyValue $ipPoolObject
+    If ($sharedInstanceObject.automation.addressingMode -eq "pool")
+    {
+        $ipRangeObject = New-Object -type psobject
+        $ipRangeObject | Add-Member -NotePropertyName 'startIpAddress' -NotePropertyValue $sharedInstanceObject.automation.startIpAddress
+        $ipRangeObject | Add-Member -NotePropertyName 'endIpAddress' -NotePropertyValue $sharedInstanceObject.automation.endIpAddress
+        $ipv4PoolObject | Add-Member -NotePropertyName 'ipRange' -NotePropertyValue $ipRangeObject
+    }
+    else
+    {
+        $ipv4PoolObject | Add-Member -NotePropertyName 'cidr' -NotePropertyValue $sharedInstanceObject.automation.cidr
+    }
 
     $vspClusterSpecObject = New-Object -type psobject
     $vspClusterSpecObject | Add-Member -NotePropertyName 'deploymentType' -NotePropertyValue 'VspClusterSpec'
