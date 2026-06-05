@@ -2517,6 +2517,7 @@ Function New-SharedInstanceObject
         $vcfLogsObject | Add-Member -notepropertyname 'adminEmail' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_logs_admin_email"].Value
         $vcfLogsObject | Add-Member -notepropertyname 'fipsMode' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_logs_fips_mode_chosen"].Value
         $vcfLogsObject | Add-Member -notepropertyname 'configureAffinity' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_logs_affinty_rule_chosen"].Value
+        $vcfLogsObject | Add-Member -notepropertyname 'noOfReplicas' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_logs_number_replicas_chosen"].Value
         
         $vcfNetworksObject = New-Object -TypeName psobject
         $vcfNetworksObject | Add-Member -notepropertyname 'deploymentType' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_ha_mode_chosen"].Value
@@ -10201,7 +10202,7 @@ Function New-DayNLogsModernJsonFile
 
     $configSpecObject = New-Object -type psobject
     $configSpecObject | Add-Member -NotePropertyName 'size' -NotePropertyValue $sharedInstanceObject.logs.nodeSize
-    $configSpecObject | Add-Member -NotePropertyName 'numberOfNodes' -NotePropertyValue '' #review
+    $configSpecObject | Add-Member -NotePropertyName 'numberOfNodes' -NotePropertyValue $sharedInstanceObject.logs.noOfReplicas
 
     $componentSpecObject = New-Object -type psobject
     $componentSpecObject | Add-Member -NotePropertyName 'sddcLcmId' -NotePropertyValue $sddclcmId
