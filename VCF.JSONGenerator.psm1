@@ -10771,9 +10771,21 @@ Function New-DayNAutomationModernJsonFile
     $vspClusterSpecObject | Add-Member -NotePropertyName 'size' -NotePropertyValue $sharedInstanceObject.automation.size
     $vspClusterSpecObject | Add-Member -NotePropertyName 'ipv4Pool' -NotePropertyValue $ipv4PoolObject
 
+    $vcdMigratorSizeObject | Add-Member -NotePropertyName 'componentNamespace' -NotePropertyValue 'vcd-migrator'
+    $vcdMigratorSizeObject | Add-Member -NotePropertyName 'size' -NotePropertyValue $sharedInstanceObject.automation.size
+
+    $vcdMigratorObject = New-Object -type psobject
+    $vcdMigratorObject | Add-Member -NotePropertyName 'deploymentType' -NotePropertyValue 'VspClusterSpec'
+    $vcdMigratorObject | Add-Member -NotePropertyName 'sddcLcmId' -NotePropertyValue $sddclcmId
+    $vcdMigratorObject | Add-Member -NotePropertyName 'componentType' -NotePropertyValue 'VCD_MIGRATOR'
+    $vcdMigratorObject | Add-Member -NotePropertyName 'repository' -NotePropertyValue ''
+    $vcdMigratorObject | Add-Member -NotePropertyName 'componentNamespace' -NotePropertyValue 'vcd-migrator'
+    $vcdMigratorObject | Add-Member -NotePropertyName 'configSpec' -NotePropertyValue $vcdMigratorSizeObject
+
     $configSpecObject = New-Object -type psobject
     $configSpecObject | Add-Member -NotePropertyName 'size' -NotePropertyValue $sharedInstanceObject.automation.size
     $configSpecObject | Add-Member -NotePropertyName 'adminSystemPassword' -NotePropertyValue $sharedInstanceObject.automation.adminUserPassword
+    $configSpecObject | Add-Member -NotePropertyName 'VCD_MIGRATOR' -NotePropertyValue $vcdMigratorObject
 
     $componentSpecObject = New-Object -type psobject
     $componentSpecObject | Add-Member -NotePropertyName 'componentType' -NotePropertyValue 'VCFA'
