@@ -2344,7 +2344,7 @@ Function New-SharedInstanceObject
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeEIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodee_ip"].Value
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeFIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodef_ip"].Value
                     $vcfAutomationObject | Add-Member -notepropertyname 'extraNodeIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_noded_ip"].Value
-                    $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue "small"    
+                    $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue "small" 
                 }
                 else
                 {
@@ -2360,7 +2360,8 @@ Function New-SharedInstanceObject
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $ipAddressPool[1]
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $ipAddressPool[2]
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeDIpAddress' -notepropertyvalue $ipAddressPool[3]
-                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeEIpAddress' -notepropertyvalue $ipAddressPool[4]                
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeEIpAddress' -notepropertyvalue $ipAddressPool[4]     
+                    $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue "medium" # review           
                 }
             }
             else
@@ -10538,7 +10539,7 @@ Function New-DayNNetworksModernJsonFile
 
     $deploymentSpecPlatformObject = New-Object -type psobject
     $deploymentSpecPlatformObject | Add-Member -NotePropertyName 'fqdn' -NotePropertyValue $sharedInstanceObject.networks.nodeAIpAddress
-    $deploymentSpecPlatformObject | Add-Member -NotePropertyName 'deploymentOption' -NotePropertyValue $sharedInstanceObject.networks.nodeASize
+    $deploymentSpecPlatformObject | Add-Member -NotePropertyName 'deploymentOption' -NotePropertyValue $sharedInstanceObject.networks.deploymentOption
     $deploymentSpecPlatformObject | Add-Member -NotePropertyName 'password' -NotePropertyValue $sharedInstanceObject.networks.systemUserPassword #review
     $deploymentSpecPlatformObject | Add-Member -NotePropertyName 'ipv4Settings' -NotePropertyValue $ipv4SettingsPlatformObject
 
@@ -10547,7 +10548,7 @@ Function New-DayNNetworksModernJsonFile
 
     $deploymentSpecCollectorObject = New-Object -type psobject
     $deploymentSpecCollectorObject | Add-Member -NotePropertyName 'fqdn' -NotePropertyValue $sharedInstanceObject.networks.proxyIpAddress
-    $deploymentSpecCollectorObject | Add-Member -NotePropertyName 'deploymentOption' -NotePropertyValue $sharedInstanceObject.networks.proxySize
+    $deploymentSpecCollectorObject | Add-Member -NotePropertyName 'deploymentOption' -NotePropertyValue 'small' #review
     $deploymentSpecCollectorObject | Add-Member -NotePropertyName 'password' -NotePropertyValue $sharedInstanceObject.networks.systemUserPassword #review
     $deploymentSpecCollectorObject | Add-Member -NotePropertyName 'ipv4Settings' -NotePropertyValue $ipv4SettingsCollectorObject
 
@@ -10759,7 +10760,7 @@ Function New-DayNAutomationModernJsonFile
     $componentSpecObject = New-Object -type psobject
     $componentSpecObject | Add-Member -NotePropertyName 'componentType' -NotePropertyValue 'VCFA'
     $componentSpecObject | Add-Member -NotePropertyName 'deploymentType' -NotePropertyValue 'VspComponentSpec'
-    #$componentSpecObject | Add-Member -NotePropertyName 'sddcLcmId' -NotePropertyValue ''
+    $componentSpecObject | Add-Member -NotePropertyName 'sddcLcmId' -NotePropertyValue $sddclcmId
     $componentSpecObject | Add-Member -NotePropertyName 'fqdn' -NotePropertyValue $sharedInstanceObject.automation.vipFqdn
     $componentSpecObject | Add-Member -NotePropertyName 'version' -NotePropertyValue $sharedInstanceObject.version
     $componentSpecObject | Add-Member -NotePropertyName 'configSpec' -NotePropertyValue $configSpecObject
