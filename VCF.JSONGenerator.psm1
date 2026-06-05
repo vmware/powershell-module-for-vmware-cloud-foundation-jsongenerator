@@ -4328,22 +4328,21 @@ Function New-ManagementDomainJsonFile
         
         #Region Parameter Resolution
         #Single NSX Manager
-        If ($instanceObject.deploymentProfile.singleNSXTManager -eq "Y") {$singleNSXTManager = "Y"}
-        If (!$singleNSXTManager)
+        If ($userPromptBypass)
         {
-            If ($userPromptBypass) 
-            {
-                $singleNSXTManager = $instanceObject.deploymentProfile.singleNSXTManager
-            }
-            else 
+            If (!$singleNSXTManager)
             {
                 Do
                 {
                     LogMessage -Type QUESTION -Message "Do you wish to use a single NSX-T Manager to conserve resources? (Y/N): " -skipnewline
                     $singleNSXTManager = Read-Host
                 } Until ($singleNSXTManager -in "Y","N")
-                $singleNSXTManager = $singleNSXTManager -replace "`t|`n|`r", ""   
+                $singleNSXTManager = $singleNSXTManager -replace "`t|`n|`r", ""  
             }
+        }
+        else
+        {
+            $singleNSXTManager = $instanceObject.deploymentProfile.singleNSXTManager
         }
 
         #Instance B Join Fleet or Not
