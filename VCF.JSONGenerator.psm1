@@ -10772,7 +10772,6 @@ Function New-DayNAutomationModernJsonFile
     $vspClusterSpecObject | Add-Member -NotePropertyName 'ipv4Pool' -NotePropertyValue $ipv4PoolObject
 
     $vcdMigratorSizeObject = New-Object -type psobject
-    $vcdMigratorSizeObject | Add-Member -NotePropertyName 'componentNamespace' -NotePropertyValue 'vcd-migrator'
     $vcdMigratorSizeObject | Add-Member -NotePropertyName 'size' -NotePropertyValue $sharedInstanceObject.automation.size
 
     $vcdMigratorObject = New-Object -type psobject
