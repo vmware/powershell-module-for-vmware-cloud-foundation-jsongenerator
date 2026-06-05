@@ -10769,6 +10769,7 @@ Function New-DayNAutomationModernJsonFile
     $vspClusterSpecObject | Add-Member -NotePropertyName 'platformFqdn' -NotePropertyValue $sharedInstanceObject.automation.platformFqdn
     $vspClusterSpecObject | Add-Member -NotePropertyName 'systemUserPassword' -NotePropertyValue $sharedInstanceObject.automation.adminUserPassword
     $vspClusterSpecObject | Add-Member -NotePropertyName 'size' -NotePropertyValue $sharedInstanceObject.automation.size
+    $vspClusterSpecObject | Add-Member -NotePropertyName 'version' -NotePropertyValue $sharedInstanceObject.version
     $vspClusterSpecObject | Add-Member -NotePropertyName 'ipv4Pool' -NotePropertyValue $ipv4PoolObject
 
     $vcdMigratorSizeObject = New-Object -type psobject
