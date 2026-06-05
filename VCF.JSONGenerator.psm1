@@ -10180,6 +10180,7 @@ Function New-DayNLogsModernJsonFile
                 $vspPassword = New-DecodedPassword -securePassword $adminPassword
                 $token = New-VSPBearerToken -vspFqdn $vspFqdn -vspUserName $vspUserName -vspPassword $vspPassword
             } Until ($token)
+            $sddclcmId = Get-SddcLcmId -vspUserName $vspUserName -vspPassword $vspPassword -vspFqdn $vspFqdn
         }
         else
         {
@@ -10520,6 +10521,7 @@ Function New-DayNNetworksModernJsonFile
                 $vspPassword = New-DecodedPassword -securePassword $adminPassword
                 $token = New-VSPBearerToken -vspFqdn $vspFqdn -vspUserName $vspUserName -vspPassword $vspPassword
             } Until ($token)
+            $sddclcmId = Get-SddcLcmId -vspUserName $vspUserName -vspPassword $vspPassword -vspFqdn $vspFqdn
         }
         else
         {
@@ -10632,6 +10634,7 @@ Function New-DayNRealTimeMetrics
                 $vspPassword = New-DecodedPassword -securePassword $adminPassword
                 $token = New-VSPBearerToken -vspFqdn $vspFqdn -vspUserName $vspUserName -vspPassword $vspPassword
             } Until ($token)
+            $sddclcmId = Get-SddcLcmId -vspUserName $vspUserName -vspPassword $vspPassword -vspFqdn $vspFqdn
         }
         else
         {
@@ -10728,6 +10731,7 @@ Function New-DayNAutomationModernJsonFile
                 $vspPassword = New-DecodedPassword -securePassword $adminPassword
                 $token = New-VSPBearerToken -vspFqdn $vspFqdn -vspUserName $vspUserName -vspPassword $vspPassword
             } Until ($token)
+            $sddclcmId = Get-SddcLcmId -vspUserName $vspUserName -vspPassword $vspPassword -vspFqdn $vspFqdn
         }
         else
         {
