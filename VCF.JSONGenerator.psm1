@@ -10777,10 +10777,10 @@ Function New-DayNAutomationModernJsonFile
     $vcdMigratorSizeObject | Add-Member -NotePropertyName 'size' -NotePropertyValue $sharedInstanceObject.automation.size
 
     $vcdMigratorObject = New-Object -type psobject
-    $vcdMigratorObject | Add-Member -NotePropertyName 'deploymentType' -NotePropertyValue 'VspClusterSpec'
+    $vcdMigratorObject | Add-Member -NotePropertyName 'deploymentType' -NotePropertyValue 'VspComponentSpec'
     $vcdMigratorObject | Add-Member -NotePropertyName 'sddcLcmId' -NotePropertyValue $sddclcmId
     $vcdMigratorObject | Add-Member -NotePropertyName 'componentType' -NotePropertyValue 'VCD_MIGRATOR'
-    $vcdMigratorObject | Add-Member -NotePropertyName 'repository' -NotePropertyValue ''
+    $vcdMigratorObject | Add-Member -NotePropertyName 'repository' -NotePropertyValue (New-Object -type psobject)
     $vcdMigratorObject | Add-Member -NotePropertyName 'componentNamespace' -NotePropertyValue 'vcd-migrator'
     $vcdMigratorObject | Add-Member -NotePropertyName 'version' -NotePropertyValue $sharedInstanceObject.version
     $vcdMigratorObject | Add-Member -NotePropertyName 'configSpec' -NotePropertyValue $vcdMigratorSizeObject
@@ -10796,7 +10796,7 @@ Function New-DayNAutomationModernJsonFile
     $componentSpecObject | Add-Member -NotePropertyName 'sddcLcmId' -NotePropertyValue $sddclcmId
     $componentSpecObject | Add-Member -NotePropertyName 'fqdn' -NotePropertyValue $sharedInstanceObject.automation.vipFqdn
     $componentSpecObject | Add-Member -NotePropertyName 'componentNamespace' -NotePropertyValue 'prelude'
-    $componentSpecObject | Add-Member -NotePropertyName 'repository' -NotePropertyValue ''
+    $componentSpecObject | Add-Member -NotePropertyName 'repository' -NotePropertyValue (New-Object -type psobject)
     $componentSpecObject | Add-Member -NotePropertyName 'version' -NotePropertyValue $sharedInstanceObject.version
     $componentSpecObject | Add-Member -NotePropertyName 'configSpec' -NotePropertyValue $configSpecObject
     $componentSpecObject | Add-Member -NotePropertyName 'vspClusterSpec' -NotePropertyValue $vspClusterSpecObject
