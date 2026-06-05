@@ -10780,6 +10780,7 @@ Function New-DayNAutomationModernJsonFile
     $vcdMigratorObject | Add-Member -NotePropertyName 'componentType' -NotePropertyValue 'VCD_MIGRATOR'
     $vcdMigratorObject | Add-Member -NotePropertyName 'repository' -NotePropertyValue ''
     $vcdMigratorObject | Add-Member -NotePropertyName 'componentNamespace' -NotePropertyValue 'vcd-migrator'
+    $vcdMigratorObject | Add-Member -NotePropertyName 'version' -NotePropertyValue $sharedInstanceObject.version
     $vcdMigratorObject | Add-Member -NotePropertyName 'configSpec' -NotePropertyValue $vcdMigratorSizeObject
 
     $configSpecObject = New-Object -type psobject
@@ -10792,6 +10793,8 @@ Function New-DayNAutomationModernJsonFile
     $componentSpecObject | Add-Member -NotePropertyName 'deploymentType' -NotePropertyValue 'VspComponentSpec'
     $componentSpecObject | Add-Member -NotePropertyName 'sddcLcmId' -NotePropertyValue $sddclcmId
     $componentSpecObject | Add-Member -NotePropertyName 'fqdn' -NotePropertyValue $sharedInstanceObject.automation.vipFqdn
+    $componentSpecObject | Add-Member -NotePropertyName 'componentNamespace' -NotePropertyValue 'prelude'
+    $componentSpecObject | Add-Member -NotePropertyName 'repository' -NotePropertyValue ''
     $componentSpecObject | Add-Member -NotePropertyName 'version' -NotePropertyValue $sharedInstanceObject.version
     $componentSpecObject | Add-Member -NotePropertyName 'configSpec' -NotePropertyValue $configSpecObject
     $componentSpecObject | Add-Member -NotePropertyName 'vspClusterSpec' -NotePropertyValue $vspClusterSpecObject
