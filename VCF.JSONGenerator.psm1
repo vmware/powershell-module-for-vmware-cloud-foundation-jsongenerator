@@ -10746,8 +10746,15 @@ Function New-DayNAutomationModernJsonFile
         $sddclcmId = "<-- ENTER SDDC LCM ID HERE -->"
     }
 
+    $ipPoolObject = @()
+    $ipPoolObject += $sharedInstanceObject.automation.nodeAIpAddress
+    $ipPoolObject += $sharedInstanceObject.automation.nodeBIpAddress
+    $ipPoolObject += $sharedInstanceObject.automation.nodeCIpAddress
+    $ipPoolObject += $sharedInstanceObject.automation.nodeDIpAddress
+    $ipPoolObject += $sharedInstanceObject.automation.nodeEIpAddress
+
     $ipv4PoolObject = New-Object -type psobject
-    $ipv4PoolObject | Add-Member -NotePropertyName 'cidr' -NotePropertyValue "$($sharedInstanceObject.automation.nodeAIpAddress)/29" #review
+    $ipv4PoolObject | Add-Member -NotePropertyName 'addresses' -NotePropertyValue $ipPoolObject
 
     $vspClusterSpecObject = New-Object -type psobject
     $vspClusterSpecObject | Add-Member -NotePropertyName 'deploymentType' -NotePropertyValue 'VspClusterSpec'
