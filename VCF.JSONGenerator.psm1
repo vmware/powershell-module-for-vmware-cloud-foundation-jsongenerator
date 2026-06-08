@@ -2219,6 +2219,7 @@ Function New-SharedInstanceObject
         $vcfOperationsObject = New-Object -TypeName psobject
         If ($pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value -eq "Unselected")
         {
+            $vcfOperationsObject | Add-Member -notepropertyname 'vipAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_virtual_ip"].Value
             $vcfOperationsObject | Add-Member -notepropertyname 'nodeAFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_nodea_fqdn"].Value
             $vcfOperationsObject | Add-Member -notepropertyname 'nodeBFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_nodeb_fqdn"].Value
             $vcfOperationsObject | Add-Member -notepropertyname 'nodeCFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_nodec_fqdn"].Value
@@ -2250,6 +2251,7 @@ Function New-SharedInstanceObject
         {
             If (($vcfVersion -like "9.0*") -or ($userPromptBypass))
             {
+                $vcfOperationsObject | Add-Member -notepropertyname 'vipAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_vip_ip"].Value
                 $vcfOperationsObject | Add-Member -notepropertyname 'nodeAFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_nodea_fqdn"].Value
                 $vcfOperationsObject | Add-Member -notepropertyname 'nodeBFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_nodeb_fqdn"].Value
                 $vcfOperationsObject | Add-Member -notepropertyname 'nodeCFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_nodec_fqdn"].Value
@@ -2278,6 +2280,7 @@ Function New-SharedInstanceObject
             }
             else
             {
+
                 $opsNetworkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_az1_vcf_mgmt_gateway_cidr"].Value
                 $vcfOperationsObject | Add-Member -notepropertyname 'applianceSize' -notepropertyvalue ($pnpWorkbook.Workbook.Names["flt_def_vcf_operations_size_result"].Value).tolower()
                 $vcfOperationsObject | Add-Member -notepropertyname 'fltMgmtPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_az1_vcf_mgmt_pg"].Value
@@ -2286,6 +2289,7 @@ Function New-SharedInstanceObject
                 $vcfOperationsObject | Add-Member -notepropertyname 'fltMgmtSubnetMask' -notepropertyvalue $opsNetworkDetails.netmask
                 $vcfOperationsObject | Add-Member -notepropertyname 'fleetManagementDeploymentModel' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_ha_mode_chosen"].Value
                 $vcfOperationsObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_virtual_fqdn"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'vipAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_virtual_ip"].Value
                 $vcfOperationsObject | Add-Member -notepropertyname 'nodeAFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_nodea_fqdn"].Value
                 $vcfOperationsObject | Add-Member -notepropertyname 'nodeBFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_nodeb_fqdn"].Value
                 $vcfOperationsObject | Add-Member -notepropertyname 'nodeCFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_nodec_fqdn"].Value
