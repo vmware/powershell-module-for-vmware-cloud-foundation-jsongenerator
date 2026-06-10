@@ -10558,7 +10558,7 @@ Function New-DayNNetworksModernJsonFile
 
     $deploymentSpecCollectorObject = New-Object -type psobject
     $deploymentSpecCollectorObject | Add-Member -NotePropertyName 'fqdn' -NotePropertyValue $sharedInstanceObject.networks.proxyIpAddress
-    $deploymentSpecCollectorObject | Add-Member -NotePropertyName 'deploymentOption' -NotePropertyValue 'small' #review
+    $deploymentSpecCollectorObject | Add-Member -NotePropertyName 'deploymentOption' -NotePropertyValue $sharedInstanceObject.networks.deploymentOption
     $deploymentSpecCollectorObject | Add-Member -NotePropertyName 'password' -NotePropertyValue $sharedInstanceObject.networks.systemUserPassword #review
     $deploymentSpecCollectorObject | Add-Member -NotePropertyName 'ipv4Settings' -NotePropertyValue $ipv4SettingsCollectorObject
 
