@@ -3634,6 +3634,24 @@ Function New-WorkloadInstanceObject
                     $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetwork' -notepropertyvalue $networkDetails.network
                     $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetmask' -notepropertyvalue $networkDetails.netmask
                 }
+
+                $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_dtgw_vlan"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_dtgw_mtu"].Value
+                If (($vcfVersion -like "9.0*") -or ($userPromptBypass))
+                {
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_dtgw_gateway_ip"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_dtgw_cidr"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_dtgw_network"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_dtgw_mask"].Value
+                }
+                else 
+                {
+                    $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az1_dtgw_gateway_cidr"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwGw' -notepropertyvalue $networkDetails.gw
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwCidr' -notepropertyvalue $networkDetails.cidr
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwNetwork' -notepropertyvalue $networkDetails.network
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwNetmask' -notepropertyvalue $networkDetails.netmask
+                }
             }
 
             $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)host_overlay_vlan"].Value
