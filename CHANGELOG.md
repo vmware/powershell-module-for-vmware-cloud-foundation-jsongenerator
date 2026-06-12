@@ -1,8 +1,11 @@
 # Release History
 
 ## [v9.1.0.1000]
-> Release Date: 2026-xx-xx
+> Release Date: 2026-06-12
 - [Added] Support for dual P&P Versions
+- [Added] Added Day-N Functions for 9.1
+- [Added] Added userPromptBypass to functions to support direct calls from PlatformTools
+- [Changed] Management Domain JSON function updated to support 9.1
 
 ## [v9.0.0.1013]
 > Release Date: 2026-03-xx
