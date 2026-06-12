@@ -2382,7 +2382,21 @@ Function New-SharedInstanceObject
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeEIpAddress' -notepropertyvalue $ipAddressPool[4]
                     If ($deploymentProfileObject.fleetManagementDeploymentModel -eq "highlyAvailable")
                     {
-                        $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue ($pnpWorkbook.Workbook.Names["mgmt_domain_vcf_operations_size_chosen"].Value).toLower()
+                        If ($userPromptBypass)
+                        {
+                            If ($pnpWorkbook.Workbook.Names["mgmt_domain_vcf_operations_ha_mode_chosen"].Value -eq "High Availability (Three-node)")
+                            {
+                                $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue "medium"
+                            }
+                            else
+                            {
+                                $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue "small"
+                            }
+                        }
+                        else
+                        {
+                            $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue ($pnpWorkbook.Workbook.Names["mgmt_domain_vcf_operations_size_chosen"].Value).toLower()
+                        }
                     }
                     else 
                     {
