@@ -2220,6 +2220,9 @@ Function New-SharedInstanceObject
         If ($pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value -eq "Unselected")
         {
             $vcfOperationsObject | Add-Member -notepropertyname 'vipAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_virtual_ip"].Value
+            $vcfOperationsObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_nodea_ip"].Value
+            $vcfOperationsObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_nodeb_ip"].Value
+            $vcfOperationsObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_nodec_ip"].Value
             $vcfOperationsObject | Add-Member -notepropertyname 'nodeAFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_nodea_fqdn"].Value
             $vcfOperationsObject | Add-Member -notepropertyname 'nodeBFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_nodeb_fqdn"].Value
             $vcfOperationsObject | Add-Member -notepropertyname 'nodeCFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_nodec_fqdn"].Value
@@ -2252,6 +2255,9 @@ Function New-SharedInstanceObject
             If (($vcfVersion -like "9.0*") -or ($userPromptBypass))
             {
                 $vcfOperationsObject | Add-Member -notepropertyname 'vipAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_vip_ip"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_nodea_ip"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_nodeb_ip"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_nodec_ip"].Value    
                 $vcfOperationsObject | Add-Member -notepropertyname 'nodeAFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_nodea_fqdn"].Value
                 $vcfOperationsObject | Add-Member -notepropertyname 'nodeBFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_nodeb_fqdn"].Value
                 $vcfOperationsObject | Add-Member -notepropertyname 'nodeCFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_nodec_fqdn"].Value
@@ -2290,6 +2296,9 @@ Function New-SharedInstanceObject
                 $vcfOperationsObject | Add-Member -notepropertyname 'fleetManagementDeploymentModel' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_ha_mode_chosen"].Value
                 $vcfOperationsObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_virtual_fqdn"].Value
                 $vcfOperationsObject | Add-Member -notepropertyname 'vipAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_virtual_ip"].Value
+                #$vcfOperationsObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_nodea_ip"].Value # review
+                #$vcfOperationsObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_nodeb_ip"].Value # review
+                #$vcfOperationsObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_nodec_ip"].Value # review    
                 $vcfOperationsObject | Add-Member -notepropertyname 'nodeAFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_nodea_fqdn"].Value
                 $vcfOperationsObject | Add-Member -notepropertyname 'nodeBFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_nodeb_fqdn"].Value
                 $vcfOperationsObject | Add-Member -notepropertyname 'nodeCFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_nodec_fqdn"].Value
@@ -2398,7 +2407,7 @@ Function New-SharedInstanceObject
                     $vcfAutomationObject | Add-Member -notepropertyname 'collectorMgmtSubnetMask' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_mask"].Value
                     $vcfAutomationObject | Add-Member -notepropertyname 'collectorMgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_gateway_ip"].Value
                     $vcfAutomationObject | Add-Member -notepropertyname 'fleetManagementDeploymentModel' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ha_mode_chosen"].Value
-                    $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_size_chosen"].Value #review
+                    $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_size_chosen"].Value # review
                 }
                 else
                 {
@@ -2408,8 +2417,8 @@ Function New-SharedInstanceObject
                     $vcfAutomationObject | Add-Member -notepropertyname 'fltMgmtPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_az1_vcf_mgmt_pg"].Value
                     $vcfAutomationObject | Add-Member -notepropertyname 'fltMgmtGwCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_az1_vcf_mgmt_gateway_cidr"].Value
                     $vcfAutomationObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_auto_admin_password"].Value                    
-                    $vcfAutomationObject | Add-Member -notepropertyname 'internalClusterCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_auto_cluster_cidr"].Value # review
-                    $vcfAutomationObject | Add-Member -notepropertyname 'vcfaNodePrefix' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_auto_node_prefix"].Value #review                     
+                    $vcfAutomationObject | Add-Member -notepropertyname 'internalClusterCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_auto_cluster_cidr"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'vcfaNodePrefix' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_auto_node_prefix"].Value                     
                     
                     $firstIpAddress = $pnpWorkbook.Workbook.Names["flt_def_auto_node_pool_start_ip"].Value
                     $lastIpAddress = $pnpWorkbook.Workbook.Names["flt_def_auto_node_pool_end_ip"].Value
@@ -4621,8 +4630,8 @@ Function New-ManagementDomainJsonFile
             'useExistingDeployment'                 = $instanceObject.nsxtManager.useExisting                        
             'skipNsxOverlayOverManagementNetwork'   = $true
             'transportVlanId'                       = $instanceObject.az1.rack1.network.hostOverlayVlanID -as [int]            
-            'rootLoginEnabledForNsxtManager'        = "true" #review
-            'sshEnabledForNsxtManager'              = "true" #review
+            'rootLoginEnabledForNsxtManager'        = "true" # review
+            'sshEnabledForNsxtManager'              = "true" # review
         }
         If ($instanceObject.autoGeneratedPasswords -ne "Selected")
         {
@@ -6634,7 +6643,7 @@ Function New-WorkloadDomainJsonFile
             $vcenterObject[0] | Add-Member -notepropertyName 'storageSize' -NotePropertyValue "xlstorage"
         }
 
-        #review
+        # review
         $ssoDomainSpecObject = @()
         $ssoDomainSpecObject += [pscustomobject]@{
             'ssoDomainName' = $instanceObject.sso.domain
@@ -10570,7 +10579,7 @@ Function New-DayNNetworksModernJsonFile
     $deploymentSpecPlatformObject = New-Object -type psobject
     $deploymentSpecPlatformObject | Add-Member -NotePropertyName 'fqdn' -NotePropertyValue $sharedInstanceObject.networks.nodeAIpAddress
     $deploymentSpecPlatformObject | Add-Member -NotePropertyName 'deploymentOption' -NotePropertyValue $sharedInstanceObject.networks.deploymentOption
-    $deploymentSpecPlatformObject | Add-Member -NotePropertyName 'password' -NotePropertyValue $sharedInstanceObject.networks.systemUserPassword #review
+    $deploymentSpecPlatformObject | Add-Member -NotePropertyName 'password' -NotePropertyValue $sharedInstanceObject.networks.systemUserPassword # review
     $deploymentSpecPlatformObject | Add-Member -NotePropertyName 'ipv4Settings' -NotePropertyValue $ipv4SettingsPlatformObject
 
     $ipv4SettingsCollectorObject = New-Object -type psobject
@@ -10579,7 +10588,7 @@ Function New-DayNNetworksModernJsonFile
     $deploymentSpecCollectorObject = New-Object -type psobject
     $deploymentSpecCollectorObject | Add-Member -NotePropertyName 'fqdn' -NotePropertyValue $sharedInstanceObject.networks.proxyIpAddress
     $deploymentSpecCollectorObject | Add-Member -NotePropertyName 'deploymentOption' -NotePropertyValue $sharedInstanceObject.networks.deploymentOption
-    $deploymentSpecCollectorObject | Add-Member -NotePropertyName 'password' -NotePropertyValue $sharedInstanceObject.networks.systemUserPassword #review
+    $deploymentSpecCollectorObject | Add-Member -NotePropertyName 'password' -NotePropertyValue $sharedInstanceObject.networks.systemUserPassword # review
     $deploymentSpecCollectorObject | Add-Member -NotePropertyName 'ipv4Settings' -NotePropertyValue $ipv4SettingsCollectorObject
 
     $nodeSpecsArray = @()
@@ -10595,7 +10604,7 @@ Function New-DayNNetworksModernJsonFile
     }
 
     $configSpecObject = New-Object -type psobject
-    $configSpecObject | Add-Member -NotePropertyName 'adminPassword' -NotePropertyValue $sharedInstanceObject.networks.systemUserPassword #review
+    $configSpecObject | Add-Member -NotePropertyName 'adminPassword' -NotePropertyValue $sharedInstanceObject.networks.systemUserPassword # review
 
     $componentSpecObject = New-Object -type psobject
     $componentSpecObject | Add-Member -NotePropertyName 'sddcLcmId' -NotePropertyValue $sddclcmId
@@ -10998,7 +11007,7 @@ Function New-DayNCompleteFleet
     $vcfOperationsSpecObject | Add-Member -NotePropertyName 'nodes' -NotePropertyValue @($vcfOpsNodesObject)
     If ($sharedInstanceObject.deploymentProfile.deferredCustomPasswords -eq "Selected")
     {
-        $vcfOperationsSpecObject | Add-Member -NotePropertyName 'adminUserPassword' -NotePropertyValue $sharedInstanceObject.operations.adminUserPassword #Review
+        $vcfOperationsSpecObject | Add-Member -NotePropertyName 'adminUserPassword' -NotePropertyValue $sharedInstanceObject.operations.adminUserPassword # review
     }
     $vcfOperationsSpecObject | Add-Member -NotePropertyName 'applianceSize' -NotePropertyValue $sharedInstanceObject.operations.applianceSize
     $vcfOperationsSpecObject | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue $false
@@ -11012,7 +11021,7 @@ Function New-DayNCompleteFleet
     $vcfOperationsCollectorSpecObject | Add-Member -NotePropertyName 'hostname' -NotePropertyValue $sharedInstanceObject.operations.opsCollectorFqdn
     If ($sharedInstanceObject.deploymentProfile.deferredCustomPasswords -eq "Selected")
     {
-        $vcfOperationsCollectorSpecObject | Add-Member -NotePropertyName 'rootUserPassword' -NotePropertyValue $sharedInstanceObject.operations.opsCollectorRootUserPassword #Review
+        $vcfOperationsCollectorSpecObject | Add-Member -NotePropertyName 'rootUserPassword' -NotePropertyValue $sharedInstanceObject.operations.opsCollectorRootUserPassword # review
     }
     $vcfOperationsCollectorSpecObject | Add-Member -NotePropertyName 'applianceSize' -NotePropertyValue $sharedInstanceObject.operations.collectorApplianceSize
     $vcfOperationsCollectorSpecObject | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue $false
