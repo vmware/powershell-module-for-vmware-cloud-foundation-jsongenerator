@@ -2363,7 +2363,7 @@ Function New-SharedInstanceObject
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeEIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodee_ip"].Value
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeFIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodef_ip"].Value
                     $vcfAutomationObject | Add-Member -notepropertyname 'extraNodeIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_noded_ip"].Value
-                    $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue "small" 
+                    $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue "small"
                 }
                 else
                 {
@@ -2380,20 +2380,20 @@ Function New-SharedInstanceObject
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $ipAddressPool[2]
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeDIpAddress' -notepropertyvalue $ipAddressPool[3]
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeEIpAddress' -notepropertyvalue $ipAddressPool[4]
-                    If ($deploymentProfileObject.fleetManagementDeploymentModel -eq "highlyAvailable")
+                    If ($userPromptBypass)
                     {
-                        If ($userPromptBypass)
+                        If ($deploymentProfileObject.fleetManagementDeploymentModel -eq "highlyAvailable")
                         {
                             $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue "medium"
                         }
-                        else
+                        else 
                         {
-                            $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue ($pnpWorkbook.Workbook.Names["mgmt_domain_vcf_operations_size_chosen"].Value).toLower()
-                        }
+                            $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue "small"
+                        }                       
                     }
-                    else 
+                    else
                     {
-                        $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue "small"
+                        $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue ($pnpWorkbook.Workbook.Names["mgmt_vcf_auto_size_result"].Value).toLower()
                     }
                 }
             }
@@ -3685,7 +3685,6 @@ Function New-WorkloadInstanceObject
             $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)host_overlay_cidr"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)host_overlay_Network"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)host_overlay_mask"].Value
-        
         
             $az1RackNetworkObject | Add-Member -notepropertyname 'vcfNetworkPoolName' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)pool_name"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'networkProfileName' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)host_overlay_network_profile_name"].Value
