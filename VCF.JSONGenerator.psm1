@@ -2460,7 +2460,7 @@ Function New-SharedInstanceObject
 
         #license Object
         $vcfLicenseServerObject = New-Object -TypeName psobject
-        If ($pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value -eq "Unselected")
+        If (($pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value -eq "Unselected") -or $userPromptBypass)
         {
             $vcfLicenseServerObject | Add-Member -notepropertyname 'fqdn' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_lc_fqdn"].Value
         }
@@ -10979,6 +10979,7 @@ Function New-DayNCompleteFleet
     $vCenterSpecObject | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue 'true'
 
     #vcfOperationsSpec
+    $vcfOpsNodesObject = @()
     If (($sharedInstanceObject.operations.fleetManagementDeploymentModel -eq "Simple") -or (($userPromptBypass) -and ($sharedInstanceObject.deploymentProfile.fleetManagementDeploymentModel -eq "single")))
     {
         $vcfOpsNodesObjectNodeA = [pscustomobject]@{
