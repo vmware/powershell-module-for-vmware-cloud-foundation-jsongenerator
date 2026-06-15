@@ -2384,6 +2384,7 @@ Function New-SharedInstanceObject
                     {
                         If ($userPromptBypass)
                         {
+                            $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue "medium"
                         }
                         else
                         {
