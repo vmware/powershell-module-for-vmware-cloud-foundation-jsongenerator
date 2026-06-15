@@ -1798,7 +1798,7 @@ Function Get-PnPInputFileInputs
             $Global:workbookProfile | Add-Member -NotePropertyName 'networksDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_net_chosen"].Value
             
             #9.1 Only
-            $Global:workbookProfile | Add-Member -NotePropertyName 'realTimeMetricsDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["placeholder_real_time_metrics_chosen"].value
+            $Global:workbookProfile | Add-Member -NotePropertyName 'realTimeMetricsDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_logs_chosen"].value
             #QFuture 9.1.1)
             $Global:workbookProfile | Add-Member -NotePropertyName 'opsDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_vcf_ops_later_chosen"].Value
         }
@@ -2150,7 +2150,7 @@ Function New-WorkbookDeploymentProfile
         $deploymentProfileObject | Add-Member -NotePropertyName 'idbDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_vidb_chosen"].Value
         $deploymentProfileObject | Add-Member -NotePropertyName 'logsDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_logs_chosen"].Value
         $deploymentProfileObject | Add-Member -NotePropertyName 'networksDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_net_chosen"].Value
-        $deploymentProfileObject | Add-Member -NotePropertyName 'realTimeMetricsDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["placeholder_real_time_metrics_chosen"].value
+        $deploymentProfileObject | Add-Member -NotePropertyName 'realTimeMetricsDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_logs_chosen"].value #review
         $deploymentProfileObject | Add-Member -NotePropertyName 'opsDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_vcf_ops_later_chosen"].Value
         $deploymentProfileObject | Add-Member -NotePropertyName 'deferredCustomPasswords' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_def_vcf_custom_passwords_chosen"].Value        
         If ($vcfVersion -notlike "9.0*")
@@ -2384,14 +2384,6 @@ Function New-SharedInstanceObject
                     {
                         If ($userPromptBypass)
                         {
-                            If ($pnpWorkbook.Workbook.Names["mgmt_domain_vcf_operations_ha_mode_chosen"].Value -eq "High Availability (Three-node)")
-                            {
-                                $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue "medium"
-                            }
-                            else
-                            {
-                                $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue "small"
-                            }
                         }
                         else
                         {
@@ -2428,6 +2420,14 @@ Function New-SharedInstanceObject
                     $vcfAutomationObject | Add-Member -notepropertyname 'collectorMgmtSubnetMask' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_mask"].Value
                     $vcfAutomationObject | Add-Member -notepropertyname 'collectorMgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_gateway_ip"].Value
                     $vcfAutomationObject | Add-Member -notepropertyname 'fleetManagementDeploymentModel' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ha_mode_chosen"].Value
+                    If ($deploymentProfileObject.fleetManagementDeploymentModel -eq "highlyAvailable")
+                    {
+                        $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue "medium"
+                    }
+                    else 
+                    {
+                        $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue "small"                                  
+                    }
                 }
                 else
                 {
@@ -2452,14 +2452,7 @@ Function New-SharedInstanceObject
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $ipAddressPool[2]
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeDIpAddress' -notepropertyvalue $ipAddressPool[3]
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeEIpAddress' -notepropertyvalue $ipAddressPool[4]
-                    If ($userPromptBypass)
-                    {
-                        $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue "small"
-                    }
-                    else
-                    {
-                        $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_auto_size_result"].Value
-                    }  
+                    $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_auto_size_result"].Value.toLower()
                 }
             }
         }
@@ -10985,7 +10978,7 @@ Function New-DayNCompleteFleet
     $vCenterSpecObject | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue 'true'
 
     #vcfOperationsSpec
-    If ($sharedInstanceObject.deploymentProfile.fleetManagementDeploymentModel -eq "single")
+    If (($sharedInstanceObject.operations.fleetManagementDeploymentModel -eq "Simple") -or (($userPromptBypass) -and ($sharedInstanceObject.deploymentProfile.fleetManagementDeploymentModel -eq "single")))
     {
         $vcfOpsNodesObjectNodeA = [pscustomobject]@{
             'hostname' = $sharedInstanceObject.operations.nodeAFqdn
@@ -10997,7 +10990,7 @@ Function New-DayNCompleteFleet
         }
         $vcfOpsNodesObject += $vcfOpsNodesObjectNodeA
     }
-    elseif ($sharedInstanceObject.deploymentProfile.fleetManagementDeploymentModel -eq "highlyAvailable")
+    elseif (($sharedInstanceObject.operations.fleetManagementDeploymentModel -eq "High Availability (Three-node)") -or (($userPromptBypass) -and ($sharedInstanceObject.deploymentProfile.fleetManagementDeploymentModel -eq "highlyAvailable")))
     {
         $vcfOpsNodesObjectNodeA = [pscustomobject]@{
             'hostname' = $sharedInstanceObject.operations.nodeAFqdn
@@ -11063,6 +11056,7 @@ Function New-DayNCompleteFleet
         $vcfAutomationSpecObject | Add-Member -NotePropertyName 'adminUserPassword' -NotePropertyValue $sharedInstanceObject.automation.adminUserPassword
     }
     $vcfAutomationSpecObject | Add-Member -NotePropertyName 'nodePrefix' -NotePropertyValue $sharedInstanceObject.automation.vcfaNodePrefix
+    $vcfAutomationSpecObject | Add-Member -NotePropertyName 'size' -NotePropertyValue $sharedInstanceObject.automation.size
     $vcfAutomationSpecObject | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue $false
     $vcfAutomationSpecObject | Add-Member -NotePropertyName 'ipPool' -NotePropertyValue $ipPoolArray
     $vcfAutomationSpecObject | Add-Member -NotePropertyName 'internalClusterCidr' -NotePropertyValue $sharedInstanceObject.automation.internalClusterCidr
