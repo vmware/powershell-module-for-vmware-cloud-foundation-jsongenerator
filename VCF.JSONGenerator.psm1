@@ -3176,7 +3176,7 @@ Function New-ManagementInstanceObject
             }
             $edgeNode1Object | Add-Member -NotePropertyName 'overlayGateway' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_az1_edge_overlay_gateway_ip"].value
             $edgeNode1Object | Add-Member -NotePropertyName 'overlayMask' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_az1_edge_overlay_mask"].value
-            $edgeNode1Object | Add-Member -NotePropertyName 'formfactor' -NotePropertyValue $pnpWorkbook.Workbook.Names["sizing_mgmt_ec_formfactor_chosen"].value
+            $edgeNode1Object | Add-Member -NotePropertyName 'formfactor' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_ec_formfactor_chosen"].value
             $edgeNode1Object | Add-Member -NotePropertyName 'uplink01IpAddress' -NotePropertyValue ($pnpWorkbook.Workbook.Names["mgmt_az1_en1_uplink01_interface_cidr"].value).split("/",2)[0]
             $edgeNode1Object | Add-Member -NotePropertyName 'uplink02IpAddress' -NotePropertyValue ($pnpWorkbook.Workbook.Names["mgmt_az1_en1_uplink02_interface_cidr"].value).split("/",2)[0]
 
@@ -3198,7 +3198,7 @@ Function New-ManagementInstanceObject
 
             $edgeNode2Object | Add-Member -NotePropertyName 'overlayGateway' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_az1_edge_overlay_gateway_ip"].value
             $edgeNode2Object | Add-Member -NotePropertyName 'overlayMask' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_az1_edge_overlay_mask"].value
-            $edgeNode2Object | Add-Member -NotePropertyName 'formfactor' -NotePropertyValue $pnpWorkbook.Workbook.Names["sizing_mgmt_ec_formfactor_chosen"].value
+            $edgeNode2Object | Add-Member -NotePropertyName 'formfactor' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_ec_formfactor_chosen"].value
             $edgeNode2Object | Add-Member -NotePropertyName 'uplink01IpAddress' -NotePropertyValue ($pnpWorkbook.Workbook.Names["mgmt_az1_en2_uplink01_interface_cidr"].value).split("/",2)[0]
             $edgeNode2Object | Add-Member -NotePropertyName 'uplink02IpAddress' -NotePropertyValue ($pnpWorkbook.Workbook.Names["mgmt_az1_en2_uplink02_interface_cidr"].value).split("/",2)[0]
 
