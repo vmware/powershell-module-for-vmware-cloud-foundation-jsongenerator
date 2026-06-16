@@ -2678,7 +2678,7 @@ Function New-ManagementInstanceObject
         }
         else
         {
-            If ($vcfVersion -like "9.0")
+            If ($vcfVersion -like "9.0*")
             {
                 $workbookLayout = "9.0"
             }
