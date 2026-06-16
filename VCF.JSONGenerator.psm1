@@ -2672,6 +2672,22 @@ Function New-ManagementInstanceObject
             $vcfVersion = $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
         }
 
+        If ($userPromptBypass)
+        {
+            $workbookLayout = "9.0"
+        }
+        else
+        {
+            If ($vcfVersion -like "9.0")
+            {
+                $workbookLayout = "9.0"
+            }
+            else
+            {
+                $workbookLayout = "9.1"
+            }
+        }
+
         $deploymentProfileObject = New-WorkbookDeploymentProfile -pnpWorkbook $pnpWorkbook -vcfVersion $vcfVersion -type management
 
         $domainName = $pnpWorkbook.Workbook.Names["mgmt_sddc_domain"].Value
@@ -3176,7 +3192,7 @@ Function New-ManagementInstanceObject
             }
             $edgeNode1Object | Add-Member -NotePropertyName 'overlayGateway' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_az1_edge_overlay_gateway_ip"].value
             $edgeNode1Object | Add-Member -NotePropertyName 'overlayMask' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_az1_edge_overlay_mask"].value
-            If (($vcfVersion -like 9.0) -or ($userPromptBypass))
+            If ($workbookLayout -eq "9.0")
             {
                 $edgeNode1Object | Add-Member -NotePropertyName 'formfactor' -NotePropertyValue $pnpWorkbook.Workbook.Names["sizing_mgmt_ec_formfactor_chosen"].value
             }
@@ -3206,7 +3222,7 @@ Function New-ManagementInstanceObject
 
             $edgeNode2Object | Add-Member -NotePropertyName 'overlayGateway' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_az1_edge_overlay_gateway_ip"].value
             $edgeNode2Object | Add-Member -NotePropertyName 'overlayMask' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_az1_edge_overlay_mask"].value
-            If (($vcfVersion -like 9.0) -or ($userPromptBypass))
+            If ($workbookLayout -eq "9.0")
             {
                 $edgeNode2Object | Add-Member -NotePropertyName 'formfactor' -NotePropertyValue $pnpWorkbook.Workbook.Names["sizing_mgmt_ec_formfactor_chosen"].value
             }
