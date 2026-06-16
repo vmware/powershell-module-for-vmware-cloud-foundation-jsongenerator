@@ -1,5 +1,9 @@
 # Release History
 
+## [v9.1.0.1001]
+> Release Date: 2026-06-xx
+- [Fixed] Management CTGW form factor lookup
+
 ## [v9.1.0.1000]
 > Release Date: 2026-06-12
 - [Added] Support for dual P&P Versions
