@@ -2170,9 +2170,6 @@ Function New-SharedInstanceObject
     Param (
         [Parameter (Mandatory = $true)] [Object]$pnpWorkbook,
         [Parameter (Mandatory = $false)] [Switch]$silent,
-        [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
-        [Parameter (Mandatory = $false)] [bool]$interactiveEnabled,
-        [Parameter (Mandatory = $false)] [string]$vcfVersion,
         [Parameter (Mandatory = $false)] [switch]$platformTools,
         [Parameter (Mandatory = $false)] [string]$workbookLayout
     )
@@ -2184,10 +2181,7 @@ Function New-SharedInstanceObject
             LogMessage -type INFO -message "Extracting data common to Management and Workload Domains"    
         }
         
-        If (!$vcfVersion)
-        {
-            $vcfVersion = $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
-        }
+        $vcfVersion = $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
 
         If (!$workbookLayout)
         {
@@ -2669,9 +2663,6 @@ Function New-ManagementInstanceObject
         [Parameter (Mandatory = $true)] [Object]$pnpWorkbook,
         [Parameter (Mandatory = $false)] [Switch]$silent,
         [Parameter (Mandatory = $false)] [INT]$totalRackCount,
-        [Parameter (Mandatory = $false)] [String]$vcfVersion,
-        [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
-        [Parameter (Mandatory = $false)] [bool]$interactiveEnabled,
         [Parameter (Mandatory = $false)] [switch]$platformTools,
         [Parameter (Mandatory = $false)] [string]$workbookLayout
         )
@@ -2685,10 +2676,7 @@ Function New-ManagementInstanceObject
         If (!$totalRackCount)  { $totalRackCount = 1}
         $vcfInstanceName = $pnpWorkbook.Workbook.Names["vcf_instance_name"].Value
 
-        If (!$vcfVersion)
-        {
-            $vcfVersion = $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
-        }
+        $vcfVersion = $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
 
         If (!$workbookLayout)
         {
@@ -3390,9 +3378,6 @@ Function New-WorkloadInstanceObject
     Param (
         [Parameter (Mandatory = $true)] [Object]$pnpWorkbook,
         [Parameter (Mandatory = $false)] [Switch]$silent,
-        [Parameter (Mandatory = $false)] [String]$vcfVersion,
-        [Parameter (Mandatory = $false)] [Switch]$userPromptBypass,
-        [Parameter (Mandatory = $false)] [bool]$interactiveEnabled,
         [Parameter (Mandatory = $false)] [switch]$platformTools,
         [Parameter (Mandatory = $false)] [string]$workbookLayout
     )
@@ -3404,10 +3389,7 @@ Function New-WorkloadInstanceObject
             LogMessage -type INFO -message "Extracting data specific to Workload Domain Creation"
         }
 
-        If (!$vcfVersion)
-        {
-            $vcfVersion = $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
-        }
+        $vcfVersion = $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
 
         If (!$workbookLayout)
         {
