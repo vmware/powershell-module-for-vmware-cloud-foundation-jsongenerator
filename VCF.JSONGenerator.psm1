@@ -1317,7 +1317,7 @@ Function New-RackBasedHostCommissioning
         [Parameter(Mandatory = $true)][Object]$instanceObject,
         [Parameter(Mandatory = $false)][string]$az,
         [Parameter(Mandatory = $false)][switch]$userPromptBypass,
-        [Parameter(Mandatory = $false)][bool]$interactiveEnabled
+        [Parameter(Mandatory = $false)][bool]$componentInterrogationEnabled
     )
     Remove-Variable commissionNestedHosts -errorAction silentlyContinue
 
@@ -1331,10 +1331,10 @@ Function New-RackBasedHostCommissioning
     {
         Do
         {
-            LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve network pool IDs from SDDC Manager? (Y/N): " -skipnewline
-            $interactiveResponse = Read-Host    
-        } Until ($interactiveResponse -in "Y","N")
-        $interactiveEnabled = ($interactiveResponse -eq "Y")
+            LogMessage -Type QUESTION -Message "Do you wish to retrieve network pool IDs from SDDC Manager? (Y/N): " -skipnewline
+            $componentInterrogationResponse = Read-Host    
+        } Until ($componentInterrogationResponse -in "Y","N")
+        $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
     }
     else
     {
@@ -1342,7 +1342,7 @@ Function New-RackBasedHostCommissioning
         $sddcMgrUser = $instanceObject.sddcManager.adminUser
         $decodedPassword = $instanceObject.sddcManager.adminPassword
     }
-    If ($interactiveEnabled)
+    If ($componentInterrogationEnabled)
     {
         If (!$userPromptBypass)
         {
@@ -1409,7 +1409,7 @@ Function New-RackBasedHostCommissioning
                         $vSanTypeObject="VSAN"
                     }
         
-                    If ($interactiveEnabled)
+                    If ($componentInterrogationEnabled)
                     {
                         LogMessage -Type INFO -Message "Obtaining Network Pool ID from SDDC Manager for pool $($instanceObject.$($az).$($rack).network.vcfNetworkPoolName): Found"
                         $networkPool = (Get-VCFNetworkPoolDetails | Where-Object { $_.name -eq $instanceObject.$($az).$($rack).network.vcfNetworkPoolName }).id
@@ -4413,7 +4413,7 @@ Function New-ManagementDomainJsonFile
         [Parameter (Mandatory = $false)] [String]$targetFilePath,
         [Parameter (Mandatory = $false)] [Switch]$userPromptBypass,
         [Parameter (Mandatory = $false)] [switch]$platformTools,
-        [Parameter (Mandatory = $false)] [bool]$interactiveEnabled
+        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled
     )
 
     Try {
@@ -4494,17 +4494,17 @@ Function New-ManagementDomainJsonFile
         {
             If (($joinFleet -eq "Y") -and ($instanceObject.instance -eq "InstanceB"))
             {
-                LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve fingerprints for ESX hosts plus existing Operations and Automation components? (Y/N): " -skipnewline
+                LogMessage -Type QUESTION -Message "Do you wish to retrieve fingerprints for ESX hosts plus existing Operations and Automation components? (Y/N): " -skipnewline
             }
             else
             {
-                LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve fingerprints for ESX hosts? (Y/N): " -skipnewline
+                LogMessage -Type QUESTION -Message "Do you wish to retrieve fingerprints for ESX hosts? (Y/N): " -skipnewline
             }
             Do
             {  
-                $interactiveResponse = Read-Host    
-            } Until ($interactiveResponse -in "Y","N")
-            $interactiveEnabled = ($interactiveResponse -eq "Y")
+                $componentInterrogationResponse = Read-Host    
+            } Until ($componentInterrogationResponse -in "Y","N")
+            $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
         }
         #EndRegion Parameter Resolution
 
@@ -4513,7 +4513,7 @@ Function New-ManagementDomainJsonFile
         If (($joinFleet -eq "Y") -and ($instanceObject.instance -eq "InstanceB"))
         {
             #Get FingerPrints
-            If ($interactiveEnabled)
+            If ($componentInterrogationEnabled)
             {
                 $ops01fingerprint = (echo "Q" | openssl.exe s_client -connect "$($sharedInstanceObject.operations.nodeAFqdn):443" -showcerts 2>$null |  Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
                 If ($instanceObject.version -like "9.0*")
@@ -4976,7 +4976,7 @@ Function New-ManagementDomainJsonFile
         {
             If (!$noHostFingerprints)
             {
-                If ($interactiveEnabled)
+                If ($componentInterrogationEnabled)
                 {
                     If ([System.Environment]::OSVersion.Platform -eq 'Win32NT')
                     {
@@ -5833,7 +5833,7 @@ Function New-WorkloadDomainJsonFile
         [Parameter (Mandatory = $true)] [Object]$instanceObject,
         [Parameter (Mandatory = $false)] [Switch]$noHostFingerprints,
         [Parameter (Mandatory = $false)] [Switch]$userPromptBypass,
-        [Parameter (Mandatory = $false)] [bool]$interactiveEnabled,
+        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled,
         [Parameter (Mandatory = $false)] [String]$targetFilePath,
         [Parameter (Mandatory = $false)] [Object]$selectedNSXManagerWorkloadObject        
     )
@@ -5845,10 +5845,10 @@ Function New-WorkloadDomainJsonFile
         {
             Do
             {
-                LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve host and personality IDs from SDDC Manager? (Y/N): " -skipnewline
-                $interactiveResponse = Read-Host    
-            } Until ($interactiveResponse -in "Y","N")
-            $interactiveEnabled = ($interactiveResponse -eq "Y")
+                LogMessage -Type QUESTION -Message "Do you wish to retrieve host and personality IDs from SDDC Manager? (Y/N): " -skipnewline
+                $componentInterrogationResponse = Read-Host    
+            } Until ($componentInterrogationResponse -in "Y","N")
+            $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
         }
         else
         {
@@ -5856,7 +5856,7 @@ Function New-WorkloadDomainJsonFile
             $sddcMgrUser = $instanceObject.sddcManager.adminUser
             $decodedPassword = $instanceObject.sddcManager.adminPassword
         }
-        If ($interactiveEnabled)
+        If ($componentInterrogationEnabled)
         {
             If (!$userPromptBypass)
             {
@@ -6038,7 +6038,7 @@ Function New-WorkloadDomainJsonFile
                     $hostnetworkObject | Add-Member -notepropertyName 'networkProfileName' -NotePropertyValue $instanceObject.az1.$($rack).network.networkProfileName
                 }
 
-                If (($interactiveEnabled) -and (!$noHostFingerprints))
+                If (($componentInterrogationEnabled) -and (!$noHostFingerprints))
                 {
                     $hostID = Get-VCFHostDetails -Status UNASSIGNED_USEABLE | Select-Object fqdn, id | Where-Object { $_.fqdn -eq $instanceObject.az1.$($rack).hosts[$selectedHost].fqdn }
                     If ($hostID)
@@ -6662,7 +6662,7 @@ Function New-WorkloadDomainJsonFile
 
         If ($instanceObject.vsphereClusters[0].vlcmModel -eq "Images") 
         {
-            If ($interactiveEnabled)
+            If ($componentInterrogationEnabled)
             {
                 LogMessage -Type INFO -Message "Obtaining Cluster Image Personality ID from SDDC Manager"
                 $clusterImageId = (Get-VCFPersonalityDetails | Where-Object { $_.personalityName -eq $instanceObject.vsphereClusters[0].imageName }).personalityId
@@ -6835,7 +6835,7 @@ Function New-L2vSphereClusterJsonFile
     Param (
         [Parameter (Mandatory = $true)] [Object]$clusterObject,
         [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
-        [Parameter (Mandatory = $false)] [bool]$interactiveEnabled
+        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled
     )
     If (!$userPromptBypass)
     {
@@ -6843,15 +6843,15 @@ Function New-L2vSphereClusterJsonFile
         {
             If ($clusterObject.determinedClusterConfig -eq "Single-Rack Compute Only")
             {
-                LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve Domain, Host, Image and Datastore IDs from SDDC Manager/vCenter? (Y/N): " -skipnewline
+                LogMessage -Type QUESTION -Message "Do you wish to retrieve Domain, Host, Image and Datastore IDs from SDDC Manager/vCenter? (Y/N): " -skipnewline
             }
             else
             {
-                LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve Domain, Host and Image IDs from SDDC Manager? (Y/N): " -skipnewline
+                LogMessage -Type QUESTION -Message "Do you wish to retrieve Domain, Host and Image IDs from SDDC Manager? (Y/N): " -skipnewline
             }
-            $interactiveResponse = Read-Host    
-        } Until ($interactiveResponse -in "Y","N")
-        $interactiveEnabled = ($interactiveResponse -eq "Y")
+            $componentInterrogationResponse = Read-Host    
+        } Until ($componentInterrogationResponse -in "Y","N")
+        $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
     }
     else
     {
@@ -6862,7 +6862,7 @@ Function New-L2vSphereClusterJsonFile
         $vCenterAdminUser = $clusterObject.vcenterServer.adminUser
         $decodedVcenterPassword = $clusterObject.vcenterServer.adminPassword
     }
-    If ($interactiveEnabled)
+    If ($componentInterrogationEnabled)
     {
         If (!$userPromptBypass)
         {
@@ -6966,7 +6966,7 @@ Function New-L2vSphereClusterJsonFile
 
     Foreach ($selectedHost in $clusterObject.az1.$($rack).hosts)
     {
-        If ($interactiveEnabled)
+        If ($componentInterrogationEnabled)
         {
             $hostID = Get-VCFHostDetails -Status UNASSIGNED_USEABLE | Select-Object fqdn, id | Where-Object { $_.fqdn -eq $selectedHost.fqdn }
             If ($hostID)
@@ -7037,7 +7037,7 @@ Function New-L2vSphereClusterJsonFile
 
     If ($clusterObject.determinedClusterConfig -eq "Single-Rack Compute Only")
     {
-        If ($interactiveEnabled)
+        If ($componentInterrogationEnabled)
         {
             $datastoreUuid = (Get-Datastore -name $clusterObject.vsphereClusters[0].vsanDatastore).ExtensionData.info.ContainerId
         }
@@ -7345,7 +7345,7 @@ Function New-L2vSphereClusterJsonFile
     
     If ($clusterObject.vsphereClusters[0].vlcmModel -eq "Images") 
     {
-        If ($interactiveEnabled)
+        If ($componentInterrogationEnabled)
         {
             LogMessage -Type INFO -Message "Obtaining Cluster Image Personality ID from SDDC Manager"
             $clusterImageId = (Get-VCFPersonalityDetails | Where-Object { $_.personalityName -eq $clusterObject.vsphereClusters[0].imageName }).personalityId
@@ -7362,7 +7362,7 @@ Function New-L2vSphereClusterJsonFile
         'clusterSpecs' = $clusterSpecObject
     }
 
-    If ($interactiveEnabled)
+    If ($componentInterrogationEnabled)
     {
         $domainID = (Get-VCFWorkloadDomainDetails -name $clusterObject.domainName).id
         If ($domainID)
@@ -7397,7 +7397,7 @@ Function New-L3vSphereClusterJsonFile
     Param (
         [Parameter (Mandatory = $true)] [Object]$clusterObject,
         [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
-        [Parameter (Mandatory = $false)] [bool]$interactiveEnabled
+        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled
     )
     If (!$userPromptBypass)
     {
@@ -7405,15 +7405,15 @@ Function New-L3vSphereClusterJsonFile
         {
             If ($clusterObject.determinedClusterConfig -eq "Multi-Rack Compute Only")
             {
-                LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve Domain, Host, Image and Datastore IDs from SDDC Manager/vCenter? (Y/N): " -skipnewline
+                LogMessage -Type QUESTION -Message "Do you wish to retrieve Domain, Host, Image and Datastore IDs from SDDC Manager/vCenter? (Y/N): " -skipnewline
             }
             else
             {
-                LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve Domain, Host and Image IDs from SDDC Manager? (Y/N): " -skipnewline
+                LogMessage -Type QUESTION -Message "Do you wish to retrieve Domain, Host and Image IDs from SDDC Manager? (Y/N): " -skipnewline
             }
-            $interactiveResponse = Read-Host    
-        } Until ($interactiveResponse -in "Y","N")
-        $interactiveEnabled = ($interactiveResponse -eq "Y")
+            $componentInterrogationResponse = Read-Host    
+        } Until ($componentInterrogationResponse -in "Y","N")
+        $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
     }
     else
     {
@@ -7424,7 +7424,7 @@ Function New-L3vSphereClusterJsonFile
         $vCenterAdminUser = $clusterObject.vcenterServer.adminUser
         $decodedVcenterPassword = $clusterObject.vcenterServer.adminPassword
     }
-    If ($interactiveEnabled)
+    If ($componentInterrogationEnabled)
     {
         If (!$userPromptBypass)
         {
@@ -7531,7 +7531,7 @@ Function New-L3vSphereClusterJsonFile
         $newNetworkProfileName = $clusterObject.az1.$($rack).network.networkProfileName
         Foreach ($selectedHost in $clusterObject.az1.$($rack).hosts)
         {
-            If ($interactiveEnabled)
+            If ($componentInterrogationEnabled)
             {
                 $hostID = Get-VCFHostDetails -Status UNASSIGNED_USEABLE | Select-Object fqdn, id | Where-Object { $_.fqdn -eq $selectedHost.fqdn }
                 If ($hostID)
@@ -7602,7 +7602,7 @@ Function New-L3vSphereClusterJsonFile
 
     If ($clusterObject.determinedClusterConfig -eq "Multi-Rack Compute Only")
     {
-        If ($interactiveEnabled)
+        If ($componentInterrogationEnabled)
         {
             $datastoreUuid = (Get-Datastore -name $clusterObject.vsphereClusters[0].vsanDatastore).ExtensionData.info.ContainerId
         }
@@ -7916,7 +7916,7 @@ Function New-L3vSphereClusterJsonFile
 
     If ($clusterObject.vsphereClusters[0].vlcmModel -eq "Images") 
     {
-        If ($interactiveEnabled)
+        If ($componentInterrogationEnabled)
         {
             LogMessage -Type INFO -Message "Obtaining Cluster Image Personality ID from SDDC Manager"
             $clusterImageId = (Get-VCFPersonalityDetails | Where-Object { $_.personalityName -eq $clusterObject.vsphereClusters[0].imageName }).personalityId
@@ -7933,7 +7933,7 @@ Function New-L3vSphereClusterJsonFile
         'clusterSpecs' = $clusterSpecObject
     }
 
-    If ($interactiveEnabled)
+    If ($componentInterrogationEnabled)
     {
         $domainID = (Get-VCFWorkloadDomainDetails -name $clusterObject.domainName).id
         If ($domainID)
@@ -7968,17 +7968,17 @@ Function New-StretchedClusterJsonFile
     Param (
         [Parameter (Mandatory = $true)] [Object]$instanceObject,
         [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
-        [Parameter (Mandatory = $false)] [bool]$interactiveEnabled
+        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled
     )
 
     If (!$userPromptBypass)
     {
         Do
         {
-            LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve Host IDs from SDDC Manager? (Y/N): " -skipnewline
-            $interactiveResponse = Read-Host    
-        } Until ($interactiveResponse -in "Y","N")
-        $interactiveEnabled = ($interactiveResponse -eq "Y")
+            LogMessage -Type QUESTION -Message "Do you wish to retrieve Host IDs from SDDC Manager? (Y/N): " -skipnewline
+            $componentInterrogationResponse = Read-Host    
+        } Until ($componentInterrogationResponse -in "Y","N")
+        $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
     }
     else
     {
@@ -7986,7 +7986,7 @@ Function New-StretchedClusterJsonFile
         $sddcMgrUser = $instanceObject.sddcManager.adminUser
         $decodedPassword = $instanceObject.sddcManager.adminPassword
     }
-    If ($interactiveEnabled)
+    If ($componentInterrogationEnabled)
     {
         If (!$userPromptBypass)
         {
@@ -8070,7 +8070,7 @@ Function New-StretchedClusterJsonFile
     $hostSpecsObject = @()
     Foreach ($az2Host in $instanceObject.az2.rack1.hosts)
     {
-        If ($interactiveEnabled)
+        If ($componentInterrogationEnabled)
         {
             $hostID = Get-VCFHostDetails -Status UNASSIGNED_USEABLE | Select-Object fqdn, id | Where-Object { $_.fqdn -eq $az2Host.fqdn }
             If ($hostID)
@@ -8245,16 +8245,16 @@ Function New-SingleOperationStretchedComputeClusterJsonFile
     Param (
         [Parameter (Mandatory = $true)] [Object]$clusterObject,
         [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
-        [Parameter (Mandatory = $false)] [bool]$interactiveEnabled
+        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled
     )
     If (!$userPromptBypass)
     {
         Do
         {
-            LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve Domain, Host, Image and Datastore IDs from SDDC Manager/vCenter? (Y/N): " -skipnewline
-            $interactiveResponse = Read-Host    
-        } Until ($interactiveResponse -in "Y","N")
-        $interactiveEnabled = ($interactiveResponse -eq "Y")
+            LogMessage -Type QUESTION -Message "Do you wish to retrieve Domain, Host, Image and Datastore IDs from SDDC Manager/vCenter? (Y/N): " -skipnewline
+            $componentInterrogationResponse = Read-Host    
+        } Until ($componentInterrogationResponse -in "Y","N")
+        $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
     }
     else
     {
@@ -8265,7 +8265,7 @@ Function New-SingleOperationStretchedComputeClusterJsonFile
         $vCenterAdminUser = $clusterObject.vcenterServer.adminUser
         $decodedVcenterPassword = $clusterObject.vcenterServer.adminPassword
     }
-    If ($interactiveEnabled)
+    If ($componentInterrogationEnabled)
     {
         If (!$userPromptBypass)
         {
@@ -8363,7 +8363,7 @@ Function New-SingleOperationStretchedComputeClusterJsonFile
 
     Foreach ($selectedHost in $clusterObject.az1.$($rack).hosts)
     {
-        If ($interactiveEnabled)
+        If ($componentInterrogationEnabled)
         {
             $hostID = Get-VCFHostDetails -Status UNASSIGNED_USEABLE | Select-Object fqdn, id | Where-Object { $_.fqdn -eq $selectedHost.fqdn }
             If ($hostID)
@@ -8402,7 +8402,7 @@ Function New-SingleOperationStretchedComputeClusterJsonFile
 
     Foreach ($selectedHost in $clusterObject.az2.$($rack).hosts)
     {
-        If ($interactiveEnabled)
+        If ($componentInterrogationEnabled)
         {
             $hostID = Get-VCFHostDetails -Status UNASSIGNED_USEABLE | Select-Object fqdn, id | Where-Object { $_.fqdn -eq $selectedHost.fqdn }
             If ($hostID)
@@ -8469,7 +8469,7 @@ Function New-SingleOperationStretchedComputeClusterJsonFile
     
     If ($clusterObject.determinedClusterConfig -eq "Stretched Compute Only")
     {
-        If ($interactiveEnabled)
+        If ($componentInterrogationEnabled)
         {
             $datastoreUuid = (Get-Datastore -name $clusterObject.vsphereClusters[0].vsanDatastore).ExtensionData.info.ContainerId
         }
@@ -8823,7 +8823,7 @@ Function New-SingleOperationStretchedComputeClusterJsonFile
     
     If ($clusterObject.vsphereClusters[0].vlcmModel -eq "Images") 
     {
-        If ($interactiveEnabled)
+        If ($componentInterrogationEnabled)
         {
             LogMessage -Type INFO -Message "Obtaining Cluster Image Personality ID from SDDC Manager"
             $clusterImageId = (Get-VCFPersonalityDetails | Where-Object { $_.personalityName -eq $clusterObject.vsphereClusters[0].imageName }).personalityId
@@ -8840,7 +8840,7 @@ Function New-SingleOperationStretchedComputeClusterJsonFile
         'clusterSpecs' = $clusterSpecObject
     }
 
-    If ($interactiveEnabled)
+    If ($componentInterrogationEnabled)
     {
         $domainID = (Get-VCFWorkloadDomainDetails -name $clusterObject.domainName).id
         If ($domainID)
@@ -8878,7 +8878,7 @@ Function New-CentralizedTransitGatewayJsonFile
         [Parameter (Mandatory = $true)] [Object]$instanceObject,
         [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
         [Parameter (Mandatory = $false)] [switch]$platformTools,
-        [Parameter (Mandatory = $false)] [bool]$interactiveEnabled
+        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled
     )
     If ($platformTools)
     {
@@ -8896,12 +8896,12 @@ Function New-CentralizedTransitGatewayJsonFile
         {
             Do
             {
-                LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve Transport Zone, Host Switch Profile and Target Infrastructure IDs from NSX Manager/vCenter? (Y/N): " -skipnewline
-                $interactiveResponse = Read-Host    
-            } Until ($interactiveResponse -in "Y","N")
-            $interactiveEnabled = ($interactiveResponse -eq "Y")
+                LogMessage -Type QUESTION -Message "Do you wish to retrieve Transport Zone, Host Switch Profile and Target Infrastructure IDs from NSX Manager/vCenter? (Y/N): " -skipnewline
+                $componentInterrogationResponse = Read-Host    
+            } Until ($componentInterrogationResponse -in "Y","N")
+            $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
         }
-        If ($interactiveEnabled)
+        If ($componentInterrogationEnabled)
         {
             Do
             {
@@ -8936,7 +8936,7 @@ Function New-CentralizedTransitGatewayJsonFile
         }
     }
 
-    If ($interactiveEnabled)
+    If ($componentInterrogationEnabled)
     {
         $overlayTransportZonePath = (Get-NsxTransportZones -nsxtManagerFqdn $nsxtManagerFqdn -nsxtusername $nsxtManagerAdminUser -nsxtpassword $decodedNsxPassword | Where-Object {$_.tz_type -in "OVERLAY_BACKED" -and $_.is_default -eq "True"}).path
         $computeCollection1 = Get-NsxComputeCollections -nsxtManagerFqdn $nsxtManagerFqdn -nsxtUsername $nsxtManagerAdminUser -nsxtPassword $decodedNSXPassword  | Where-Object {$_.display_name -eq $instanceObject.edgeCluster.nodes.node1.clusterName}
@@ -9501,7 +9501,7 @@ Function New-CentralizedTransitGatewayJsonFile
     $serviceGatwayObject | Add-Member -NotePropertyName 'nat_config' -NotePropertyValue $natConfigObject
 
     
-    If ($interactiveEnabled)
+    If ($componentInterrogationEnabled)
     {
         $vpcConnectivityProfileRevision = ((Get-NsxVpcConnectivityProfiles -nsxtUsername $nsxtManagerAdminUser -nsxtManagerFqdn $nsxtManagerFqdn -nsxtPassword $decodedNSXPassword) | Where-Object {$_.display_name -eq "Default VPC Connectivity Profile"})._revision
     }
@@ -9547,7 +9547,7 @@ Function New-CentralizedTransitGatewayJsonFile
     $ChildTransitGatewayAttachmentObject | Add-Member -NotePropertyName 'TransitGatewayAttachment' -NotePropertyValue $TransitGatewayAttachmentObject
     $ChildTransitGatewayAttachmentObject | Add-Member -NotePropertyName 'resource_type' -NotePropertyValue "ChildTransitGatewayAttachment"
 
-    If ($interactiveEnabled)
+    If ($componentInterrogationEnabled)
     {
         $transitGatewayRevision = ((Get-NsxTransitGateways -nsxtUsername $nsxtManagerAdminUser -nsxtManagerFqdn $nsxtManagerFqdn -nsxtPassword $decodedNSXPassword) | Where-Object {$_.display_name -eq "Default Transit Gateway"})._revision
     }
@@ -9838,17 +9838,17 @@ Function New-DayNIdbJsonFile
     Param (
         [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
         [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
-        [Parameter (Mandatory = $false)] [bool]$interactiveEnabled
+        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled
     )
 
     If (!$userPromptBypass)
     {
         Do
         {
-            LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve locker information from Fleet Manager? (Y/N): " -skipnewline
-            $interactiveResponse = Read-Host    
-        } Until ($interactiveResponse -in "Y","N")
-        $interactiveEnabled = ($interactiveResponse -eq "Y")
+            LogMessage -Type QUESTION -Message "Do you wish to retrieve locker information from Fleet Manager? (Y/N): " -skipnewline
+            $componentInterrogationResponse = Read-Host    
+        } Until ($componentInterrogationResponse -in "Y","N")
+        $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
     }
     else
     {
@@ -9856,7 +9856,7 @@ Function New-DayNIdbJsonFile
         $fleetManagerAdminUser = $sharedInstanceObject.fleetManager.adminUser
         $decodedFmPassword = $sharedInstanceObject.fleetManager.adminUserPassword
     }
-    If ($interactiveEnabled)
+    If ($componentInterrogationEnabled)
     {
         If (!$userPromptBypass)
         {
@@ -9885,7 +9885,7 @@ Function New-DayNIdbJsonFile
     }
 
     
-    If ($interactiveEnabled)
+    If ($componentInterrogationEnabled)
     {
         $vcLockerPasswordEntry = (Get-FleetManagerLockerPassword -fqdn $fleetManagerFqdn -username $fleetManagerAdminUser -password $decodedFmPassword | Where-Object {$_.alias -like "*$($sharedInstanceObject.idb.vCenter)*"})
         $vcLockerPasswordUsername = $vcLockerPasswordEntry.userName
@@ -9994,17 +9994,17 @@ Function New-DayNLogsLegacyJsonFile
     Param (
         [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
         [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
-        [Parameter (Mandatory = $false)] [bool]$interactiveEnabled
+        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled
     )
 
     If (!$userPromptBypass)
     {
         Do
         {
-            LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve locker information from Fleet Manager? (Y/N): " -skipnewline
-            $interactiveResponse = Read-Host    
-        } Until ($interactiveResponse -in "Y","N")
-        $interactiveEnabled = ($interactiveResponse -eq "Y")
+            LogMessage -Type QUESTION -Message "Do you wish to retrieve locker information from Fleet Manager? (Y/N): " -skipnewline
+            $componentInterrogationResponse = Read-Host    
+        } Until ($componentInterrogationResponse -in "Y","N")
+        $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
     }
     else
     {
@@ -10012,7 +10012,7 @@ Function New-DayNLogsLegacyJsonFile
         $fleetManagerAdminUser = $sharedInstanceObject.fleetManager.adminUser
         $decodedFmPassword = $sharedInstanceObject.fleetManager.adminUserPassword
     }
-    If ($interactiveEnabled)
+    If ($componentInterrogationEnabled)
     {
         If (!$userPromptBypass)
         {
@@ -10041,7 +10041,7 @@ Function New-DayNLogsLegacyJsonFile
     }
 
     
-    If ($interactiveEnabled)
+    If ($componentInterrogationEnabled)
     {
         $vcLockerPasswordEntry = (Get-FleetManagerLockerPassword -fqdn $fleetManagerFqdn -username $fleetManagerAdminUser -password $decodedFmPassword | Where-Object {$_.alias -like "*$($sharedInstanceObject.logs.vCenter)*"})
         $vcLockerPasswordUsername = $vcLockerPasswordEntry.userName
@@ -10231,7 +10231,7 @@ Function New-DayNLogsModernJsonFile
     Param (
         [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
         [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
-        [Parameter (Mandatory = $false)] [bool]$interactiveEnabled
+        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled
     )
 
     <# Reference Sample JSON
@@ -10254,15 +10254,15 @@ Function New-DayNLogsModernJsonFile
 
     If (!$userPromptBypass)
     {
-        LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve SDDC LCM ID? (Y/N): " -skipnewline            
+        LogMessage -Type QUESTION -Message "Do you wish to retrieve SDDC LCM ID? (Y/N): " -skipnewline            
         Do
         {  
-            $interactiveResponse = Read-Host    
-        } Until ($interactiveResponse -in "Y","N")
-        $interactiveEnabled = ($interactiveResponse -eq "Y")
+            $componentInterrogationResponse = Read-Host    
+        } Until ($componentInterrogationResponse -in "Y","N")
+        $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
     }
 
-    If ($interactiveEnabled)
+    If ($componentInterrogationEnabled)
     { 
         If (!$userPromptBypass)
         {
@@ -10322,17 +10322,17 @@ Function New-DayNNetworksLegacyJsonFile
     Param (
         [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
         [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
-        [Parameter (Mandatory = $false)] [bool]$interactiveEnabled
+        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled
     )
 
     If (!$userPromptBypass)
     {
         Do
         {
-            LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve locker information from Fleet Manager? (Y/N): " -skipnewline
-            $interactiveResponse = Read-Host    
-        } Until ($interactiveResponse -in "Y","N")
-        $interactiveEnabled = ($interactiveResponse -eq "Y")
+            LogMessage -Type QUESTION -Message "Do you wish to retrieve locker information from Fleet Manager? (Y/N): " -skipnewline
+            $componentInterrogationResponse = Read-Host    
+        } Until ($componentInterrogationResponse -in "Y","N")
+        $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
     }
     else
     {
@@ -10340,7 +10340,7 @@ Function New-DayNNetworksLegacyJsonFile
         $fleetManagerAdminUser = $sharedInstanceObject.fleetManager.adminUser
         $decodedFmPassword = $sharedInstanceObject.fleetManager.adminUserPassword
     }
-    If ($interactiveEnabled)
+    If ($componentInterrogationEnabled)
     {
         If (!$userPromptBypass)
         {
@@ -10369,7 +10369,7 @@ Function New-DayNNetworksLegacyJsonFile
     }
 
     
-    If ($interactiveEnabled)
+    If ($componentInterrogationEnabled)
     {
         $vcLockerPasswordEntry = (Get-FleetManagerLockerPassword -fqdn $fleetManagerFqdn -username $fleetManagerAdminUser -password $decodedFmPassword | Where-Object {$_.alias -like "*$($sharedInstanceObject.networks.vCenter)*"})
         $vcLockerPasswordUsername = $vcLockerPasswordEntry.userName
@@ -10546,7 +10546,7 @@ Function New-DayNNetworksModernJsonFile
     Param (
         [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
         [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
-        [Parameter (Mandatory = $false)] [bool]$interactiveEnabled
+        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled
     )
 
     <# Reference Sample JSON
@@ -10592,15 +10592,15 @@ Function New-DayNNetworksModernJsonFile
 
     If (!$userPromptBypass)
     {
-        LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve SDDC LCM ID? (Y/N): " -skipnewline            
+        LogMessage -Type QUESTION -Message "Do you wish to retrieve SDDC LCM ID? (Y/N): " -skipnewline            
         Do
         {  
-            $interactiveResponse = Read-Host    
-        } Until ($interactiveResponse -in "Y","N")
-        $interactiveEnabled = ($interactiveResponse -eq "Y")
+            $componentInterrogationResponse = Read-Host    
+        } Until ($componentInterrogationResponse -in "Y","N")
+        $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
     }
 
-    If ($interactiveEnabled)
+    If ($componentInterrogationEnabled)
     { 
         If (!$userPromptBypass)
         {
@@ -10684,7 +10684,7 @@ Function New-DayNRealTimeMetrics
     Param (
         [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
         [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
-        [Parameter (Mandatory = $false)] [bool]$interactiveEnabled
+        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled
     )
 
     <# Reference Sample JSOM
@@ -10702,15 +10702,15 @@ Function New-DayNRealTimeMetrics
 
     If (!$userPromptBypass)
     {
-        LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve SDDC LCM ID? (Y/N): " -skipnewline            
+        LogMessage -Type QUESTION -Message "Do you wish to retrieve SDDC LCM ID? (Y/N): " -skipnewline            
         Do
         {  
-            $interactiveResponse = Read-Host    
-        } Until ($interactiveResponse -in "Y","N")
-        $interactiveEnabled = ($interactiveResponse -eq "Y")
+            $componentInterrogationResponse = Read-Host    
+        } Until ($componentInterrogationResponse -in "Y","N")
+        $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
     }
 
-    If ($interactiveEnabled)
+    If ($componentInterrogationEnabled)
     { 
         If (!$userPromptBypass)
         {
@@ -10761,7 +10761,7 @@ Function New-DayNAutomationModernJsonFile
     Param (
         [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
         [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
-        [Parameter (Mandatory = $false)] [bool]$interactiveEnabled
+        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled
     )
 
     <# Reference Sample JSON
@@ -10796,15 +10796,15 @@ Function New-DayNAutomationModernJsonFile
 
     If (!$userPromptBypass)
     {
-        LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve SDDC LCM ID? (Y/N): " -skipnewline            
+        LogMessage -Type QUESTION -Message "Do you wish to retrieve SDDC LCM ID? (Y/N): " -skipnewline            
         Do
         {  
-            $interactiveResponse = Read-Host    
-        } Until ($interactiveResponse -in "Y","N")
-        $interactiveEnabled = ($interactiveResponse -eq "Y")
+            $componentInterrogationResponse = Read-Host    
+        } Until ($componentInterrogationResponse -in "Y","N")
+        $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
     }
 
-    If ($interactiveEnabled)
+    If ($componentInterrogationEnabled)
     { 
         If (!$userPromptBypass)
         {
@@ -10900,7 +10900,7 @@ Function New-DayNCompleteFleet
         [Parameter (Mandatory = $true)] [Object]$managementObject,
         [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
         [Parameter (Mandatory = $false)] [switch]$platformTools,
-        [Parameter (Mandatory = $false)] [bool]$interactiveEnabled
+        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled
     )
 
     <# Revised Reference JSON Spec
@@ -10973,16 +10973,16 @@ Function New-DayNCompleteFleet
 
     If (!$userPromptBypass)
     {
-        LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve fingerprints for SDDC Manager and vCenter? (Y/N): " -skipnewline
+        LogMessage -Type QUESTION -Message "Do you wish to retrieve fingerprints for SDDC Manager and vCenter? (Y/N): " -skipnewline
         Do
         {  
-            $interactiveResponse = Read-Host    
-        } Until ($interactiveResponse -in "Y","N")
-        $interactiveEnabled = ($interactiveResponse -eq "Y")
+            $componentInterrogationResponse = Read-Host    
+        } Until ($componentInterrogationResponse -in "Y","N")
+        $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
     }
 
     #sddcManagerSpec
-    If ($interactiveEnabled)
+    If ($componentInterrogationEnabled)
     {
         $sddcMgrFingerprint = (echo "Q" | openssl.exe s_client -connect "$($managementObject.sddcManager.fqdn):443" -showcerts 2>$null |  Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
     }
@@ -10996,7 +10996,7 @@ Function New-DayNCompleteFleet
     $sddcManagerSpecObject | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue 'true'
 
     #vcenterSpec
-    If ($interactiveEnabled)
+    If ($componentInterrogationEnabled)
     {
         $vCenterFingerprint = (echo "Q" | openssl.exe s_client -connect "$($managementObject.vCenterServer.fqdn):443" -showcerts 2>$null |  Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
     }
