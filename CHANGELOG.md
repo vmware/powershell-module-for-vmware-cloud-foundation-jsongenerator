@@ -2,7 +2,7 @@
 
 ## [v9.1.0.1002]
 > Release Date: 2026-06-xx
- - [Changed] Altered function parameters to better faciliate calls from VMware.PlatformTools module and pipeline testing
+ - [Changed] Altered function parameters to better facilitate calls from VMware.PlatformTools module and pipeline testing
 
 ## [v9.1.0.1001]
 > Release Date: 2026-06-17
