@@ -8880,14 +8880,27 @@ Function New-CentralizedTransitGatewayJsonFile
         [Parameter (Mandatory = $false)] [switch]$platformTools,
         [Parameter (Mandatory = $false)] [bool]$interactiveEnabled
     )
-    If (!$platformTools)
+    If ($platformTools)
     {
-        Do
+        $nsxtManagerFqdn = $instanceObject.nsxtManager.fqdn
+        $nsxtManagerAdminUser = $instanceObject.nsxtManager.adminUser
+        $decodedNsxPassword = $instanceObject.nsxtManager.adminPassword
+        $jumpboxName = hostname
+        $vCenterFqdn = $instanceObject.vcenterServer.fqdn
+        $vCenterAdminUser = $instanceObject.vcenterServer.adminUser
+        $decodedVcenterPassword = $instanceObject.vcenterServer.adminPassword
+    }
+    else
+    {
+        If (!$userPromptBypass)
         {
-            LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve Transport Zone, Host Switch Profile and Target Infrastructure IDs from NSX Manager/vCenter? (Y/N): " -skipnewline
-            $interactiveResponse = Read-Host    
-        } Until ($interactiveResponse -in "Y","N")
-        $interactiveEnabled = ($interactiveResponse -eq "Y")
+            Do
+            {
+                LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve Transport Zone, Host Switch Profile and Target Infrastructure IDs from NSX Manager/vCenter? (Y/N): " -skipnewline
+                $interactiveResponse = Read-Host    
+            } Until ($interactiveResponse -in "Y","N")
+            $interactiveEnabled = ($interactiveResponse -eq "Y")
+        }
         If ($interactiveEnabled)
         {
             Do
@@ -8921,16 +8934,6 @@ Function New-CentralizedTransitGatewayJsonFile
                 }
             } Until ($vCenterConnection)
         }
-    }
-    else 
-    {
-        $nsxtManagerFqdn = $instanceObject.nsxtManager.fqdn
-        $nsxtManagerAdminUser = $instanceObject.nsxtManager.adminUser
-        $decodedNsxPassword = $instanceObject.nsxtManager.adminPassword
-        $jumpboxName = hostname
-        $vCenterFqdn = $instanceObject.vcenterServer.fqdn
-        $vCenterAdminUser = $instanceObject.vcenterServer.adminUser
-        $decodedVcenterPassword = $instanceObject.vcenterServer.adminPassword
     }
 
     If ($interactiveEnabled)
