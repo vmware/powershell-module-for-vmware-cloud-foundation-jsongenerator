@@ -7071,7 +7071,7 @@ Function New-L2vSphereClusterJsonFile
             'esaConfig' =  ($ESAenabledtrueobject | Select-Object -Skip 0)
             }
         }
-        elseIf ($instanceObject.vsphereClusters[0].storageModel -eq "VSAN-OSA") 
+        elseIf ($clusterObject.vsphereClusters[0].storageModel -eq "VSAN-OSA") 
         {
             $vsanDatastoreObject += [pscustomobject]@{
             'failuresToTolerate' = "1"
