@@ -1321,14 +1321,13 @@ Function New-RackBasedHostCommissioning
     )
     Remove-Variable commissionNestedHosts -errorAction silentlyContinue
 
-    Do
-    {
-        LogMessage -Type QUESTION -Message "Do you wish to create a commissioning JSON for submission via API (A) or UI (U)? " -skipnewline
-        $jsonMode = Read-Host    
-    } Until ($jsonMode -in "A","U")
-    
     If (!$userPromptBypass)
     {
+        Do
+        {
+            LogMessage -Type QUESTION -Message "Do you wish to create a commissioning JSON for submission via API (A) or UI (U)? " -skipnewline
+            $jsonMode = Read-Host    
+        } Until ($jsonMode -in "A","U")
         Do
         {
             LogMessage -Type QUESTION -Message "Do you wish to retrieve network pool IDs from SDDC Manager? (Y/N): " -skipnewline
@@ -1341,6 +1340,7 @@ Function New-RackBasedHostCommissioning
         $sddcMgrFqdn = $instanceObject.sddcManager.fqdn
         $sddcMgrUser = $instanceObject.sddcManager.adminUser
         $decodedPassword = $instanceObject.sddcManager.adminPassword
+        $jsonMode = "A"
     }
     If ($componentInterrogationEnabled)
     {
