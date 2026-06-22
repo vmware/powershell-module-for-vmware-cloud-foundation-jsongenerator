@@ -3053,7 +3053,7 @@ Function New-ManagementInstanceObject
             }
 
             $az1RackNetworkObject | Add-Member -notepropertyname 'networkProfileName' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)host_overlay_network_profile_name"].Value
-            #$az1RackNetworkObject | Add-Member -notepropertyname 'vcfNetworkPoolName' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)pool_name"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'vcfNetworkPoolName' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)pool_name"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'hostIpAddressPoolName' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)host_overlay_network_pool_name"].Value 
             $az1RackNetworkObject | Add-Member -notepropertyname 'hostIpAddressPoolDesc' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)host_overlay_network_pool_description"].Value 
             $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayAddressing' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_host_overlay_addressing_chosen"].Value
