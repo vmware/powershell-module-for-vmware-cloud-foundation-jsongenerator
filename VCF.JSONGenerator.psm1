@@ -2985,20 +2985,20 @@ Function New-ManagementInstanceObject
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionNetmask' -notepropertyvalue $networkDetails.netmask
             }
 
-            $az1RackNetworkObject | Add-Member -notepropertyname 'vsanVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)vsan_vlan"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'vsanMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)vsan_mtu"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'vsanPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)vsan_pool_start_ip"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'vsanPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)vsan_pool_end_ip"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'vsanVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)$($storageModifier)_vlan"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'vsanMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)$($storageModifier)_mtu"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'vsanPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)$($storageModifier)_pool_start_ip"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'vsanPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)$($storageModifier)_pool_end_ip"].Value
             If ($workbookLayout -eq "9.0")
             {
-                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)vsan_gateway_ip"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)vsan_cidr"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)vsan_network"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)vsan_mask"].Value    
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)$($storageModifier)_gateway_ip"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)$($storageModifier)_cidr"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)$($storageModifier)_network"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)$($storageModifier)_mask"].Value    
             }
             else 
             {
-                $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)vsan_gateway_cidr"].Value
+                $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)$($storageModifier)_gateway_cidr"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $networkDetails.gw
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $networkDetails.cidr
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $networkDetails.network
