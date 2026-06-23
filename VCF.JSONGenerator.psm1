@@ -2034,14 +2034,6 @@ Function New-WorkbookDeploymentProfile
     }
     else
     {
-        If ($instance -eq "InstanceA")
-        {
-            $joinFleet = "N"
-        }
-        else
-        {
-            $joinFleet = "Y"
-        }
 
         If ($pnpWorkbook.Workbook.Names["mgmt_domain_vcf_operations_ha_mode_chosen"].Value -eq "High Availability (Three-node)")
         {
@@ -2063,7 +2055,23 @@ Function New-WorkbookDeploymentProfile
         {
             $fleetManagementTiming = "bringup"
         }
-    
+
+        If ($instance -eq "InstanceA")
+        {
+            $joinFleet = "N"
+        }
+        else
+        {
+            If ($fleetManagementTiming -eq 'later')
+            {
+                $joinFleet = "N"
+            }
+            else
+            {
+                $joinFleet = "Y"
+            }
+        }
+
         If ($pnpWorkbook.Workbook.Names["mgmt_domain_vcf_automation_later_chosen"].Value -eq "Selected")
         {
             $skipAutomation = "Y"   
