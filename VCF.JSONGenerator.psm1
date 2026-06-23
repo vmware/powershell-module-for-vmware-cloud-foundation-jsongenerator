@@ -5852,6 +5852,7 @@ Function New-WorkloadDomainJsonFile
         [Parameter (Mandatory = $false)] [Switch]$userPromptBypass,
         [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled,
         [Parameter (Mandatory = $false)] [String]$targetFilePath,
+        [Parameter (Mandatory = $false)] [String]$singleNSXTManager,
         [Parameter (Mandatory = $false)] [Object]$selectedNSXManagerWorkloadObject        
     )
 
@@ -5901,6 +5902,7 @@ Function New-WorkloadDomainJsonFile
         }
 
         If (!$selectedNSXManagerWorkloadObject) {$selectedNSXManagerWorkloadObject = $instanceObject}
+        If (!$singleNSXTManager) { $singleNSXTManager = $selectedNSXManagerWorkloadObject.deploymentProfile.singleNSXTManager }
 
         $nsxtNode1Object = @()
         $nsxtNode1Object += [pscustomobject]@{
@@ -5925,7 +5927,7 @@ Function New-WorkloadDomainJsonFile
             'name'             = $selectedNSXManagerWorkloadObject.nsxtManager.nodeAHostname
             'networkDetailsSpec' = ($nsxtNode1Object | Select-Object -Skip 0)
         }
-        If ($selectedNSXManagerWorkloadObject.deploymentProfile.singleNSXTManager -eq "N")
+        If ($singleNSXTManager -eq "N")
         {
             $nsxtManagerObject += [pscustomobject]@{
                 'name'             = $selectedNSXManagerWorkloadObject.nsxtManager.nodeBHostname
