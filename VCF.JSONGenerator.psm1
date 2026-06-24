@@ -3019,14 +3019,14 @@ Function New-ManagementInstanceObject
                     $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)secondary_storage_network"].Value
                     $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)secondary_storage_mask"].Value
                 }
-                else 
+                <#else 
                 {
                     $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)secondary_storage_gateway_cidr"].Value
                     $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageGw' -notepropertyvalue $networkDetails.gw
                     $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageCidr' -notepropertyvalue $networkDetails.cidr
                     $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetwork' -notepropertyvalue $networkDetails.network
                     $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetmask' -notepropertyvalue $networkDetails.netmask
-                }
+                }#>
 
                 $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_dtgw_vlan"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_dtgw_mtu"].Value
@@ -3039,11 +3039,14 @@ Function New-ManagementInstanceObject
                 }
                 else 
                 {
-                    $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_dtgw_gateway_cidr"].Value
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwGw' -notepropertyvalue $networkDetails.gw
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwCidr' -notepropertyvalue $networkDetails.cidr
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwNetwork' -notepropertyvalue $networkDetails.network
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwNetmask' -notepropertyvalue $networkDetails.netmask
+                    If ($pnpWorkbook.Workbook.Names["mgmt_vns_chosen"].value -eq "Distributed Connectivity")
+                    {
+                        $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_dtgw_gateway_cidr"].Value
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwGw' -notepropertyvalue $networkDetails.gw
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwCidr' -notepropertyvalue $networkDetails.cidr
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwNetwork' -notepropertyvalue $networkDetails.network
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwNetmask' -notepropertyvalue $networkDetails.netmask
+                    }
                 }
             }
             
@@ -3715,11 +3718,14 @@ Function New-WorkloadInstanceObject
                 }
                 else
                 {
-                    $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_gateway_cidr"].Value
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageGw' -notepropertyvalue $networkDetails.gw
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageCidr' -notepropertyvalue $networkDetails.cidr
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetwork' -notepropertyvalue $networkDetails.network
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetmask' -notepropertyvalue $networkDetails.netmask
+                    If ($pnpWorkbook.Workbook.Names["wld_secondary_storage_chosen"].Value -ne "Exclude")
+                    {
+                        $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_gateway_cidr"].Value
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageGw' -notepropertyvalue $networkDetails.gw
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageCidr' -notepropertyvalue $networkDetails.cidr
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetwork' -notepropertyvalue $networkDetails.network
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetmask' -notepropertyvalue $networkDetails.netmask
+                    }
                 }
 
                 $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_dtgw_vlan"].Value
@@ -3733,11 +3739,14 @@ Function New-WorkloadInstanceObject
                 }
                 else 
                 {
-                    $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az1_dtgw_gateway_cidr"].Value
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwGw' -notepropertyvalue $networkDetails.gw
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwCidr' -notepropertyvalue $networkDetails.cidr
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwNetwork' -notepropertyvalue $networkDetails.network
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwNetmask' -notepropertyvalue $networkDetails.netmask
+                    If ($pnpWorkbook.Workbook.Names["wld_vns_chosen"].value -eq "Distributed Connectivity")
+                    {
+                        $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az1_dtgw_gateway_cidr"].Value
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwGw' -notepropertyvalue $networkDetails.gw
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwCidr' -notepropertyvalue $networkDetails.cidr
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwNetwork' -notepropertyvalue $networkDetails.network
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwNetmask' -notepropertyvalue $networkDetails.netmask
+                    }
                 }
             }
 
