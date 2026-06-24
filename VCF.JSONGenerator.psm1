@@ -2062,14 +2062,7 @@ Function New-WorkbookDeploymentProfile
         }
         else
         {
-            If ($fleetManagementTiming -eq 'later')
-            {
-                $joinFleet = "N"
-            }
-            else
-            {
-                $joinFleet = "Y"
-            }
+            $joinFleet = "Y"
         }
 
         If ($pnpWorkbook.Workbook.Names["mgmt_domain_vcf_automation_later_chosen"].Value -eq "Selected")
