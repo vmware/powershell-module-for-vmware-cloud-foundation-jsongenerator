@@ -1,5 +1,9 @@
 # Release History
 
+## [v9.1.0.1002]
+> Release Date: 2026-06-24
+- [Fixed] Error in 9.1 processing unnecessary gateway_cidrs
+
 ## [v9.1.0.1001]
 > Release Date: 2026-06-17
 - [Fixed] Management CTGW form factor lookup
