@@ -1,5 +1,9 @@
 # Release History
 
+## [v9.1.0.1003]
+> Release Date: 2026-06-25
+- [Fixed] Error in 9.1 deferred proxy custom portgroup information scraping
+
 ## [v9.1.0.1002]
 > Release Date: 2026-06-24
 - [Fixed] Error in 9.1 processing unnecessary gateway_cidrs
