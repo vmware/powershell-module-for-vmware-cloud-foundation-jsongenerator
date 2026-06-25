@@ -2315,15 +2315,17 @@ Function New-SharedInstanceObject
                 $vcfOperationsObject | Add-Member -notepropertyname 'rootUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_root_password"].Value
                 $vcfOperationsObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_admin_password"].Value
                 
-                $collectorNetworkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_proxy_az1_vcf_mgmt_gateway_cidr"].Value
-                $vcfOperationsObject | Add-Member -notepropertyname 'collectorApplianceSize' -notepropertyvalue ($pnpWorkbook.Workbook.Names["flt_def_vcf_operations_proxy_size_result"].Value).tolower()                
-                $vcfOperationsObject | Add-Member -notepropertyname 'collectorMgmtPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_proxy_az1_vcf_mgmt_pg"].Value
-                $vcfOperationsObject | Add-Member -notepropertyname 'collectorMgmtGwCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_proxy_az1_vcf_mgmt_gateway_cidr"].Value
+                If ($pnpWorkbook.Workbook.Names["flt_def_vcf_custom_network_chosen"].Value -eq "Selected")
+                {
+                    $collectorNetworkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_proxy_az1_vcf_mgmt_gateway_cidr"].Value
+                    $vcfOperationsObject | Add-Member -notepropertyname 'collectorMgmtPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_proxy_az1_vcf_mgmt_pg"].Value
+                    $vcfOperationsObject | Add-Member -notepropertyname 'collectorMgmtGwCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_proxy_az1_vcf_mgmt_gateway_cidr"].Value
+                }                
+                $vcfOperationsObject | Add-Member -notepropertyname 'collectorApplianceSize' -notepropertyvalue ($pnpWorkbook.Workbook.Names["flt_def_vcf_operations_proxy_size_result"].Value).tolower()
                 $vcfOperationsObject | Add-Member -notepropertyname 'collectorMgmtGw' -notepropertyvalue $collectorNetworkDetails.gw
                 $vcfOperationsObject | Add-Member -notepropertyname 'collectorMgmtSubnetMask' -notepropertyvalue $collectorNetworkDetails.netmask
                 $vcfOperationsObject | Add-Member -notepropertyname 'opsCollectorFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_proxy_fqdn"].Value
                 $vcfOperationsObject | Add-Member -notepropertyname 'opsCollectorRootUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_proxy_root_password"].Value
-
                 $vcfOperationsObject | Add-Member -notepropertyname 'useExisting' -notepropertyvalue $false
             }
             
