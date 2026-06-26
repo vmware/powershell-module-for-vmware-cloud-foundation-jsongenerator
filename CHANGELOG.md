@@ -1,7 +1,7 @@
 # Release History
 
 ## [v9.1.0.1004]
-> Release Date: 2026-06-xx
+> Release Date: 2026-06-26
  - [Changed] Altered function parameters to better facilitate calls from VMware.PlatformTools module and pipeline testing
 
 ## [v9.1.0.1003]
