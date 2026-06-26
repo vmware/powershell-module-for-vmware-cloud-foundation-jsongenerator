@@ -1203,7 +1203,6 @@ Function Get-NetworkDetailsFromGateway
     If ($parts.Count -ne 2)
     {
         LogMessage -type ERROR -message "Invalid input '$gatewayCidr'. Expected format: <gateway>/<prefix>, e.g. 192.168.1.1/24"
-        Return
     }
 
     $gwAddress  = $parts[0]
