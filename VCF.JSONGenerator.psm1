@@ -2185,6 +2185,14 @@ Function New-SharedInstanceObject
         {
             $vcfVersion = $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
         }
+        If ($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value -eq "First Instance")
+        {
+            $instance = "InstanceA"
+        }
+        else
+        {
+            $instance = "InstanceB"
+        }
         $vcfInstanceName = $pnpWorkbook.Workbook.Names["vcf_instance_name"].Value
         $domainName = $pnpWorkbook.Workbook.Names["mgmt_sddc_domain"].Value
         $deploymentProfileObject = New-WorkbookDeploymentProfile -pnpWorkbook $pnpWorkbook -vcfVersion $vcfVersion -type management
@@ -2612,14 +2620,6 @@ Function New-SharedInstanceObject
         $vspObject | Add-Member -notepropertyname 'startIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_vcfms_node_pool_start_ip"].Value
         $vspObject | Add-Member -notepropertyname 'endIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_vcfms_node_pool_end_ip"].Value
 
-        If ($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value -eq "First Instance")
-        {
-            $instance = "InstanceA"
-        }
-        else
-        {
-            $instance = "InstanceB"
-        }
         $sharedInstanceObject = New-Object -TypeName psobject
         $sharedInstanceObject | Add-Member -notepropertyname 'instance' -notepropertyvalue $instance
         $sharedInstanceObject | Add-Member -notepropertyname 'domainName' -notepropertyvalue $domainName
@@ -2673,7 +2673,15 @@ Function New-ManagementInstanceObject
         {
             $vcfVersion = $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
         }
-
+        If ($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value -eq "First Instance")
+        {
+            $instance = "InstanceA"
+        }
+        else
+        {
+            $instance = "InstanceB"
+        }
+        
         If ($userPromptBypass)
         {
             $workbookLayout = "9.0"
@@ -3312,14 +3320,6 @@ Function New-ManagementInstanceObject
             }
         }
         
-        If ($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value -eq "First Instance")
-        {
-            $instance = "InstanceA"
-        }
-        else
-        {
-            $instance = "InstanceB"
-        }
         $managementInstanceObject = New-Object -TypeName psobject
         $managementInstanceObject | Add-Member -notepropertyname 'instance' -notepropertyvalue $instance
         $managementInstanceObject | Add-Member -notepropertyname 'version' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
@@ -3399,6 +3399,14 @@ Function New-WorkloadInstanceObject
         If (!$vcfVersion)
         {
             $vcfVersion = $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
+        }
+        If ($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value -eq "First Instance")
+        {
+            $instance = "InstanceA"
+        }
+        else
+        {
+            $instance = "InstanceB"
         }
         
         If ($pnpWorkbook.Workbook.Names["wld_domain_chosen"].Value -eq "Deploy Workload Domain with a Multi-Rack Layer 3 Cluster")
@@ -3695,28 +3703,28 @@ Function New-WorkloadInstanceObject
                     }
                     else 
                     {
-                        $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)secondary_storage_gateway_cidr"].Value
+                        $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_gateway_cidr"].Value
                         $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageGw' -notepropertyvalue $networkDetails.gw
                         $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageCidr' -notepropertyvalue $networkDetails.cidr
                         $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetwork' -notepropertyvalue $networkDetails.network
                         $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetmask' -notepropertyvalue $networkDetails.netmask
                     }
                 }
-                
-                $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_dtgw_vlan"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_dtgw_mtu"].Value
+
+                $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_dtgw_vlan"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_dtgw_mtu"].Value
                 If ($workbookLayout -eq "9.0")
                 {
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_dtgw_gateway_ip"].Value
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_dtgw_cidr"].Value
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_dtgw_network"].Value
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_dtgw_mask"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_dtgw_gateway_ip"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_dtgw_cidr"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_dtgw_network"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_dtgw_mask"].Value
                 }
                 else 
                 {
                     If ($pnpWorkbook.Workbook.Names["mgmt_vns_chosen"].value -eq "Distributed Connectivity")
                     {
-                        $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_dtgw_gateway_cidr"].Value
+                        $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az1_dtgw_gateway_cidr"].Value
                         $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwGw' -notepropertyvalue $networkDetails.gw
                         $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwCidr' -notepropertyvalue $networkDetails.cidr
                         $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwNetwork' -notepropertyvalue $networkDetails.network
@@ -3960,14 +3968,6 @@ Function New-WorkloadInstanceObject
             }
         }
 
-        If ($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value -eq "First Instance")
-        {
-            $instance = "InstanceA"
-        }
-        else
-        {
-            $instance = "InstanceB"
-        }
         $workloadInstanceObject = New-Object -TypeName psobject
         $workloadInstanceObject | Add-Member -notepropertyname 'instance' -notepropertyvalue $instance
         $workloadInstanceObject | Add-Member -notepropertyname 'version' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
