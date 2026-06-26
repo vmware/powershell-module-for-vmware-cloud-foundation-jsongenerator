@@ -3004,9 +3004,9 @@ Function New-ManagementInstanceObject
                 }
                 else
                 {
-                    If ($pnpWorkbook.Workbook.Names["wld_secondary_storage_chosen"].Value -ne "Exclude")
+                    If ($pnpWorkbook.Workbook.Names["mgmt_principal_storage_chosen"].Value -ne "NFSv3")
                     {
-                        $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_gateway_cidr"].Value
+                        $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)secondary_storage_gateway_cidr"].Value
                         $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageGw' -notepropertyvalue $networkDetails.gw
                         $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageCidr' -notepropertyvalue $networkDetails.cidr
                         $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetwork' -notepropertyvalue $networkDetails.network
