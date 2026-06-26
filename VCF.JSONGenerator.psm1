@@ -3722,20 +3722,20 @@ Function New-WorkloadInstanceObject
     
             If ($rack -eq "rack1")
             {
-                $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_vlan"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_mtu"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_pool_start_ip"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_pool_end_ip"].Value
-                If ($workbookLayout -eq "9.0")
+                If ($pnpWorkbook.Workbook.Names["wld_secondary_storage_chosen"].Value -ne "Exclude")
                 {
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_gateway_ip"].Value
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_cidr"].Value
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_network"].Value
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_mask"].Value
-                }
-                else
-                {
-                    If ($pnpWorkbook.Workbook.Names["wld_secondary_storage_chosen"].Value -ne "Exclude")
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_vlan"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_mtu"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_pool_start_ip"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_pool_end_ip"].Value
+                    If ($workbookLayout -eq "9.0")
+                    {
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_gateway_ip"].Value
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_cidr"].Value
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_network"].Value
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_mask"].Value
+                    }
+                    else
                     {
                         $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_gateway_cidr"].Value
                         $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageGw' -notepropertyvalue $networkDetails.gw
@@ -3744,7 +3744,7 @@ Function New-WorkloadInstanceObject
                         $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetmask' -notepropertyvalue $networkDetails.netmask
                     }
                 }
-
+                
                 $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_dtgw_vlan"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_dtgw_mtu"].Value
                 If ($workbookLayout -eq "9.0")
