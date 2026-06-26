@@ -2195,8 +2195,16 @@ Function New-SharedInstanceObject
                 $workbookLayout = "9.1"
             }
         }
+        If ($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value -eq "First Instance")
+        {
+            $instance = "InstanceA"
+        }
+        else
+        {
+            $instance = "InstanceB"
+        }
         $vcfInstanceName = $pnpWorkbook.Workbook.Names["vcf_instance_name"].Value
-        $domainName = $pnpWorkbook.Workbook.Names["mgmt_sddc_domain"].Value
+        $domainName = $pnpWorkbook.Workbook.Names["mgmt_sddc_domain"].Value    
         $deploymentProfileObject = New-WorkbookDeploymentProfile -pnpWorkbook $pnpWorkbook -vcfVersion $vcfVersion -type management
 
         $sddcManagerObject = New-Object -TypeName psobject
@@ -2622,14 +2630,6 @@ Function New-SharedInstanceObject
         $vspObject | Add-Member -notepropertyname 'startIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_vcfms_node_pool_start_ip"].Value
         $vspObject | Add-Member -notepropertyname 'endIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_vcfms_node_pool_end_ip"].Value
 
-        If ($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value -eq "First Instance")
-        {
-            $instance = "InstanceA"
-        }
-        else
-        {
-            $instance = "InstanceB"
-        }
         $sharedInstanceObject = New-Object -TypeName psobject
         $sharedInstanceObject | Add-Member -notepropertyname 'instance' -notepropertyvalue $instance
         $sharedInstanceObject | Add-Member -notepropertyname 'domainName' -notepropertyvalue $domainName
@@ -2691,6 +2691,14 @@ Function New-ManagementInstanceObject
             {
                 $workbookLayout = "9.1"
             }
+        }
+        If ($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value -eq "First Instance")
+        {
+            $instance = "InstanceA"
+        }
+        else
+        {
+            $instance = "InstanceB"
         }
 
         $includeAz2 = ($pnpWorkbook.Workbook.Names["mgmt_stretched_cluster_result"].Value -eq "Included") -or ($platformTools)
@@ -3328,14 +3336,6 @@ Function New-ManagementInstanceObject
             }
         }
         
-        If ($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value -eq "First Instance")
-        {
-            $instance = "InstanceA"
-        }
-        else
-        {
-            $instance = "InstanceB"
-        }
         $managementInstanceObject = New-Object -TypeName psobject
         $managementInstanceObject | Add-Member -notepropertyname 'instance' -notepropertyvalue $instance
         $managementInstanceObject | Add-Member -notepropertyname 'version' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
@@ -3425,7 +3425,15 @@ Function New-WorkloadInstanceObject
                 $workbookLayout = "9.1"
             }
         }
-
+        If ($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value -eq "First Instance")
+        {
+            $instance = "InstanceA"
+        }
+        else
+        {
+            $instance = "InstanceB"
+        }
+        
         $includeAz2 = ($pnpWorkbook.Workbook.Names["wld_stretched_cluster_result"].Value -eq "Included") -or ($platformTools)
         
         If ($pnpWorkbook.Workbook.Names["wld_domain_chosen"].Value -eq "Deploy Workload Domain with a Multi-Rack Layer 3 Cluster")
@@ -3987,14 +3995,6 @@ Function New-WorkloadInstanceObject
             }
         }
 
-        If ($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value -eq "First Instance")
-        {
-            $instance = "InstanceA"
-        }
-        else
-        {
-            $instance = "InstanceB"
-        }
         $workloadInstanceObject = New-Object -TypeName psobject
         $workloadInstanceObject | Add-Member -notepropertyname 'instance' -notepropertyvalue $instance
         $workloadInstanceObject | Add-Member -notepropertyname 'version' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
