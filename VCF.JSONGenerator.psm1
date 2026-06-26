@@ -6817,7 +6817,7 @@ Function New-NetworkPoolJsonFile
                     $networkObject = @()
                     $networkObject += [pscustomobject]@{
                         'type'    = "VMOTION"
-                        'vlanId'  = $instanceObject.$($az).$($rack).network.vmotionVlanID
+                        'vlanId'  = $instanceObject.$($az).$($rack).network.vmotionVlanID -as [string]
                         'mtu'     = $vmotionMtu
                         'subnet'  = $instanceObject.$($az).$($rack).network.vmotionNetwork
                         'mask'    = $instanceObject.$($az).$($rack).network.vmotionNetmask
@@ -6826,7 +6826,7 @@ Function New-NetworkPoolJsonFile
                     }
                     $networkObject += [pscustomobject]@{
                         'type'    = "VSAN"
-                        'vlanId'  = $instanceObject.$($az).$($rack).network.vsanVlanID
+                        'vlanId'  = $instanceObject.$($az).$($rack).network.vsanVlanID -as [string]
                         'mtu'     = $vsanMtu
                         'subnet'  = $instanceObject.$($az).$($rack).network.vsanNetwork
                         'mask'    = $instanceObject.$($az).$($rack).network.vsanNetmask
