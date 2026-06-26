@@ -5,8 +5,11 @@
  - [Changed] Altered function parameters to better facilitate calls from VMware.PlatformTools module and pipeline testing
 
 ## [v9.1.0.1003]
-> Release Date: 2026-06-25
+> Release Date: 2026-06-26
+- [Changed] Error reporting to be more informative
 - [Fixed] Error in 9.1 deferred proxy custom portgroup information scraping
+- [Fixed] Allowed for Excel styleid variances in New-NetworkPoolJsonFile
+- [Fixed] Conditional logic for scraping storage networks
 
 ## [v9.1.0.1002]
 > Release Date: 2026-06-24
