@@ -4544,14 +4544,14 @@ Function New-ManagementDomainJsonFile
             #Get FingerPrints
             If ($componentInterrogationEnabled)
             {
-                $ops01fingerprint = (echo "Q" | openssl.exe s_client -connect "$($sharedInstanceObject.operations.nodeAFqdn):443" -showcerts 2>$null |  Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
+                $ops01fingerprint = (echo "Q" | openssl.exe s_client -connect "$($sharedInstanceObject.operations.nodeAFqdn):443" -showcerts 2>$null | Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
                 If ($instanceObject.version -like "9.0*")
                 {
-                    $fm01fingerprint = (echo "Q" | openssl.exe s_client -connect "$($sharedInstanceObject.fleetManager.fqdn):443" -showcerts 2>$null |  Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
+                    $fm01fingerprint = (echo "Q" | openssl.exe s_client -connect "$($sharedInstanceObject.fleetManager.fqdn):443" -showcerts 2>$null | Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
                 }
                 If ($skipAutomation -eq "N")
                 {
-                    $auto01fingerprint = (echo "Q" | openssl.exe s_client -connect "$($sharedInstanceObject.automation.vipFqdn):443" -showcerts 2>$null |  Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
+                    $auto01fingerprint = (echo "Q" | openssl.exe s_client -connect "$($sharedInstanceObject.automation.vipFqdn):443" -showcerts 2>$null | Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
                 }
             }
             else
@@ -5009,11 +5009,11 @@ Function New-ManagementDomainJsonFile
                 {
                     If ([System.Environment]::OSVersion.Platform -eq 'Win32NT')
                     {
-                        $fingerprint = (echo "Q" | openssl.exe s_client -connect "$($hostInstance.fqdn):443" -showcerts 2>$null |  Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
+                        $fingerprint = (echo "Q" | openssl.exe s_client -connect "$($hostInstance.fqdn):443" -showcerts 2>$null | Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
                     }
                     else
                     {
-                        $fingerprint = (echo "Q" | openssl s_client -connect "$($hostInstance.fqdn):443" -showcerts 2>$null |  Filter-X509 | openssl x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
+                        $fingerprint = (echo "Q" | openssl s_client -connect "$($hostInstance.fqdn):443" -showcerts 2>$null | Filter-X509 | openssl x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
                     }
                     If ($fingerprint)
                     {
@@ -11015,7 +11015,7 @@ Function New-DayNCompleteFleet
     #sddcManagerSpec
     If ($componentInterrogationEnabled)
     {
-        $sddcMgrFingerprint = (echo "Q" | openssl.exe s_client -connect "$($managementObject.sddcManager.fqdn):443" -showcerts 2>$null |  Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
+        $sddcMgrFingerprint = (echo "Q" | openssl.exe s_client -connect "$($managementObject.sddcManager.fqdn):443" -showcerts 2>$null | Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
     }
     else
     {
@@ -11029,7 +11029,7 @@ Function New-DayNCompleteFleet
     #vcenterSpec
     If ($componentInterrogationEnabled)
     {
-        $vCenterFingerprint = (echo "Q" | openssl.exe s_client -connect "$($managementObject.vCenterServer.fqdn):443" -showcerts 2>$null |  Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
+        $vCenterFingerprint = (echo "Q" | openssl.exe s_client -connect "$($managementObject.vCenterServer.fqdn):443" -showcerts 2>$null | Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
     }
     else
     {
