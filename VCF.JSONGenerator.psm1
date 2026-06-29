@@ -3095,35 +3095,39 @@ Function New-ManagementInstanceObject
             $az1RackNetworkObject | Add-Member -notepropertyname 'hostIpAddressPoolDesc' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)host_overlay_network_pool_description"].Value 
             $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayAddressing' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_host_overlay_addressing_chosen"].Value
             
-            $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_management_vlan"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_management_mtu"].Value
             If ($workbookLayout -eq "9.0")
             {
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_management_vlan"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_management_mtu"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_management_gateway_ip"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_management_cidr"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_management_network"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_management_mask"].Value
             }
             else 
-            {
-                If ($pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value -eq "Unselected")
+            {             
+                If ($pnpWorkbook.Workbook.Names["mgmt_vcf_management_network_chosen"].Value -eq "Use a separate dedicated network")
                 {
-                  # If Day-0
-                  $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_vcf_mgmt_gateway_cidr"].Value
-                  $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkGw' -notepropertyvalue $networkDetails.gw
-                  $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkCidr' -notepropertyvalue $networkDetails.cidr
-                  $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkNetwork' -notepropertyvalue $networkDetails.network
-                  $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkNetmask' -notepropertyvalue $networkDetails.netmask   
+                    $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["mgmt_az1_vcf_mgmt_gateway_cidr"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_vcf_mgmt_vlan"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_vcf_mgmt_mtu"].Value
+                }
+                elseIf ($pnpWorkbook.Workbook.Names["mgmt_dpg_reuse_chosen"].Value -eq "Use a separate dedicated network")
+                {
+                    $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["mgmt_az1_mgmt_vm_gateway_cidr"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_mgmt_vm_vlan"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_mgmt_vm_mtu"].Value    
                 }
                 else
                 {
-                    # If Day N
-                    $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_az1_vcf_mgmt_gateway_cidr"].Value
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkGw' -notepropertyvalue $networkDetails.gw
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkCidr' -notepropertyvalue $networkDetails.cidr
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkNetwork' -notepropertyvalue $networkDetails.network
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkNetmask' -notepropertyvalue $networkDetails.netmask   
+                    $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["mgmt_az1_mgmt_gateway_cidr"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_mgmt_vlan"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_mgmt_mtu"].Value    
                 }
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkGw' -notepropertyvalue $networkDetails.gw
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkCidr' -notepropertyvalue $networkDetails.cidr
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkNetwork' -notepropertyvalue $networkDetails.network
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkNetmask' -notepropertyvalue $networkDetails.netmask
             }
 
             $az1RackObject = New-Object -TypeName psobject
