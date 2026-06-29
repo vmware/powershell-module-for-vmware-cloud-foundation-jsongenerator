@@ -1,5 +1,9 @@
 # Release History
 
+## [v9.1.0.1005]
+> Release Date: 2026-xx-xx
+ - [Fixed] L3 Multi-Rack Workload Domain deployments
+
 ## [v9.1.0.1004]
 > Release Date: 2026-06-26
  - [Changed] Altered function parameters to better facilitate calls from VMware.PlatformTools module and pipeline testing
