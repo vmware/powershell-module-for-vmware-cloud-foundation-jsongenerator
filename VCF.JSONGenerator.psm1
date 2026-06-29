@@ -156,7 +156,7 @@ Function Start-VCFJsonGeneration
 
                 If ($workloadObject.stretchCluster.required)
                 {
-                    if ($workloadObject.rackinformation.multiRackChosen -eq "Included")
+                    if ($workloadObject.rackinformation.multiRackResult -eq "Included")
                     {
                         $menuItem23 = "Stretch Initial Cluster (Disabled: Not supported with Multi-Rack cluster)"
                         $workloadMenuStretchedClusterColour = $disabledColour
@@ -4383,7 +4383,7 @@ Function New-ClusterObject
         }
         $clusterObject | Add-Member -notepropertyname 'networkPoolCreationRequired' -notepropertyvalue $networkPoolCreationRequired
         
-        If ($clusterObject.rackinformation.multiRackChosen -eq "Excluded")
+        If ($clusterObject.rackinformation.multiRackResult -eq "Excluded")
         {
             If ($clusterObject.vsphereClusters[0].vsanType -eq "vSAN HCI")
             {
@@ -4405,7 +4405,7 @@ Function New-ClusterObject
                 }                
             }
         }
-        elseIf ($clusterObject.rackinformation.multiRackChosen -eq "Included")
+        elseIf ($clusterObject.rackinformation.multiRackResult -eq "Included")
         {
             If ($clusterObject.vsphereClusters[0].vsanType -eq "vSAN HCI")
             {
@@ -6073,7 +6073,7 @@ Function New-WorkloadDomainJsonFile
                 $hostnetworkObject += [pscustomobject]@{
                     'vmNics' = $vmnicObject
                 }
-                If ($instanceObject.rackinformation.multiRackChosen -eq "Included")
+                If ($instanceObject.rackinformation.multiRackResult -eq "Included")
                 {
                     $hostnetworkObject | Add-Member -notepropertyName 'networkProfileName' -NotePropertyValue $instanceObject.az1.$($rack).network.networkProfileName
                 }
