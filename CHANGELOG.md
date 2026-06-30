@@ -1,8 +1,9 @@
 # Release History
 
 ## [v9.1.0.1005]
-> Release Date: 2026-xx-xx
+> Release Date: 2026-06-30
  - [Fixed] L3 Multi-Rack Workload Domain deployments
+ - [Fixed] VCF Managment Networks details with Deferred Deployments
 
 ## [v9.1.0.1004]
 > Release Date: 2026-06-26
