@@ -1,5 +1,45 @@
 # Release History
 
+## [v9.1.0.1005]
+> Release Date: 2026-06-30
+ - [Fixed] L3 Multi-Rack Workload Domain deployments
+ - [Fixed] VCF Managment Networks details with Deferred Deployments
+
+## [v9.1.0.1004]
+> Release Date: 2026-06-26
+ - [Changed] Altered function parameters to better facilitate calls from VMware.PlatformTools module and pipeline testing
+
+## [v9.1.0.1003]
+> Release Date: 2026-06-26
+- [Changed] Error reporting to be more informative
+- [Fixed] Error in 9.1 deferred proxy custom portgroup information scraping
+- [Fixed] Allowed for Excel styleid variances in New-NetworkPoolJsonFile
+- [Fixed] Conditional logic for scraping storage networks
+
+## [v9.1.0.1002]
+> Release Date: 2026-06-24
+- [Fixed] Error in 9.1 processing unnecessary gateway_cidrs
+
+## [v9.1.0.1001]
+> Release Date: 2026-06-17
+- [Fixed] Management CTGW form factor lookup
+
+## [v9.1.0.1000]
+> Release Date: 2026-06-12
+- [Added] Support for dual P&P Versions
+- [Added] Added Day-N Functions for 9.1
+- [Added] Added userPromptBypass to functions to support direct calls from PlatformTools
+- [Changed] Management Domain JSON function updated to support 9.1
+
+## [v9.0.0.1013]
+> Release Date: 2026-03-xx
+- [Fixed] WLD Sizing References
+
+## [v9.0.0.1012]
+> Release Date: 2026-02-20
+- [Added] Ability to bypass interactive questions on New-EdgeJSONFile for automation purposes
+- [Changed] Supported P&P File updaated to match current published version
+
 ## [v9.0.0.1011]
 > Release Date: 2026-02-04
 - [Added] Support for onboard change control to increase range of versions the workbook content transfer process can support

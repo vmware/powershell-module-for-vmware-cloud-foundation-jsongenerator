@@ -5,7 +5,10 @@
 
 $Global:version = ((Get-InstalledModule VCF.JSONGenerator).version -as [STRING])
 $Global:baseSupportedUserVersion = [INT]("190005")
-$Global:supportedAutomationVersion = [INT]("1822")
+$Global:supportedAutomationVersions = @(
+    @{ version = "9.0"; supportedAutomationVersion = [INT]("90002") },
+    @{ version = "9.1"; supportedAutomationVersion = [INT]("91002") }
+)
 If ($PSEdition -eq 'Core') {
     #$PSDefaultParameterValues.Add("Invoke-RestMethod:SkipCertificateCheck",$true)
     $Script:PSDefaultParameterValues = @{
@@ -30,6 +33,7 @@ else
     [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 }
 
+#Region Exported Functions
 Function Set-VCFJsonGenerationPrequisites
 {
     LogMessage -type INFO -message "Trusting PSGallery"
@@ -113,12 +117,12 @@ Function Start-VCFJsonGeneration
                 }
                 If ($managementObject.edgeCluster)
                 {
-                    $menuItem14 = "Edge Cluster"
+                    $menuItem14 = "Centralized Transit Gateway"
                     $managementMenuEdgeClusterColour = $enabledColour    
                 }
                 else
                 {
-                    $menuItem14 = "Edge Cluster (Disabled: Edges not required)"
+                    $menuItem14 = "Centralized Transit Gateway (Disabled: Centralized Transit Gateway not required)"
                     $managementMenuEdgeClusterColour = $disabledColour
                 }
             }
@@ -132,7 +136,7 @@ Function Start-VCFJsonGeneration
                 $managementMenuStretchedClusterColour = $disabledColour
                 $menuItem13 = "Stretch Initial Cluster"
                 $managementMenuStretchedClusterColour = $disabledColour
-                $menuItem14 = "Edge Cluster"
+                $menuItem14 = "Centralized Transit Gateway"
                 $managementMenuEdgeClusterColour = $disabledColour
             }
 
@@ -152,7 +156,7 @@ Function Start-VCFJsonGeneration
 
                 If ($workloadObject.stretchCluster.required)
                 {
-                    if ($workloadObject.rackInformation.multiRackChosen -eq "Y")
+                    if ($workloadObject.rackinformation.multiRackResult -eq "Included")
                     {
                         $menuItem23 = "Stretch Initial Cluster (Disabled: Not supported with Multi-Rack cluster)"
                         $workloadMenuStretchedClusterColour = $disabledColour
@@ -170,12 +174,12 @@ Function Start-VCFJsonGeneration
                 }
                 If ($workloadObject.edgecluster)
                 {
-                    $menuItem24 = "Edge Cluster"
+                    $menuItem24 = "Centralized Transit Gateway"
                     $workloadMenuEdgeClusterColour = $enabledColour    
                 }
                 else
                 {
-                       $menuItem24 = "Edge Cluster"
+                       $menuItem24 = "Centralized Transit Gateway"
                        $workloadMenuEdgeClusterColour = $disabledColour
                 }
             }
@@ -189,7 +193,7 @@ Function Start-VCFJsonGeneration
                 $menuItem21 = "Commission Hosts"
                 $menuItem22 = "Workload Domain JSON for use in SDDC Manager"
                 $menuItem23 = "Stretch Initial Cluster"
-                $menuItem24 = "Edge Cluster"
+                $menuItem24 = "Centralized Transit Gateway"
             }
             
             If ($clusterObject)
@@ -381,71 +385,141 @@ Function Start-VCFJsonGeneration
             }
 
             $headingItem05 = "Additional Components JSON Generation"
-            
-            If ($workbookProfile.opsAutomationDayNDeployment -eq "Selected")
+
+            If (-not $sharedInstanceObject)
             {
-                $menuItem40 = "VCF Operations and Automation Post Bringup"
-                $opsAndAutomationDayNColour = $enabledColour
+                $menuItem40 = "VCF Complete Fleet Deployment (Disabled: No workbook loaded)"
+                $completeFleetDayNColour = $disabledColour
             }
-            elseif ($workbookProfile.opsAutomationDayNDeployment -eq "Unselected")
+            elseIf ($workbookProfile.automationDayNDeployment -eq "Selected")
             {
-                $menuItem40 = "VCF Operations and Automation Post Bringup (Disabled: Not applicable based on loaded workbook)"
-                $opsAndAutomationDayNColour = $disabledColour
+                $menuItem40 = "VCF Complete Fleet Deployment (Disabled: Not applicable based on loaded workbook)"
+                $completeFleetDayNColour = $disabledColour
             }
-            else 
+            elseIf ($workbookProfile.opsAutomationDayNDeployment -eq "Selected")
             {
-                $menuItem40 = "VCF Operations and Automation Post Bringup"
-                $opsAndAutomationDayNColour = $disabledColour
+                If ($sharedInstanceObject.version -like "9.0*")
+                {
+                    $menuItem40 = "VCF Operations and Automation Post Bringup"
+                }
+                else
+                {
+                    $menuItem40 = "VCF Complete Fleet Deployment"
+                }
+                $completeFleetDayNColour = $enabledColour
+            }
+            else
+            {
+                $menuItem40 = "VCF Complete Fleet Deployment (Disabled: Not applicable based on loaded workbook)"
+                $completeFleetDayNColour = $disabledColour
             }
 
-            If ($workbookProfile.logsDayNDeployment -eq "Include")
+            $logsDayNLabel = If ($sharedInstanceObject.version -like "9.0*") { "VCF Operations for Logs" } else { "VCF Log Management" }
+            If (-not $sharedInstanceObject)
             {
-                $menuItem41 = "VCF Operations for Logs"
+                $menuItem42 = "VCF Operations for Logs (Disabled: No workbook loaded)"
+                $logsDayNColour = $disabledColour
+            }
+            elseIf ($workbookProfile.logsDayNDeployment -eq "Include")
+            {
+                $menuItem42 = $logsDayNLabel
                 $logsDayNColour = $enabledColour
             }
             elseif ($workbookProfile.logsDayNDeployment -eq "Exclude")
             {
-                $menuItem41 = "VCF Operations for Logs (Disabled: Not applicable based on loaded workbook)"
+                $menuItem42 = "$logsDayNLabel (Disabled: Not applicable based on loaded workbook)"
                 $logsDayNColour = $disabledColour
             }
             else
             {
-                $menuItem41 = "VCF Operations for Logs"
+                $menuItem42 = $logsDayNLabel
                 $logsDayNColour = $disabledColour
             }
 
-            If ($workbookProfile.networksDayNDeployment -eq "Include")
+            If (-not $sharedInstanceObject)
             {
-                $menuItem42 = "VCF Operations for Networks"
+                $menuItem43 = "VCF Operations for Networks (Disabled: No workbook loaded)"
+                $networksDayNColour = $disabledColour
+            }
+            elseIf ($workbookProfile.networksDayNDeployment -eq "Include")
+            {
+                $menuItem43 = "VCF Operations for Networks"
                 $networksDayNColour = $enabledColour
             }
             elseif ($workbookProfile.networksDayNDeployment -eq "Exclude")
             {
-                $menuItem42 = "VCF Operations for Networks (Disabled: Not applicable based on loaded workbook)"
+                $menuItem43 = "VCF Operations for Networks (Disabled: Not applicable based on loaded workbook)"
                 $networksDayNColour = $disabledColour
             }
             else
             {
-                $menuItem42 = "VCF Operations for Networks"
+                $menuItem43 = "VCF Operations for Networks"
                 $networksDayNColour = $disabledColour
             }
 
-            If ($workbookProfile.idbDayNDeployment -eq "Identity Broker Appliance")
+            If (-not $sharedInstanceObject)
             {
-                $menuItem43 = "VCF Identity Broker Appliance"
-                $idbDayNColour = $enabledColour
-            }
-            elseif ($workbookProfile.idbDayNDeployment -in "Identity Broker (Embedded)","Exclude")
-            {
-                $menuItem43 = "VCF Identity Broker Appliance (Disabled: Not applicable based on loaded workbook)"
+                $menuItem44 = "VCF Identity Broker Appliance (Disabled: No workbook loaded)"
                 $idbDayNColour = $disabledColour
+            }
+            elseIf ($sharedInstanceObject.version -notlike "9.0*")
+            {
+                $menuItem44 = "VCF Identity Broker Appliance (Disabled: Not applicable for VCF $($sharedInstanceObject.version))"
+                $idbDayNColour = $disabledColour
+            }
+            elseIf ($workbookProfile.idbDayNDeployment -eq "Identity Broker Appliance")
+            {
+                $menuItem44 = "VCF Identity Broker Appliance"
+                $idbDayNColour = $enabledColour
             }
             else
             {
-                $menuItem43 = "VCF Identity Broker Appliance"
+                $menuItem44 = "VCF Identity Broker Appliance (Disabled: Not applicable based on loaded workbook)"
                 $idbDayNColour = $disabledColour
             }
+
+            If (-not $sharedInstanceObject)
+            {
+                $menuItem45 = "VCF Real Time Metrics (Disabled: No workbook loaded)"
+                $realTimeMetricsDayNColour = $disabledColour
+            }
+            elseIf ($sharedInstanceObject.version -like "9.0*")
+            {
+                $menuItem45 = "VCF Real Time Metrics (Disabled: Not applicable for VCF $($sharedInstanceObject.version))"
+                $realTimeMetricsDayNColour = $disabledColour
+            }
+            elseIf ($workbookProfile.realTimeMetricsDayNDeployment -eq "Include")
+            {
+                $menuItem45 = "VCF Real Time Metrics"
+                $realTimeMetricsDayNColour = $enabledColour
+            }
+            else
+            {
+                $menuItem45 = "VCF Real Time Metrics (Disabled: Not applicable based on loaded workbook)"
+                $realTimeMetricsDayNColour = $disabledColour
+            }
             
+            If (-not $sharedInstanceObject)
+            {
+                $menuItem41 = "VCF Automation Post Bringup (Disabled: No workbook loaded)"
+                $automationDayNColour = $disabledColour
+            }
+            elseIf ($sharedInstanceObject.version -like "9.0*")
+            {
+                $menuItem41 = "VCF Automation Post Bringup (Disabled: Not applicable for VCF $($sharedInstanceObject.version))"
+                $automationDayNColour = $disabledColour
+            }
+            elseIf ($workbookProfile.automationDayNDeployment -eq "Selected")
+            {
+                $menuItem41 = "VCF Automation Post Bringup"
+                $automationDayNColour = $enabledColour
+            }
+            else
+            {
+                $menuItem41 = "VCF Automation Post Bringup (Disabled: Not applicable based on loaded workbook)"
+                $automationDayNColour = $disabledColour
+            }
+
             If ($workbookProfile) 
             {
                 $specificationText = $workbookProfile.deploymentSpecification
@@ -502,10 +576,12 @@ Function Start-VCFJsonGeneration
             Write-Host -Object " 38. $menuItem38" -ForegroundColor $clusterMenuStretchedColour
             
             Write-Host ""; Write-Host -Object " $headingItem05" -ForegroundColor Yellow
-            Write-Host -Object " 40. $menuItem40" -ForegroundColor $opsAndAutomationDayNColour
-            Write-Host -Object " 41. $menuItem41" -ForegroundColor $logsDayNColour
-            Write-Host -Object " 42. $menuItem42" -ForegroundColor $networksDayNColour
-            Write-Host -Object " 43. $menuItem43" -ForegroundColor $idbDayNColour
+            Write-Host -Object " 40. $menuItem40" -ForegroundColor $completeFleetDayNColour
+            Write-Host -Object " 41. $menuItem41" -ForegroundColor $automationDayNColour
+            Write-Host -Object " 42. $menuItem42" -ForegroundColor $logsDayNColour
+            Write-Host -Object " 43. $menuItem43" -ForegroundColor $networksDayNColour
+            Write-Host -Object " 44. $menuItem44" -ForegroundColor $idbDayNColour
+            Write-Host -Object " 45. $menuItem45" -ForegroundColor $realTimeMetricsDayNColour
             
             Write-Host -Object ''
             $MenuInput = Read-Host -Prompt ' Select Option (or Q to go Quit)'
@@ -531,7 +607,7 @@ Function Start-VCFJsonGeneration
                     Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem10" -Foregroundcolor Cyan; Write-Host -Object ''
                     If ($managementObject -and $sharedInstanceObject)
                     {
-                        New-ManagementDomainJsonFile -instanceObject $managementObject -sharedInstanceObject $sharedInstanceObject
+                        New-ManagementDomainJsonFile -instanceObject $managementObject -sharedInstanceObject $sharedInstanceObject                        
                     }
                     else
                     {
@@ -581,7 +657,7 @@ Function Start-VCFJsonGeneration
                     Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem14" -Foregroundcolor Cyan; Write-Host -Object ''
                     If ($managementObject.edgecluster)
                     {
-                        New-EdgeJSONFile -instanceObject $managementObject
+                        New-CentralizedTransitGatewayJsonFile -instanceObject $managementObject
                     }
                     else
                     {
@@ -643,7 +719,7 @@ Function Start-VCFJsonGeneration
                     Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem24" -Foregroundcolor Cyan; Write-Host -Object ''
                     If ($workloadObject.edgecluster)
                     {
-                        New-EdgeJSONFile -instanceObject $workloadObject
+                        New-CentralizedTransitGatewayJsonFile -instanceObject $workloadObject
                     }
                     else
                     {
@@ -767,9 +843,16 @@ Function Start-VCFJsonGeneration
                 40
                 {
                     Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem40" -Foregroundcolor Cyan; Write-Host -Object ''
-                    If (($sharedInstanceObject) -and ($workbookProfile.opsAutomationDayNDeployment -eq "Selected"))
+                    If (($sharedInstanceObject) -and ($workbookProfile.automationDayNDeployment -ne "Selected") -and ($workbookProfile.opsAutomationDayNDeployment -eq "Selected"))
                     {
-                        New-DayNOpsAndAutomationJsonFile -sharedInstanceObject $sharedInstanceObject
+                        If ($sharedInstanceObject.version -like "9.0*")
+                        {
+                            New-DayNOpsAndAutomationJsonFile -sharedInstanceObject $sharedInstanceObject
+                        }
+                        else
+                        {
+                            New-DayNCompleteFleet -sharedInstanceObject $sharedInstanceObject -managementObject $managementObject
+                        }
                     }
                     else
                     {
@@ -780,9 +863,9 @@ Function Start-VCFJsonGeneration
                 41
                 {
                     Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem41" -Foregroundcolor Cyan; Write-Host -Object ''
-                    If (($sharedInstanceObject) -and ($workbookProfile.logsDayNDeployment -eq "Include"))
+                    If (($sharedInstanceObject) -and ($sharedInstanceObject.version -notlike "9.0*") -and ($workbookProfile.automationDayNDeployment -eq "Selected"))
                     {
-                        New-DayNLogsJsonFile -sharedInstanceObject $sharedInstanceObject
+                        New-DayNAutomationModernJsonFile -sharedInstanceObject $sharedInstanceObject
                     }
                     else
                     {
@@ -793,9 +876,16 @@ Function Start-VCFJsonGeneration
                 42
                 {
                     Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem42" -Foregroundcolor Cyan; Write-Host -Object ''
-                    If (($sharedInstanceObject) -and ($workbookProfile.networksDayNDeployment -eq "Include"))
+                    If (($sharedInstanceObject) -and ($workbookProfile.logsDayNDeployment -eq "Include"))
                     {
-                        New-DayNNetworksJsonFile -sharedInstanceObject $sharedInstanceObject
+                        If ($sharedInstanceObject.version -like "9.0*")
+                        {
+                            New-DayNLogsLegacyJsonFile -sharedInstanceObject $sharedInstanceObject
+                        }
+                        else
+                        {
+                            New-DayNLogsModernJsonFile -sharedInstanceObject $sharedInstanceObject
+                        }
                     }
                     else
                     {
@@ -806,7 +896,27 @@ Function Start-VCFJsonGeneration
                 43
                 {
                     Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem43" -Foregroundcolor Cyan; Write-Host -Object ''
-                    If (($sharedInstanceObject) -and ($workbookProfile.idbDayNDeployment -eq "Identity Broker Appliance"))
+                    If (($sharedInstanceObject) -and ($workbookProfile.networksDayNDeployment -eq "Include"))
+                    {
+                        If ($sharedInstanceObject.version -like "9.0*")
+                        {
+                            New-DayNNetworksLegacyJsonFile -sharedInstanceObject $sharedInstanceObject
+                        }
+                        else
+                        {
+                            New-DayNNetworksModernJsonFile -sharedInstanceObject $sharedInstanceObject
+                        }
+                    }
+                    else
+                    {
+                        LogMessage -type ERROR -message "Please load a relevant Planning & Preparation Workbook and try again"
+                    }
+                    anykey
+                }
+                44
+                {
+                    Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem44" -Foregroundcolor Cyan; Write-Host -Object ''
+                    If (($sharedInstanceObject) -and ($sharedInstanceObject.version -like "9.0*") -and ($workbookProfile.idbDayNDeployment -eq "Identity Broker Appliance"))
                     {
                         New-DayNIdbJsonFile -sharedInstanceObject $sharedInstanceObject
                     }
@@ -816,7 +926,19 @@ Function Start-VCFJsonGeneration
                     }
                     anykey
                 }
-
+                45
+                {
+                    Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem45" -Foregroundcolor Cyan; Write-Host -Object ''
+                    If (($sharedInstanceObject) -and ($sharedInstanceObject.version -notlike "9.0*") -and ($workbookProfile.realTimeMetricsDayNDeployment -eq "Include"))
+                    {
+                        New-DayNRealTimeMetrics -sharedInstanceObject $sharedInstanceObject
+                    }
+                    else
+                    {
+                        LogMessage -type ERROR -message "Please load a relevant Planning & Preparation Workbook and try again"
+                    }
+                    anykey
+                }
                 Q {
                     $Host.UI.RawUI.WindowTitle = $Global:originalWindowTitle
                     Break
@@ -841,7 +963,9 @@ Function Start-VCFJsonGeneration
     New-JsonGenerationMenu
 }
 Export-ModuleMember -function Start-VCFJsonGeneration
+#EndRegion Exported Functions
 
+#Region Common Supporting Functions
 Function Set-ConsoleParameters
 {
     $ErrorActionPreference = "Stop"
@@ -994,6 +1118,371 @@ Function Get-InstalledSoftware
     Return $software
 }
 
+Function Filter-X509()
+{
+    begin
+    {
+        $doOutput = $false
+    }
+    process
+    {
+        if ( $_.Contains("-----BEGIN CERTIFICATE-----") )
+        {
+            $doOutput = $true
+        }
+        if ($doOutput)
+        {
+            Write-Output $_
+        }
+        if ( $_.Contains("-----END CERTIFICATE-----") )
+        {
+            $doOutput = $false
+        }
+    }
+    end
+    {
+        if ($doOutput)
+        {
+            throw "still printing certificate"
+        }
+    }
+}
+
+Function cidrToMask 
+{
+    Param (
+        [Parameter (Mandatory = $true)] [String]$cidr
+    )
+
+    $subnetMasks = @(
+        ($32 = @{ cidr = "32"; mask = "255.255.255.255" }),
+        ($31 = @{ cidr = "31"; mask = "255.255.255.254" }),
+        ($30 = @{ cidr = "30"; mask = "255.255.255.252" }),
+        ($29 = @{ cidr = "29"; mask = "255.255.255.248" }),
+        ($28 = @{ cidr = "28"; mask = "255.255.255.240" }),
+        ($27 = @{ cidr = "27"; mask = "255.255.255.224" }),
+        ($26 = @{ cidr = "26"; mask = "255.255.255.192" }),
+        ($25 = @{ cidr = "25"; mask = "255.255.255.128" }),
+        ($24 = @{ cidr = "24"; mask = "255.255.255.0" }),
+        ($23 = @{ cidr = "23"; mask = "255.255.254.0" }),
+        ($22 = @{ cidr = "22"; mask = "255.255.252.0" }),
+        ($21 = @{ cidr = "21"; mask = "255.255.248.0" }),
+        ($20 = @{ cidr = "20"; mask = "255.255.240.0" }),
+        ($19 = @{ cidr = "19"; mask = "255.255.224.0" }),
+        ($18 = @{ cidr = "18"; mask = "255.255.192.0" }),
+        ($17 = @{ cidr = "17"; mask = "255.255.128.0" }),
+        ($16 = @{ cidr = "16"; mask = "255.255.0.0" }),
+        ($15 = @{ cidr = "15"; mask = "255.254.0.0" }),
+        ($14 = @{ cidr = "14"; mask = "255.252.0.0" }),
+        ($13 = @{ cidr = "13"; mask = "255.248.0.0" }),
+        ($12 = @{ cidr = "12"; mask = "255.240.0.0" }),
+        ($11 = @{ cidr = "11"; mask = "255.224.0.0" }),
+        ($10 = @{ cidr = "10"; mask = "255.192.0.0" }),
+        ($9 = @{ cidr = "9"; mask = "255.128.0.0" }),
+        ($8 = @{ cidr = "8"; mask = "255.0.0.0" }),
+        ($7 = @{ cidr = "7"; mask = "254.0.0.0" }),
+        ($6 = @{ cidr = "6"; mask = "252.0.0.0" }),
+        ($5 = @{ cidr = "5"; mask = "248.0.0.0" }),
+        ($4 = @{ cidr = "4"; mask = "240.0.0.0" }),
+        ($3 = @{ cidr = "3"; mask = "224.0.0.0" }),
+        ($2 = @{ cidr = "2"; mask = "192.0.0.0" }),
+        ($1 = @{ cidr = "1"; mask = "128.0.0.0" }),
+        ($0 = @{ cidr = "0"; mask = "0.0.0.0" })
+    )
+    $foundMask = $subnetMasks | Where-Object { $_.'cidr' -eq $cidr }
+    Return $foundMask.mask
+}
+
+Function Get-NetworkDetailsFromGateway
+{
+    Param (
+        [Parameter (Mandatory = $true)] [String]$gatewayCidr
+    )
+
+    $parts = $gatewayCidr -split '/'
+    If ($parts.Count -ne 2)
+    {
+        LogMessage -type ERROR -message "Invalid input '$gatewayCidr'. Expected format: <gateway>/<prefix>, e.g. 192.168.1.1/24"
+    }
+
+    $gwAddress  = $parts[0]
+    $cidrPrefix = $parts[1]
+
+    $netmask = cidrToMask -cidr $cidrPrefix
+
+    $gwOctets   = $gwAddress -split '\.'
+    $maskOctets = $netmask   -split '\.'
+
+    $networkOctets = @()
+    For ($i = 0; $i -lt 4; $i++)
+    {
+        $networkOctets += ([int]$gwOctets[$i] -band [int]$maskOctets[$i])
+    }
+    $networkAddress = $networkOctets -join '.'
+
+    $result = New-Object -TypeName PSObject
+    $result | Add-Member -NotePropertyName 'netmask'  -NotePropertyValue $netmask
+    $result | Add-Member -NotePropertyName 'cidr'     -NotePropertyValue "$networkAddress/$cidrPrefix"
+    $result | Add-Member -NotePropertyName 'network'  -NotePropertyValue $networkAddress
+    $result | Add-Member -NotePropertyName 'gw'       -NotePropertyValue $gwAddress
+
+    Return $result
+}
+
+Function New-BasicAuthHeader
+{
+    Param(
+    [Parameter (Mandatory=$true)]
+    [String] $username,
+    [Parameter (Mandatory=$true)]
+    [String] $password
+    )
+    $base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $username,$password))) # Create Basic Authentication Encoded Credentials
+    $headers = @{"Accept" = "application/json"}
+    $headers.Add("Authorization", "Basic $base64AuthInfo")
+    
+    Return $headers
+}
+
+Function New-VCFToken {
+    
+    Param (
+        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$fqdn,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$username,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$password,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [Switch]$skipCertificateCheck
+    )
+
+    if ( -not $PsBoundParameters.ContainsKey("username") -or ( -not $PsBoundParameters.ContainsKey("password"))) {
+        $creds = Get-Credential # Request Credentials
+        $username = $creds.UserName.ToString()
+        $password = $creds.GetNetworkCredential().password
+    }
+
+    if ($PsBoundParameters.ContainsKey("skipCertificateCheck")) {
+        if (-not("placeholder" -as [type])) {
+            add-type -TypeDefinition @"
+using System;
+using System.Net;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
+
+public static class Placeholder {
+    public static bool ReturnTrue(object sender,
+        X509Certificate certificate,
+        X509Chain chain,
+        SslPolicyErrors sslPolicyErrors) { return true; }
+
+    public static RemoteCertificateValidationCallback GetDelegate() {
+        return new RemoteCertificateValidationCallback(Placeholder.ReturnTrue);
+    }
+}
+"@
+}
+        [System.Net.ServicePointManager]::ServerCertificateValidationCallback = [placeholder]::GetDelegate()
+    }
+
+    $Global:sddcManager = $fqdn
+    $headers = @{"Content-Type" = "application/json" }
+    $uri = "https://$sddcManager/v1/tokens" # Set URI for executing an API call to validate authentication
+    $body = '{"username": "' + $username + '","password": "' + $password + '"}'
+
+    Try {
+        # Checking authentication with SDDC Manager
+        if ($PSEdition -eq 'Core') {
+            $response = Invoke-RestMethod -Method POST -Uri $uri -Headers $headers -Body $body -SkipCertificateCheck # PS Core has -SkipCertificateCheck implemented
+            $Global:accessToken = $response.accessToken
+            $Global:refreshToken = $response.refreshToken.id
+        } else {
+            $response = Invoke-RestMethod -Method POST -Uri $uri -Headers $headers -Body $body
+            $Global:accessToken = $response.accessToken
+            $Global:refreshToken = $response.refreshToken.id
+        }
+        if ($response.accessToken) {
+            Write-Output "Successfully Requested New API Token From SDDC Manager: $sddcManager"
+        }
+    } Catch {
+        ResponseException -object $_
+    }
+}
+
+Function New-VCFBearerAuthHeader {
+    $Global:headers = @{"Accept" = "application/json" }
+    $Global:headers.Add("Authorization", "Bearer $accessToken")
+}
+
+Function New-RackBasedHostCommissioning
+{
+    Param (
+        [Parameter(Mandatory = $true)][Object]$instanceObject,
+        [Parameter(Mandatory = $false)][string]$az,
+        [Parameter(Mandatory = $false)][switch]$userPromptBypass,
+        [Parameter(Mandatory = $false)][bool]$componentInterrogationEnabled
+    )
+    Remove-Variable commissionNestedHosts -errorAction silentlyContinue
+
+    If (!$userPromptBypass)
+    {
+        Do
+        {
+            LogMessage -Type QUESTION -Message "Do you wish to create a commissioning JSON for submission via API (A) or UI (U)? " -skipnewline
+            $jsonMode = Read-Host    
+        } Until ($jsonMode -in "A","U")
+        Do
+        {
+            LogMessage -Type QUESTION -Message "Do you wish to retrieve network pool IDs from SDDC Manager? (Y/N): " -skipnewline
+            $componentInterrogationResponse = Read-Host    
+        } Until ($componentInterrogationResponse -in "Y","N")
+        $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
+    }
+    else
+    {
+        $sddcMgrFqdn = $instanceObject.sddcManager.fqdn
+        $sddcMgrUser = $instanceObject.sddcManager.adminUser
+        $decodedPassword = $instanceObject.sddcManager.adminPassword
+        $jsonMode = "A"
+    }
+    If ($componentInterrogationEnabled)
+    {
+        If (!$userPromptBypass)
+        {
+            Do
+            {
+                LogMessage -type INFO -message "SDDC Manager FQDN: " -skipnewline
+                $sddcMgrFqdn = Read-Host
+                LogMessage -type INFO -message "SDDC Manager Administrator: " -skipnewline
+                $sddcMgrUser = Read-Host
+                LogMessage -type INFO -message "SDDC Manager Administrator password: " -skipnewline
+                $adminPassword = Read-Host -AsSecureString
+                $decodedPassword = New-DecodedPassword -securePassword $adminPassword
+                New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
+                If (!($accessToken))
+                {
+                    LogMessage -type ERROR -message "Failed to connect to $sddcMgrFqdn. Please check details and try again"
+                }
+            } Until ($accessToken)
+        }
+        else
+        {
+            New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
+        }
+    }
+
+    If (!($az))
+    {
+        If ($instanceObject.az2)
+        { 
+            $azs = @("az1","az2") 
+        }
+        else
+        {
+            $azs = @("az1")
+        }
+    }
+    else
+    {
+        $azs = @($az)
+    }
+    
+    Foreach ($az in $azs)
+    {
+        $selectedRackArray = @(($instanceObject.$($az) | Get-Member -type NoteProperty).name)
+        $commissionNestedHosts = @()
+        If (!$exitFunction)
+        {
+            Foreach ($rack in $selectedRackArray)
+            {
+                $selectedHostArray = @($instanceObject.$($az).$($rack).hosts)
+    
+                If (!$exitFunction)
+                {
+                    If ($instanceObject.vsphereClusters[0].storageModel -eq "VSAN-ESA") 
+                    {
+                        $vSanTypeObject="VSAN_ESA" 
+                    }
+                    elseIf ($instanceObject.vsphereClusters[0].storageModel -eq "vSAN Storage Cluster")
+                    {
+                        $vSanTypeObject="VSAN_MAX"
+                    }
+                    else
+                    {
+                        $vSanTypeObject="VSAN"
+                    }
+        
+                    If ($componentInterrogationEnabled)
+                    {
+                        LogMessage -Type INFO -Message "Obtaining Network Pool ID from SDDC Manager for pool $($instanceObject.$($az).$($rack).network.vcfNetworkPoolName): Found"
+                        $networkPool = (Get-VCFNetworkPoolDetails | Where-Object { $_.name -eq $instanceObject.$($az).$($rack).network.vcfNetworkPoolName }).id
+                    }
+                    else
+                    {
+                        $networkPool = '<--ENTER-NETWORK-POOL-ID-HERE-->'
+                    }
+    
+                    Foreach ($selectedHost in $selectedHostArray)
+                    {
+                        $commissionNestedHosts += [pscustomobject]@{
+                            "fqdn" = $selectedHost.fqdn
+                            "username" = "root"
+                            "storageType" = $vSanTypeObject
+                            "password" = $instanceObject.hostCredentials.esxiPassword
+                            'networkPoolName' = $instanceObject.$($az).$($rack).network.vcfNetworkPoolName
+                            'networkPoolId'   = $networkPool
+                        } 
+                    }
+                Remove-Variable selectedHostArray
+                }
+            }
+    
+            If (!$exitFunction)
+            {
+                
+                If ($jsonMode -eq "A")
+                {
+                    #Create API JSON Spec
+                    LogMessage -Type INFO -Message "Exporting API Commissioning JSON to commissionHostSpec-$($instanceObject.vsphereClusters[0].clustername)-$($az)-api.json"
+                    ConvertTo-Json $commissionNestedHosts -Depth 10 | Out-File -FilePath "commissionHostSpec-$($instanceObject.vsphereClusters[0].clustername)-$($az)-api.json"
+                }
+                else
+                {
+                    #Create UI JSON Spec
+                    $uiSpecObject = @()
+                    $uiSpecObject += [pscustomobject]@{
+                        'hosts' = $commissionNestedHosts
+                    }                
+                    $uiSpecObject[0].hosts = $uiSpecObject.hosts | ForEach-Object {            
+                        $_ | Select-Object @{Name = 'fqdn'; Expression = {$_.fqdn}}, 'username', 'storageType', 'password', 'networkPoolName'
+                    } | Select-Object -Skip 0
+                    LogMessage -Type INFO -Message "Exporting UI Commissioning JSON to commissionHostSpec-$($instanceObject.vsphereClusters[0].clustername)-$($az)-ui.json"
+                    $uiSpecObject | Convertto-json -depth 10 | Out-File -FilePath "commissionHostSpec-$($instanceObject.vsphereClusters[0].clustername)-$($az)-ui.json"    
+                }
+                LogMessage -Type NOTE -Message "Completed the Process of Generating the Commissioning JSON"
+            }
+        }
+    }
+}
+
+Function New-DecodedPassword
+{
+    Param (
+        [Parameter (Mandatory = $true)] [securestring]$securePassword
+    )
+    If ([System.Environment]::OSVersion.Platform -eq 'Win32NT')
+    {
+        $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
+        $decodedPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+    }
+    else
+    {
+        $serializedSecureString = $securePassword | ConvertFrom-SecureString
+        $byteArray = [byte[]] -split ($serializedSecureString -replace '..', '0x$& ')
+        $decodedPassword = [System.Text.Encoding]::Unicode.GetString($byteArray)
+    }
+    Return $decodedPassword
+}
+#EndRegion Common Supporting Functions
+
+#Region Supporting SDDC Manager Functions
 Function Get-VCFHostDetails {
     [CmdletBinding(DefaultParametersetname = "Default")]
 
@@ -1122,192 +1611,9 @@ Function Get-VCFWorkloadDomainDetails {
         ResponseException -object $_
     }
 }
+#EndRegion Supporting SDDC Manager Functions
 
-Function New-VCFToken {
-    
-    Param (
-        [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$fqdn,
-        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$username,
-        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$password,
-        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [Switch]$skipCertificateCheck
-    )
-
-    if ( -not $PsBoundParameters.ContainsKey("username") -or ( -not $PsBoundParameters.ContainsKey("password"))) {
-        $creds = Get-Credential # Request Credentials
-        $username = $creds.UserName.ToString()
-        $password = $creds.GetNetworkCredential().password
-    }
-
-    if ($PsBoundParameters.ContainsKey("skipCertificateCheck")) {
-        if (-not("placeholder" -as [type])) {
-            add-type -TypeDefinition @"
-using System;
-using System.Net;
-using System.Net.Security;
-using System.Security.Cryptography.X509Certificates;
-
-public static class Placeholder {
-    public static bool ReturnTrue(object sender,
-        X509Certificate certificate,
-        X509Chain chain,
-        SslPolicyErrors sslPolicyErrors) { return true; }
-
-    public static RemoteCertificateValidationCallback GetDelegate() {
-        return new RemoteCertificateValidationCallback(Placeholder.ReturnTrue);
-    }
-}
-"@
-}
-        [System.Net.ServicePointManager]::ServerCertificateValidationCallback = [placeholder]::GetDelegate()
-    }
-
-    $Global:sddcManager = $fqdn
-    $headers = @{"Content-Type" = "application/json" }
-    $uri = "https://$sddcManager/v1/tokens" # Set URI for executing an API call to validate authentication
-    $body = '{"username": "' + $username + '","password": "' + $password + '"}'
-
-    Try {
-        # Checking authentication with SDDC Manager
-        if ($PSEdition -eq 'Core') {
-            $response = Invoke-RestMethod -Method POST -Uri $uri -Headers $headers -Body $body -SkipCertificateCheck # PS Core has -SkipCertificateCheck implemented
-            $Global:accessToken = $response.accessToken
-            $Global:refreshToken = $response.refreshToken.id
-        } else {
-            $response = Invoke-RestMethod -Method POST -Uri $uri -Headers $headers -Body $body
-            $Global:accessToken = $response.accessToken
-            $Global:refreshToken = $response.refreshToken.id
-        }
-        if ($response.accessToken) {
-            Write-Output "Successfully Requested New API Token From SDDC Manager: $sddcManager"
-        }
-    } Catch {
-        ResponseException -object $_
-    }
-}
-
-Function Filter-X509()
-{
-    begin
-    {
-        $doOutput = $false
-    }
-    process
-    {
-        if ( $_.Contains("-----BEGIN CERTIFICATE-----") )
-        {
-            $doOutput = $true
-        }
-        if ($doOutput)
-        {
-            Write-Output $_
-        }
-        if ( $_.Contains("-----END CERTIFICATE-----") )
-        {
-            $doOutput = $false
-        }
-    }
-    end
-    {
-        if ($doOutput)
-        {
-            throw "still printing certificate"
-        }
-    }
-}
-
-Function cidrToMask 
-{
-    Param (
-        [Parameter (Mandatory = $true)] [String]$cidr
-    )
-
-    $subnetMasks = @(
-        ($32 = @{ cidr = "32"; mask = "255.255.255.255" }),
-        ($31 = @{ cidr = "31"; mask = "255.255.255.254" }),
-        ($30 = @{ cidr = "30"; mask = "255.255.255.252" }),
-        ($29 = @{ cidr = "29"; mask = "255.255.255.248" }),
-        ($28 = @{ cidr = "28"; mask = "255.255.255.240" }),
-        ($27 = @{ cidr = "27"; mask = "255.255.255.224" }),
-        ($26 = @{ cidr = "26"; mask = "255.255.255.192" }),
-        ($25 = @{ cidr = "25"; mask = "255.255.255.128" }),
-        ($24 = @{ cidr = "24"; mask = "255.255.255.0" }),
-        ($23 = @{ cidr = "23"; mask = "255.255.254.0" }),
-        ($22 = @{ cidr = "22"; mask = "255.255.252.0" }),
-        ($21 = @{ cidr = "21"; mask = "255.255.248.0" }),
-        ($20 = @{ cidr = "20"; mask = "255.255.240.0" }),
-        ($19 = @{ cidr = "19"; mask = "255.255.224.0" }),
-        ($18 = @{ cidr = "18"; mask = "255.255.192.0" }),
-        ($17 = @{ cidr = "17"; mask = "255.255.128.0" }),
-        ($16 = @{ cidr = "16"; mask = "255.255.0.0" }),
-        ($15 = @{ cidr = "15"; mask = "255.254.0.0" }),
-        ($14 = @{ cidr = "14"; mask = "255.252.0.0" }),
-        ($13 = @{ cidr = "13"; mask = "255.248.0.0" }),
-        ($12 = @{ cidr = "12"; mask = "255.240.0.0" }),
-        ($11 = @{ cidr = "11"; mask = "255.224.0.0" }),
-        ($10 = @{ cidr = "10"; mask = "255.192.0.0" }),
-        ($9 = @{ cidr = "9"; mask = "255.128.0.0" }),
-        ($8 = @{ cidr = "8"; mask = "255.0.0.0" }),
-        ($7 = @{ cidr = "7"; mask = "254.0.0.0" }),
-        ($6 = @{ cidr = "6"; mask = "252.0.0.0" }),
-        ($5 = @{ cidr = "5"; mask = "248.0.0.0" }),
-        ($4 = @{ cidr = "4"; mask = "240.0.0.0" }),
-        ($3 = @{ cidr = "3"; mask = "224.0.0.0" }),
-        ($2 = @{ cidr = "2"; mask = "192.0.0.0" }),
-        ($1 = @{ cidr = "1"; mask = "128.0.0.0" }),
-        ($0 = @{ cidr = "0"; mask = "0.0.0.0" })
-    )
-    $foundMask = $subnetMasks | Where-Object { $_.'cidr' -eq $cidr }
-    Return $foundMask.mask
-}
-
-Function New-RackDisplayObject
-{
-    Param (
-        [Parameter (mandatory = $true)] [Array]$instanceObject,
-        [Parameter (Mandatory = $false)] [String]$az
-    )
-    $rackArray = @(($instanceObject.$($az) | get-member -type NoteProperty).name)
-    $rackDisplayObject=@()
-    $rackIndex = 1
-    $rackDisplayObject += [pscustomobject]@{
-            'id'    = "ID"
-            'name' = "Rack"
-        }
-    $rackDisplayObject += [pscustomobject]@{
-            'id'    = "--"
-            'name' = "------"
-        }
-    Foreach ($rackInstance in $rackArray)
-    {
-        $rackDisplayObject += [pscustomobject]@{
-            'id'    = $rackIndex
-            'name' = $rackInstance
-        }
-        $rackIndex++
-    }
-    Return $rackDisplayObject
-}
-
-Function New-BasicAuthHeader
-{
-    Param(
-    [Parameter (Mandatory=$true)]
-    [String] $username,
-    [Parameter (Mandatory=$true)]
-    [String] $password
-    )
-    $base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $username,$password))) # Create Basic Authentication Encoded Credentials
-    $headers = @{"Accept" = "application/json"}
-    $headers.Add("Authorization", "Basic $base64AuthInfo")
-    
-    Return $headers
-}
-
-Function New-VCFBearerAuthHeader {
-    $Global:headers = @{"Accept" = "application/json" }
-    $Global:headers.Add("Authorization", "Bearer $accessToken")
-}
-
+#Region Supporting NSX Functions
 Function Get-NsxTransportZones {
     Param (
         [Parameter (Mandatory=$true)][ValidateNotNullOrEmpty()][String]$nsxtUsername,
@@ -1387,8 +1693,9 @@ Function Get-NsxTransitGateways {
         catchwriter -object $_
     }
 }
+#EndRegion Supporting NSX Functions
 
-# PnP Scraping Functions
+#Region PnP Scraping Functions
 Function Show-PnPFilesInFolder
 {
     #Get All xlsx Files
@@ -1445,7 +1752,10 @@ Function Get-PnPInputFileInputs
     {
         $Global:WarningPreference = "Continue"
     }
-    If ($pnpWorkbook.Workbook.Names["pnp_version_history"].Value -eq $Global:supportedAutomationVersion)
+    $vcfVersionChosen = $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
+    $pnpVersionHistory = $pnpWorkbook.Workbook.Names["pnp_version_history"].Value
+    $matchingVersion = $Global:supportedAutomationVersions | Where-Object { $vcfVersionChosen.StartsWith($_.version) }
+    If ($matchingVersion -and ([int]$pnpVersionHistory -eq [int]$matchingVersion.supportedAutomationVersion))
     {
         Remove-Variable workbookProfile -scope Global -ErrorAction SilentlyContinue
         Remove-Variable chosenWorkBook -scope Global -ErrorAction SilentlyContinue
@@ -1453,39 +1763,73 @@ Function Get-PnPInputFileInputs
         Remove-Variable managementObject -scope Global -ErrorAction SilentlyContinue
         Remove-Variable workloadObject -scope Global -ErrorAction SilentlyContinue
         Remove-Variable clusterObject -scope Global -ErrorAction SilentlyContinue
+
         $Global:workbookProfile = New-Object -type psobject
         $Global:workbookProfile | Add-Member -NotePropertyName 'granularOperation' -NotePropertyValue $pnpWorkbook.Workbook.Names["vcf_granular_option_chosen"].Value
         $Global:workbookProfile | Add-Member -NotePropertyName 'deploymentSpecification' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_deployment_type_chosen"].Value
         $Global:workbookProfile | Add-Member -NotePropertyName 'instance' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value
         $Global:workbookProfile | Add-Member -NotePropertyName 'chosenWorkbook' -NotePropertyValue $chosenWorkBook
         $Global:workbookProfile | Add-Member -NotePropertyName 'clusterResult' -NotePropertyValue $pnpWorkbook.Workbook.Names["cluster_result"].Value
-        If ($workbookProfile.granularOperation -eq "Deploy a new VCF fleet")
+        If ($pnpWorkbook.Workbook.Names["vcf_granular_option_chosen"].Value -eq "Deploy a new VCF fleet")
         {
+            #Q1
+            $Global:workbookProfile | Add-Member -NotePropertyName 'automationDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_vcf_automation_later_chosen"].Value
+            #Q2
             $Global:workbookProfile | Add-Member -NotePropertyName 'opsAutomationDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value
+        
+            #Yes to 1, and No to 2, 
+            #   means Ops/Ops Proxy/License Manager. 
+            #   complete the fleet is not relevant
+            #   Use DayNAutomation via Fleet Manager
+            
+            #Yes to 1, and Yes to 2, or No to 1 and Yes to 2
+            #   means nothing - have to use deferred deployment Ops and Automation together. 
+            #   no option in 9.1.0 to deploy Ops on its own. thats coming in 9.1.1
+            #   can choose to put proxy on different network
+            #   block 1
+            $Global:workbookProfile | Add-Member -NotePropertyName 'opsProxyOnDifferentNetwork' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_def_vcf_custom_network_chosen"].Value
+            #Impacts only Complete the Fleet
+        
+            #9.0 Only
             $Global:workbookProfile | Add-Member -NotePropertyName 'idbDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_vidb_chosen"].Value
+            
+            #Common for 9.0 and 9.1
             $Global:workbookProfile | Add-Member -NotePropertyName 'logsDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_logs_chosen"].Value
             $Global:workbookProfile | Add-Member -NotePropertyName 'networksDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_net_chosen"].Value
+            
+            #9.1 Only
+            $Global:workbookProfile | Add-Member -NotePropertyName 'realTimeMetricsDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_logs_chosen"].value
+            #QFuture 9.1.1)
+            $Global:workbookProfile | Add-Member -NotePropertyName 'opsDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_vcf_ops_later_chosen"].Value
         }
-        If ($workbookProfile.granularOperation -eq "Create Cluster")
+        Try
         {
-            $Global:clusterObject = New-ClusterObject -pnpWorkbook $pnpWorkbook
-        }
-        elseIf ($workbookProfile.granularOperation -eq "Create VI Workload Domain")
-        {
-            $Global:workloadObject = New-WorkloadInstanceObject -pnpWorkbook $pnpWorkbook
-        }
-        else
-        {
-            $Global:sharedInstanceObject = New-SharedInstanceObject -pnpWorkbook $pnpWorkbook
-            $Global:managementObject = New-ManagementInstanceObject -pnpWorkbook $pnpWorkbook
-            If ($pnpWorkbook.Workbook.Names["wld_domain_chosen"].Value -in "Deploy Workload Domain with a Single-Rack / Multi-Rack Layer 2 Cluster","Deploy Workload Domain with a Multi-Rack Layer 3 Cluster")
+            If ($pnpWorkbook.Workbook.Names["vcf_granular_option_chosen"].Value -eq "Create Cluster")
+            {
+                $Global:clusterObject = New-ClusterObject -pnpWorkbook $pnpWorkbook
+            }
+            elseIf ($pnpWorkbook.Workbook.Names["vcf_granular_option_chosen"].Value -eq "Create VI Workload Domain")
             {
                 $Global:workloadObject = New-WorkloadInstanceObject -pnpWorkbook $pnpWorkbook
-            }        
+            }
+            else
+            {
+                $Global:sharedInstanceObject = New-SharedInstanceObject -pnpWorkbook $pnpWorkbook
+                $Global:managementObject = New-ManagementInstanceObject -pnpWorkbook $pnpWorkbook
+                If ($pnpWorkbook.Workbook.Names["wld_domain_chosen"].Value -in "Deploy Workload Domain with a Single-Rack / Multi-Rack Layer 2 Cluster","Deploy Workload Domain with a Multi-Rack Layer 3 Cluster")
+                {
+                    $Global:workloadObject = New-WorkloadInstanceObject -pnpWorkbook $pnpWorkbook
+                }        
+            }
+        }
+        Catch
+        {
+            # Error messages already logged by the called function.
+            # The caller's anyKey prompt will hold the screen.
         }
     }
     else{
-        LogMessage -type ERROR -message "The Planning & Preparation Workbook version you supplied is not the version supported by this version of VCF.JSONGenerator"
+        LogMessage -type ERROR -message "The Planning & Preparation Workbook version you supplied is not the version supported for $vcfVersionChosen by this version of VCF.JSONGenerator"
         LogMessage -type ERROR -message "Please source the latest version from the Broadcom website"
     }
     Close-ExcelPackage $pnpWorkbook -NoSave -ErrorAction SilentlyContinue
@@ -1540,7 +1884,25 @@ Function New-TransferExcelContents
 
         $targetWorkbook = Open-ExcelPackage -Path $newBlankFile
         $targetWorkbookAutomationVersion = [INT]($targetWorkbook.Workbook.Names["pnp_version_history"].Value)
-        If ($targetWorkbookAutomationVersion -eq $supportedAutomationVersion)
+        $targetVcfVersionChosen = $targetWorkbook.Workbook.Names["vcf_version_chosen"].Value
+        $sourceVcfVersionChosen = $sourceWorkbook.Workbook.Names["vcf_version_chosen"].Value
+        
+        $targetVersionPrefix = ($Global:supportedAutomationVersions | Where-Object { $targetVcfVersionChosen.StartsWith($_.version) }).version
+        $sourceVersionPrefix = ($Global:supportedAutomationVersions | Where-Object { $sourceVcfVersionChosen.StartsWith($_.version) }).version
+        
+        If ($sourceVersionPrefix -ne $targetVersionPrefix)
+        {
+            LogMessage -type ERROR -message "Source and target workbooks must be for the same VCF version"
+            LogMessage -type ERROR -message "Source file is for VCF $sourceVcfVersionChosen but target file is for VCF $targetVcfVersionChosen"
+            LogMessage -type ERROR -message "Content transfer is only supported between workbooks of the same VCF version (e.g., 9.0 to 9.0 or 9.1 to 9.1)"
+            Close-ExcelPackage $sourceWorkbook -NoSave -ErrorAction SilentlyContinue
+            Close-ExcelPackage $targetWorkbook -NoSave -ErrorAction SilentlyContinue
+            anyKey
+            Break
+        }
+        
+        $targetMatchingVersion = $Global:supportedAutomationVersions | Where-Object { $targetVcfVersionChosen.StartsWith($_.version) }
+        If ($targetMatchingVersion -and ($targetWorkbookAutomationVersion -eq $targetMatchingVersion.supportedAutomationVersion))
         {
             LogMessage -type INFO -message "Template file $targetXlsx is the correct version for VCF.JSONGenerator"
             $changedNamesOld = @($targetWorkbook.Workbook.Names["change_control_old"].Value | Where-Object {$_ -ne $null})
@@ -1641,24 +2003,227 @@ Function New-TransferExcelContents
     
 }
 
+Function New-WorkbookDeploymentProfile
+{
+    Param (
+        [Parameter (Mandatory=$true)][ValidateNotNullOrEmpty()][object]$pnpWorkbook,
+        [Parameter (Mandatory=$true)][ValidateNotNullOrEmpty()][String]$vcfVersion,
+        [Parameter (Mandatory=$true)][ValidateNotNullOrEmpty()][ValidateSet("management", "workload")][String]$type,
+        [Parameter (Mandatory=$false)][ValidateNotNullOrEmpty()][String]$chosenWorkBook
+    )
 
+    If ($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value -eq "First Instance")
+    {
+        $instance = "InstanceA"
+    }
+    else
+    {
+        $instance = "InstanceB"
+    }
 
-# Generate Global Objects
+    If ($type -eq "workload")
+    {
+        If ($pnpWorkbook.Workbook.Names["wld_nsx_ha_mode_chosen"].Value -eq "High-Availbility")
+        {
+            $singleNSXTManager = "N"
+        }
+        else
+        {
+            $singleNSXTManager = "Y"
+        }
+    }
+    else
+    {
+
+        If ($pnpWorkbook.Workbook.Names["mgmt_domain_vcf_operations_ha_mode_chosen"].Value -eq "High Availability (Three-node)")
+        {
+            $singleNSXTManager = "N"
+            $fleetManagementDeploymentModel = "highlyAvailable"
+        }
+        else
+        {
+            $singleNSXTManager = "Y"
+            $fleetManagementDeploymentModel = "single"
+        }
+        
+        #get fleet management deployment timing
+        If ($pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value -eq "Selected")
+        {
+            $fleetManagementTiming = "later"
+        }
+        else
+        {
+            $fleetManagementTiming = "bringup"
+        }
+
+        If ($instance -eq "InstanceA")
+        {
+            $joinFleet = "N"
+        }
+        else
+        {
+            $joinFleet = "Y"
+        }
+
+        If ($pnpWorkbook.Workbook.Names["mgmt_domain_vcf_automation_later_chosen"].Value -eq "Selected")
+        {
+            $skipAutomation = "Y"   
+        }
+        else
+        {
+            $skipAutomation = "N"
+        }
+    
+        If ($vcfVersion -like "9.0*")
+        {
+            If ($fleetManagementTiming -eq "bringup")
+            {
+                $vcfManagementNetworkModel = "SharedManagement"
+            }
+            else
+            {
+                If ($pnpWorkbook.Workbook.Names["flt_custom_network_chosen"].Value -eq "Dedicated Management Network")
+                {
+                    $vcfManagementNetworkModel = "DedicatedManagement"
+                }
+                elseIf ($pnpWorkbook.Workbook.Names["flt_custom_network_chosen"].Value -eq "NSX Overlay Segment")
+                {
+                    $vcfManagementNetworkModel = "Overlay"
+                }
+                elseIf ($pnpWorkbook.Workbook.Names["flt_custom_network_chosen"].Value -eq "Shared Management Network")
+                {
+                    $vcfManagementNetworkModel = "SharedManagement"
+                }
+                else
+                {
+                    $vcfManagementNetworkModel = "nsxVlan"
+                }
+            }
+        }
+        else
+        {
+            If ($pnpWorkbook.Workbook.Names["mgmt_vcf_management_network_chosen"].Value -eq "Use VM management network")
+            {
+                $vcfmsNetworkModel = "SharedManagement"
+            }
+            else
+            {
+                $vcfmsNetworkModel = "DedicatedManagement"
+            }
+    
+            If ($fleetManagementTiming -eq "bringup")
+            {
+                $vcfManagementNetworkModel = $vcfmsNetworkModel
+            }
+            else
+            {
+                If ($pnpWorkbook.Workbook.Names["flt_custom_network_chosen"].Value -eq "Dedicated Management Network")
+                {
+                    $vcfManagementNetworkModel = "DedicatedManagement"
+                }
+                elseIf ($pnpWorkbook.Workbook.Names["flt_custom_network_chosen"].Value -eq "NSX Overlay Segment")
+                {
+                    $vcfManagementNetworkModel = "Overlay"
+                }
+                elseIf ($pnpWorkbook.Workbook.Names["flt_custom_network_chosen"].Value -eq "Shared Management Network")
+                {
+                    $vcfManagementNetworkModel = "SharedManagement"
+                }
+            }
+        }
+    }
+    
+    $deploymentProfileObject = New-Object -TypeName psobject
+    $deploymentProfileObject | Add-Member -notepropertyname 'instance' -notepropertyvalue $instance
+    $deploymentProfileObject | Add-Member -notepropertyname 'singleNSXTManager' -notepropertyvalue $singleNSXTManager
+    
+    If ($type -eq 'management')
+    {
+        $deploymentProfileObject | Add-Member -notepropertyname 'skipAutomation' -notepropertyvalue $skipAutomation
+        $deploymentProfileObject | Add-Member -notepropertyname 'joinFleet' -notepropertyvalue $joinFleet
+        $deploymentProfileObject | Add-Member -notepropertyname 'fleetManagementDeploymentModel' -notepropertyvalue $fleetManagementDeploymentModel
+        $deploymentProfileObject | Add-Member -notepropertyname 'fleetManagementTiming' -notepropertyvalue $fleetManagementTiming
+        $deploymentProfileObject | Add-Member -notepropertyname 'vcfManagementNetworkModel' -notepropertyvalue $vcfManagementNetworkModel
+        $deploymentProfileObject | Add-Member -NotePropertyName 'deploymentSpecification' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_deployment_type_chosen"].Value
+        $deploymentProfileObject | Add-Member -NotePropertyName 'automationDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_vcf_automation_later_chosen"].Value
+        $deploymentProfileObject | Add-Member -NotePropertyName 'opsAutomationDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value
+        $deploymentProfileObject | Add-Member -NotePropertyName 'opsProxyOnDifferentNetwork' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_def_vcf_custom_network_chosen"].Value
+        $deploymentProfileObject | Add-Member -NotePropertyName 'idbDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_vidb_chosen"].Value
+        $deploymentProfileObject | Add-Member -NotePropertyName 'logsDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_logs_chosen"].Value
+        $deploymentProfileObject | Add-Member -NotePropertyName 'networksDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_net_chosen"].Value
+        $deploymentProfileObject | Add-Member -NotePropertyName 'realTimeMetricsDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_logs_chosen"].value #review
+        $deploymentProfileObject | Add-Member -NotePropertyName 'opsDayNDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_vcf_ops_later_chosen"].Value
+        $deploymentProfileObject | Add-Member -NotePropertyName 'deferredCustomPasswords' -NotePropertyValue $pnpWorkbook.Workbook.Names["flt_def_vcf_custom_passwords_chosen"].Value        
+        If ($vcfVersion -notlike "9.0*")
+        {
+            $deploymentProfileObject | Add-Member -notepropertyname 'vcfmsNetworkModel' -notepropertyvalue $vcfmsNetworkModel
+        }                
+    }
+    
+    
+    Return $deploymentProfileObject
+}
+#EndRegion PnP Scraping Functions
+
+#Region Generate Global Objects
 Function New-SharedInstanceObject
 {
     Param (
-        [Parameter (Mandatory = $true)] [Object]$pnpWorkbook
+        [Parameter (Mandatory = $true)] [Object]$pnpWorkbook,
+        [Parameter (Mandatory = $false)] [Switch]$silent,
+        [Parameter (Mandatory = $false)] [switch]$platformTools,
+        [Parameter (Mandatory = $false)] [string]$workbookLayout
     )
 
     Try {
-        LogMessage -type NOTE -message "Planning & Preparation Workbook to $($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value) discovered"
-        LogMessage -type INFO -message "Extracting data common to Management and Workload Domains"
+        If (!$silent)
+        {
+            LogMessage -type NOTE -message "Planning & Preparation Workbook to $($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value) discovered"
+            LogMessage -type INFO -message "Extracting data common to Management and Workload Domains"    
+        }
+        
+        $vcfVersion = $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
 
+        If (!$workbookLayout)
+        {
+            If ($vcfVersion -like "9.0*")
+            {
+                $workbookLayout = "9.0"
+            }
+            else
+            {
+                $workbookLayout = "9.1"
+            }
+        }
+        If ($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value -eq "First Instance")
+        {
+            $instance = "InstanceA"
+        }
+        else
+        {
+            $instance = "InstanceB"
+        }
+        $vcfInstanceName = $pnpWorkbook.Workbook.Names["vcf_instance_name"].Value
+        $domainName = $pnpWorkbook.Workbook.Names["mgmt_sddc_domain"].Value    
+        $deploymentProfileObject = New-WorkbookDeploymentProfile -pnpWorkbook $pnpWorkbook -vcfVersion $vcfVersion -type management
+
+        $sddcManagerObject = New-Object -TypeName psobject
+        $sddcManagerObject | Add-Member -notepropertyname 'hostname' -notepropertyvalue $pnpWorkbook.Workbook.Names["sddc_mgr_hostname"].Value
+        $sddcManagerObject | Add-Member -notepropertyname 'fqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["sddc_mgr_fqdn"].Value
+        $sddcManagerObject | Add-Member -notepropertyname 'ipAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["sddc_mgr_ip"].Value
+        $sddcManagerObject | Add-Member -notepropertyname 'rootUser' -notepropertyvalue "root"
+        $sddcManagerObject | Add-Member -notepropertyname 'adminUser' -notepropertyvalue ("administrator@"+$pnpWorkbook.Workbook.names["mgmt_sso_domain"].Value)
+        $sddcManagerObject | Add-Member -notepropertyname 'vcfUser' -notepropertyvalue "vcf"
+        $sddcManagerObject | Add-Member -notepropertyname 'rootPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["sddc_mgr_root_password"].Value
+        $sddcManagerObject | Add-Member -notepropertyname 'vcfPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["sddc_mgr_vcf_password"].Value
+        $sddcManagerObject | Add-Member -notepropertyname 'adminPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["sddc_mgr_admin_local_password"].Value
+        $sddcManagerObject | Add-Member -notepropertyname 'localAdminPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["sddc_mgr_admin_local_password"].Value
+       
         $dnsObject = New-Object -TypeName psobject
+        $dnsObject | Add-Member -notepropertyname 'rootDnsDomain' -notepropertyvalue $pnpWorkbook.Workbook.names["parent_dns_zone"].Value
+        $dnsObject | Add-Member -notepropertyname 'childDnsDomain' -notepropertyvalue $pnpWorkbook.Workbook.names["child_dns_zone"].Value
         $dnsObject | Add-Member -notepropertyname 'dnsServer1' -notepropertyvalue $pnpWorkbook.Workbook.names["region_dns1_ip"].Value
         $dnsObject | Add-Member -notepropertyname 'dnsServer2' -notepropertyvalue $pnpWorkbook.Workbook.names["region_dns2_ip"].Value
-        $dnsObject | Add-Member -notepropertyname 'parentDnsDomain' -notepropertyvalue $pnpWorkbook.Workbook.names["parent_dns_zone"].Value
-        $dnsObject | Add-Member -notepropertyname 'childDnsDomain' -notepropertyvalue $pnpWorkbook.Workbook.names["child_dns_zone"].Value
         
         $ntpObject = New-Object -TypeName psobject
         $ntpObject | Add-Member -notepropertyname 'ntpServer1' -notepropertyvalue $pnpWorkbook.Workbook.Names["region_ntp1_server"].Value
@@ -1668,87 +2233,277 @@ Function New-SharedInstanceObject
         $ssoObject | Add-Member -notepropertyname 'domain' -notepropertyvalue $pnpWorkbook.Workbook.names["mgmt_sso_domain"].Value 
         $ssoObject | Add-Member -notepropertyname 'adminPassword' -notepropertyvalue $pnpWorkbook.Workbook.names["administrator_vsphere_local_password"].Value 
         
-        If ($workbookProfile.opsAutomationDayNDeployment -eq "Unselected")
+        #Ops Object
+        $vcfOperationsObject = New-Object -TypeName psobject
+        If ($pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value -eq "Unselected")
         {
-            $vcfOperationsObject = New-Object -TypeName psobject
+            $vcfOperationsObject | Add-Member -notepropertyname 'vipAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_virtual_ip"].Value
+            $vcfOperationsObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_nodea_ip"].Value
+            $vcfOperationsObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_nodeb_ip"].Value
+            $vcfOperationsObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_nodec_ip"].Value
             $vcfOperationsObject | Add-Member -notepropertyname 'nodeAFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_nodea_fqdn"].Value
             $vcfOperationsObject | Add-Member -notepropertyname 'nodeBFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_nodeb_fqdn"].Value
             $vcfOperationsObject | Add-Member -notepropertyname 'nodeCFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_nodec_fqdn"].Value
             $vcfOperationsObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_virtual_fqdn"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'applianceSize' -notepropertyvalue ($pnpWorkbook.Workbook.Names["mgmt_vcfops_appliance_size_chosen"].Value).tolower()
+            If (($vcfVersion -like "9.0*"))
+            {
+                $vcfOperationsObject | Add-Member -notepropertyname 'applianceSize' -notepropertyvalue ($pnpWorkbook.Workbook.Names["mgmt_vcfops_appliance_size_chosen"].Value).tolower()
+            }
+            else 
+            {
+                If ($platformTools)
+                {
+                    $vcfOperationsObject | Add-Member -notepropertyname 'applianceSize' -notepropertyvalue ($pnpWorkbook.Workbook.Names["mgmt_vcfops_appliance_size_chosen"].Value).tolower()
+                    $vcfOperationsObject | Add-Member -notepropertyname 'collectorApplianceSize' -notepropertyvalue 'standard'
+                }
+                else
+                {
+                    $vcfOperationsObject | Add-Member -notepropertyname 'applianceSize' -notepropertyvalue ($pnpWorkbook.Workbook.Names["mgmt_vcfops_appliance_size_result"].Value).tolower()
+                    $vcfOperationsObject | Add-Member -notepropertyname 'collectorApplianceSize' -notepropertyvalue ($pnpWorkbook.Workbook.Names["mgmt_vcfops_collector_size_result"].Value).tolower()
+                }
+            }
+
             $vcfOperationsObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_admin_password"].Value
             $vcfOperationsObject | Add-Member -notepropertyname 'rootUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_root_password"].Value
             $vcfOperationsObject | Add-Member -notepropertyname 'opsCollectorFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_collector_fqdn"].Value
             $vcfOperationsObject | Add-Member -notepropertyname 'opsCollectorRootUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_collector_root_password"].Value
-
-            $vcfAutomationObject = New-Object -TypeName psobject
-            $vcfAutomationObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodea_ip"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodeb_ip"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodec_ip"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'extraNodeIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_noded_ip"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_virtual_fqdn"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'internalClusterCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_k8s_cluster_cidr_chosen"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_admin_password"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'vcfaNodePrefix' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_prefix"].Value
-
-            $vcfFleetManagerObject = New-Object -TypeName psobject
-            $vcfFleetManagerObject | Add-Member -notepropertyname 'fqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrslcm_fqdn"].Value
-            $vcfFleetManagerObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["vrslcm_admin_password"].Value
-            $vcfFleetManagerObject | Add-Member -notepropertyname 'rootUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["vrslcm_root_password"].Value
-    
         }
         else
         {
-            $vcfOperationsObject = New-Object -TypeName psobject
-            $vcfOperationsObject | Add-Member -notepropertyname 'nodeAFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_nodea_fqdn"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'nodeBFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_nodeb_fqdn"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'nodeCFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_nodec_fqdn"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_vip_fqdn"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'applianceSize' -notepropertyvalue ($pnpWorkbook.Workbook.Names["flt_custom_network_ops_size_chosen"].Value).tolower()
-            $vcfOperationsObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_admin_password"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'rootUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_root_password"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'opsCollectorFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_collector_fqdn"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'opsCollectorRootUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_collector_root_password"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'fltMgmtPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_x_reg_pg"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'fltMgmtSubnetMask' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_x_reg_mask"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'fltMgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_x_reg_gateway_ip"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'collectorMgmtPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_pg"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'collectorMgmtSubnetMask' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_mask"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'collectorMgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_gateway_ip"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'fleetManagementDeploymentModel' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ha_mode_chosen"].Value
-            $vcfOperationsObject | Add-Member -notepropertyname 'collectorApplianceSize' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_collector_size_chosen"].Value
-            If ($pnpWorkbook.Workbook.Names["mgmt_domain_existing_vcf_operations_chosen"].Value -eq 'Unselected')
+            If ($workbookLayout -eq "9.0")
             {
-                $vcfOperationsObject | Add-Member -notepropertyname 'useExisting' -notepropertyvalue $false
+                $vcfOperationsObject | Add-Member -notepropertyname 'vipAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_vip_ip"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_nodea_ip"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_nodeb_ip"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_nodec_ip"].Value    
+                $vcfOperationsObject | Add-Member -notepropertyname 'nodeAFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_nodea_fqdn"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'nodeBFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_nodeb_fqdn"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'nodeCFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_nodec_fqdn"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_vip_fqdn"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'applianceSize' -notepropertyvalue ($pnpWorkbook.Workbook.Names["flt_custom_network_ops_size_chosen"].Value).tolower()
+                $vcfOperationsObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_admin_password"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'rootUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_root_password"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'opsCollectorFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_collector_fqdn"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'opsCollectorRootUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_collector_root_password"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'fltMgmtPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_x_reg_pg"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'fltMgmtSubnetMask' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_x_reg_mask"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'fltMgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_x_reg_gateway_ip"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'collectorMgmtPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_pg"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'collectorMgmtSubnetMask' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_mask"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'collectorMgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_gateway_ip"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'fleetManagementDeploymentModel' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ha_mode_chosen"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'collectorApplianceSize' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ops_collector_size_chosen"].Value
+                If ($pnpWorkbook.Workbook.Names["mgmt_domain_existing_vcf_operations_chosen"].Value -eq 'Unselected')
+                {
+                    $vcfOperationsObject | Add-Member -notepropertyname 'useExisting' -notepropertyvalue $false
+                }
+                else
+                {
+                    $vcfOperationsObject | Add-Member -notepropertyname 'useExisting' -notepropertyvalue $true
+                }
             }
             else
             {
-                $vcfOperationsObject | Add-Member -notepropertyname 'useExisting' -notepropertyvalue $true
-            } 
-            
-            
-            $vcfAutomationObject = New-Object -TypeName psobject
-            $vcfAutomationObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_nodea_ip"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_nodeb_ip"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_nodec_ip"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'extraNodeIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_noded_ip"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_vip_fqdn"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'internalClusterCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_cluster_cidr_chosen"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_admin_password"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'vcfaNodePrefix' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_prefix"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'fltMgmtPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_x_reg_pg"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'fltMgmtSubnetMask' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_x_reg_mask"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'fltMgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_x_reg_gateway_ip"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'collectorMgmtPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_pg"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'collectorMgmtSubnetMask' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_mask"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'collectorMgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_gateway_ip"].Value
-            $vcfAutomationObject | Add-Member -notepropertyname 'fleetManagementDeploymentModel' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ha_mode_chosen"].Value
 
-            $vcfFleetManagerObject = New-Object -TypeName psobject
+                $opsNetworkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_az1_vcf_mgmt_gateway_cidr"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'applianceSize' -notepropertyvalue ($pnpWorkbook.Workbook.Names["flt_def_vcf_operations_size_result"].Value).tolower()
+                $vcfOperationsObject | Add-Member -notepropertyname 'fltMgmtPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_az1_vcf_mgmt_pg"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'fltMgmtGwCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_az1_vcf_mgmt_gateway_cidr"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'fltMgmtGw' -notepropertyvalue $opsNetworkDetails.gw
+                $vcfOperationsObject | Add-Member -notepropertyname 'fltMgmtSubnetMask' -notepropertyvalue $opsNetworkDetails.netmask
+                $vcfOperationsObject | Add-Member -notepropertyname 'fleetManagementDeploymentModel' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_ha_mode_chosen"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_virtual_fqdn"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'vipAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_virtual_ip"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_nodea_ip"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_nodeb_ip"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_nodec_ip"].Value   
+                $vcfOperationsObject | Add-Member -notepropertyname 'nodeAFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_nodea_fqdn"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'nodeBFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_nodeb_fqdn"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'nodeCFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_nodec_fqdn"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'rootUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_root_password"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_admin_password"].Value
+                
+                If ($pnpWorkbook.Workbook.Names["flt_def_vcf_custom_network_chosen"].Value -eq "Selected")
+                {
+                    $collectorNetworkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_proxy_az1_vcf_mgmt_gateway_cidr"].Value
+                    $vcfOperationsObject | Add-Member -notepropertyname 'collectorMgmtPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_proxy_az1_vcf_mgmt_pg"].Value
+                    $vcfOperationsObject | Add-Member -notepropertyname 'collectorMgmtGwCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_proxy_az1_vcf_mgmt_gateway_cidr"].Value
+                }                
+                $vcfOperationsObject | Add-Member -notepropertyname 'collectorApplianceSize' -notepropertyvalue ($pnpWorkbook.Workbook.Names["flt_def_vcf_operations_proxy_size_result"].Value).tolower()
+                $vcfOperationsObject | Add-Member -notepropertyname 'collectorMgmtGw' -notepropertyvalue $collectorNetworkDetails.gw
+                $vcfOperationsObject | Add-Member -notepropertyname 'collectorMgmtSubnetMask' -notepropertyvalue $collectorNetworkDetails.netmask
+                $vcfOperationsObject | Add-Member -notepropertyname 'opsCollectorFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_proxy_fqdn"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'opsCollectorRootUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_proxy_root_password"].Value
+                $vcfOperationsObject | Add-Member -notepropertyname 'useExisting' -notepropertyvalue $false
+            }
+            
+        }  
+        
+        #Automation Object
+        $vcfAutomationObject = New-Object -TypeName psobject
+        If ($pnpWorkbook.Workbook.Names["mgmt_domain_vcf_automation_later_chosen"].Value -eq "Selected")
+        {
+            #9.1 Automation on its own via Fleet Manager
+            $vcfAutomationObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_sr_fqdn"].Value
+
+            If ($pnpWorkbook.Workbook.Names["vcf_automation_node_pool_chosen"].Value -eq "Selected")
+            {
+                $vcfAutomationObject | Add-Member -notepropertyname 'addressingMode' -notepropertyvalue "pool"
+                $vcfAutomationObject | Add-Member -notepropertyname 'startIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_node_pool_start_ip"].Value
+                $vcfAutomationObject | Add-Member -notepropertyname 'endIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_node_pool_end_ip"].Value
+            }
+            else
+            {
+                $vcfAutomationObject | Add-Member -notepropertyname 'addressingMode' -notepropertyvalue "cidr"
+                $vcfAutomationObject | Add-Member -notepropertyname 'cidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_runtime_cidr"].Value
+            }
+            $vcfAutomationObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_vip_fqdn"].Value
+            #$vcfAutomationObject | Add-Member -notepropertyname 'internalClusterCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_k8s_cluster_cidr_chosen"].Value
+            $vcfAutomationObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_admin_password"].Value
+            #$vcfAutomationObject | Add-Member -notepropertyname 'vcfaNodePrefix' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_prefix"].Value
+            $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_size_chosen"].Value
+        }
+        else
+        {
+            If ($pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value -eq "Unselected")
+            {
+                # Common Day 0 Bringup
+                $vcfAutomationObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_auto_sr_fqdn"].Value        
+                $vcfAutomationObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_virtual_fqdn"].Value
+                $vcfAutomationObject | Add-Member -notepropertyname 'internalClusterCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_k8s_cluster_cidr_chosen"].Value
+                $vcfAutomationObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_admin_password"].Value
+                $vcfAutomationObject | Add-Member -notepropertyname 'vcfaNodePrefix' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_prefix"].Value                
+                If ($vcfVersion -like "9.0*")
+                {
+                    # 9.0 Day 0 Bringup
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodea_ip"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodeb_ip"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodec_ip"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeDIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_noded_ip"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeEIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodee_ip"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeFIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_nodef_ip"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'extraNodeIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_noded_ip"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue "small"
+                }
+                else
+                {
+                    # 9.1 Day 0 Bringup
+                    $firstIpAddress = $pnpWorkbook.Workbook.Names["flt_auto_node_pool_start_ip"].Value
+                    $lastIpAddress = $pnpWorkbook.Workbook.Names["flt_auto_node_pool_end_ip"].Value
+                    $firstIpInt = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($firstIpAddress).GetAddressBytes()[3..0], 0)
+                    $lastIpInt  = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($lastIpAddress).GetAddressBytes()[3..0], 0)
+                    $ipAddressPool = $firstIpInt..$lastIpInt | ForEach-Object {
+                        [System.Net.IPAddress]::new([System.BitConverter]::GetBytes([UInt32]$_)[3..0]).ToString()
+                    }
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $ipAddressPool[0]
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $ipAddressPool[1]
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $ipAddressPool[2]
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeDIpAddress' -notepropertyvalue $ipAddressPool[3]
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeEIpAddress' -notepropertyvalue $ipAddressPool[4]
+                    If ($platformTools)
+                    {
+                        If ($deploymentProfileObject.fleetManagementDeploymentModel -eq "highlyAvailable")
+                        {
+                            $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue "medium"
+                        }
+                        else 
+                        {
+                            $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue "small"
+                        }                       
+                    }
+                    else
+                    {
+                        $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue ($pnpWorkbook.Workbook.Names["mgmt_vcf_auto_size_result"].Value).toLower()
+                    }
+                }
+            }
+            else
+            {
+                If ($workbookLayout -eq "9.0")
+                {
+                    #9.0 Day N Ops & Automation via SDDC Manager
+                    $vcfAutomationObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_auto_sr_fqdn"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_nodea_ip"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_nodeb_ip"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_nodec_ip"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeDIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_noded_ip"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeEIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_nodee_ip"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeFIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_nodef_ip"].Value            
+                    $vcfAutomationObject | Add-Member -notepropertyname 'extraNodeIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_noded_ip"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_vip_fqdn"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'internalClusterCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_cluster_cidr_chosen"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_admin_password"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'vcfaNodePrefix' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_auto_prefix"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'fltMgmtPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_x_reg_pg"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'fltMgmtSubnetMask' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_x_reg_mask"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'fltMgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_x_reg_gateway_ip"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'collectorMgmtPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_pg"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'collectorMgmtSubnetMask' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_mask"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'collectorMgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_local_reg_gateway_ip"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'fleetManagementDeploymentModel' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_ha_mode_chosen"].Value
+                    If ($deploymentProfileObject.fleetManagementDeploymentModel -eq "highlyAvailable")
+                    {
+                        $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue "medium"
+                    }
+                    else 
+                    {
+                        $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue "small"                                  
+                    }
+                }
+                else
+                {
+                    #9.1 Day N Complete the Fleet
+                    $vcfAutomationObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_auto_sr_fqdn"].Value                   
+                    $vcfAutomationObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vra_virtual_fqdn"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'fltMgmtPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_az1_vcf_mgmt_pg"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'fltMgmtGwCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_vcf_operations_az1_vcf_mgmt_gateway_cidr"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_auto_admin_password"].Value                    
+                    $vcfAutomationObject | Add-Member -notepropertyname 'internalClusterCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_auto_cluster_cidr"].Value
+                    $vcfAutomationObject | Add-Member -notepropertyname 'vcfaNodePrefix' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_auto_node_prefix"].Value                     
+                    
+                    $firstIpAddress = $pnpWorkbook.Workbook.Names["flt_def_auto_node_pool_start_ip"].Value
+                    $lastIpAddress = $pnpWorkbook.Workbook.Names["flt_def_auto_node_pool_end_ip"].Value
+                    $firstIpInt = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($firstIpAddress).GetAddressBytes()[3..0], 0)
+                    $lastIpInt  = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($lastIpAddress).GetAddressBytes()[3..0], 0)
+                    $ipAddressPool = $firstIpInt..$lastIpInt | ForEach-Object {
+                        [System.Net.IPAddress]::new([System.BitConverter]::GetBytes([UInt32]$_)[3..0]).ToString()
+                    }
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $ipAddressPool[0]
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $ipAddressPool[1]
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $ipAddressPool[2]
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeDIpAddress' -notepropertyvalue $ipAddressPool[3]
+                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeEIpAddress' -notepropertyvalue $ipAddressPool[4]
+                    $vcfAutomationObject | Add-Member -notepropertyname 'size' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_def_auto_size_result"].Value.toLower()
+                }
+            }
+        }
+
+        #license Object
+        $vcfLicenseServerObject = New-Object -TypeName psobject
+        If (($pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value -eq "Unselected") -or $platformTools)
+        {
+            $vcfLicenseServerObject | Add-Member -notepropertyname 'fqdn' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_lc_fqdn"].Value
+        }
+        else
+        {
+            $vcfLicenseServerObject | Add-Member -notepropertyname 'fqdn' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_def_vcf_operations_lc_fqdn"].Value
+        }
+        
+          
+        #Fleet Manager Object
+        $vcfFleetManagerObject = New-Object -TypeName psobject
+        If ($pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value -eq "Unselected")
+        {
+            $vcfFleetManagerObject | Add-Member -notepropertyname 'fqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrslcm_fqdn"].Value
+            $vcfFleetManagerObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["vrslcm_admin_password"].Value
+            $vcfFleetManagerObject | Add-Member -notepropertyname 'rootUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["vrslcm_root_password"].Value
+        }
+        else
+        {
             $vcfFleetManagerObject | Add-Member -notepropertyname 'fqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_flt_fqdn"].Value
             $vcfFleetManagerObject | Add-Member -notepropertyname 'adminUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_flt_admin_password"].Value
             $vcfFleetManagerObject | Add-Member -notepropertyname 'rootUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_network_flt_root_password"].Value
-        }        
+        }  
         
         $vcfIdbObject = New-Object -TypeName psobject
         $vcfIdbObject | Add-Member -notepropertyname 'certAlias' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_vidb_cert_alias"].Value
@@ -1811,6 +2566,7 @@ Function New-SharedInstanceObject
         $vcfLogsObject | Add-Member -notepropertyname 'adminEmail' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_logs_admin_email"].Value
         $vcfLogsObject | Add-Member -notepropertyname 'fipsMode' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_logs_fips_mode_chosen"].Value
         $vcfLogsObject | Add-Member -notepropertyname 'configureAffinity' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_logs_affinty_rule_chosen"].Value
+        $vcfLogsObject | Add-Member -notepropertyname 'noOfReplicas' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_logs_number_replicas_chosen"].Value
         
         $vcfNetworksObject = New-Object -TypeName psobject
         $vcfNetworksObject | Add-Member -notepropertyname 'deploymentType' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_ha_mode_chosen"].Value
@@ -1849,8 +2605,38 @@ Function New-SharedInstanceObject
         $vcfNetworksObject | Add-Member -notepropertyname 'fipsMode' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_fips_mode_chosen"].Value
         $vcfNetworksObject | Add-Member -notepropertyname 'configureAffinity' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_affinty_rule_chosen"].Value
 
+        $vspObject = New-Object -TypeName psobject
+        $vspObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_sr_fqdn"].Value
+        $vspObject | Add-Member -notepropertyname 'instanceFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_ic_fqdn"].Value
+        $vspObject | Add-Member -notepropertyname 'fleetFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_fc_fqdn"].Value
+        If ($platformTools)
+        {
+            $vspObject | Add-Member -notepropertyname 'systemUserPassword' -notepropertyvalue $infrastructureSettings.environment.commonComplexPassword
+        }
+        else
+        {
+            $vspObject | Add-Member -notepropertyname 'systemUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcfms_system_password"].Value
+        }
+        
+        If ($pnpWorkbook.Workbook.Names["mgmt_domain_vcf_operations_ha_mode_chosen"].Value -eq "High Availability (Three-node)")
+        {
+            $vspObject | Add-Member -notepropertyname 'size' -notepropertyvalue "medium"
+        }
+        else 
+        {
+            $vspObject | Add-Member -notepropertyname 'size' -notepropertyvalue "small"
+        }        
+        $vspObject | Add-Member -notepropertyname 'internalClusterCidrIpv4' -notepropertyvalue "198.18.0.0/15"
+        $vspObject | Add-Member -notepropertyname 'startIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_vcfms_node_pool_start_ip"].Value
+        $vspObject | Add-Member -notepropertyname 'endIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_vcfms_node_pool_end_ip"].Value
+
         $sharedInstanceObject = New-Object -TypeName psobject
+        $sharedInstanceObject | Add-Member -notepropertyname 'instance' -notepropertyvalue $instance
+        $sharedInstanceObject | Add-Member -notepropertyname 'domainName' -notepropertyvalue $domainName
+        $sharedInstanceObject | Add-Member -notepropertyname 'vcfInstanceName' -notepropertyvalue $vcfInstanceName
         $sharedInstanceObject | Add-Member -notepropertyname 'version' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
+        $sharedInstanceObject | Add-Member -notepropertyname 'deploymentProfile' -notepropertyvalue $deploymentProfileObject    
+        $sharedInstanceObject | Add-Member -notepropertyname 'sddcManager' -notepropertyvalue $sddcManagerObject            
         $sharedInstanceObject | Add-Member -notepropertyname 'dns' -notepropertyvalue $dnsObject
         $sharedInstanceObject | Add-Member -notepropertyname 'ntp' -notepropertyvalue $ntpObject
         $sharedInstanceObject | Add-Member -notepropertyname 'sso' -notepropertyvalue $ssoObject
@@ -1860,25 +2646,64 @@ Function New-SharedInstanceObject
         $sharedInstanceObject | Add-Member -notepropertyname 'logs' -notepropertyvalue $vcfLogsObject
         $sharedInstanceObject | Add-Member -notepropertyname 'networks' -notepropertyvalue $vcfNetworksObject
         $sharedInstanceObject | Add-Member -notepropertyname 'fleetManager' -notepropertyvalue $vcfFleetManagerObject
+        $sharedInstanceObject | Add-Member -notepropertyname 'vsp' -notepropertyvalue $vspObject
+        $sharedInstanceObject | Add-Member -notepropertyname 'licenseServer' -notepropertyvalue $vcfLicenseServerObject
         $sharedInstanceObject | Add-Member -notepropertyname 'subscriptionLicensing' -notepropertyvalue "NotApplicable"
         Return $sharedInstanceObject
     }
     Catch {
         LogMessage -type ERROR -message "Shared Object failed to generate for $instance Instance. Please consult the error message and remediate"
-        Break
+        LogMessage -type ERROR -message "At $($_.InvocationInfo.ScriptName):$($_.InvocationInfo.ScriptLineNumber)"
+        LogMessage -type ERROR -message "$($_.InvocationInfo.Line.Trim())"
+        LogMessage -type ERROR -message "$($_.Exception.Message)"
+        Throw $_
     }
 }
 
 Function New-ManagementInstanceObject
 {
     Param (
-        [Parameter (Mandatory = $true)] [Object]$pnpWorkbook
-    )
+        [Parameter (Mandatory = $true)] [Object]$pnpWorkbook,
+        [Parameter (Mandatory = $false)] [Switch]$silent,
+        [Parameter (Mandatory = $false)] [INT]$totalRackCount,
+        [Parameter (Mandatory = $false)] [switch]$platformTools,
+        [Parameter (Mandatory = $false)] [string]$workbookLayout
+        )
 
     Try {
-        LogMessage -type INFO -message "Extracting data specific to Management Domain Creation"
-        $totalRackCount = 1
+        If (!$silent)
+        {
+            LogMessage -type INFO -message "Extracting data specific to Management Domain Creation"
+        }
+
+        If (!$totalRackCount)  { $totalRackCount = 1}
         $vcfInstanceName = $pnpWorkbook.Workbook.Names["vcf_instance_name"].Value
+
+        $vcfVersion = $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
+
+        If (!$workbookLayout)
+        {
+            If ($vcfVersion -like "9.0*")
+            {
+                $workbookLayout = "9.0"
+            }
+            else
+            {
+                $workbookLayout = "9.1"
+            }
+        }
+        If ($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value -eq "First Instance")
+        {
+            $instance = "InstanceA"
+        }
+        else
+        {
+            $instance = "InstanceB"
+        }
+
+        $includeAz2 = ($pnpWorkbook.Workbook.Names["mgmt_stretched_cluster_result"].Value -eq "Included") -or ($platformTools)
+
+        $deploymentProfileObject = New-WorkbookDeploymentProfile -pnpWorkbook $pnpWorkbook -vcfVersion $vcfVersion -type management
 
         $domainName = $pnpWorkbook.Workbook.Names["mgmt_sddc_domain"].Value
         $sddcManagerObject = New-Object -TypeName psobject
@@ -1910,7 +2735,17 @@ Function New-ManagementInstanceObject
         $vcenterServerObject | Add-Member -notepropertyname 'nsxRp' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsx_rp"].Value
         $vcenterServerObject | Add-Member -notepropertyname 'userEdgeRp' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_user_edge_rp"].Value
         $vcenterServerObject | Add-Member -notepropertyname 'userVmRp' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_user_vm_rp"].Value
-        $vcenterServerObject | Add-Member -notepropertyname 'vcSize' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_vcenter_appliance_size_chosen"].Value
+        If ($workbookLayout -eq "9.0")
+        {
+            $vcenterServerObject | Add-Member -notepropertyname 'vcSize' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_vcenter_appliance_size_chosen"].Value
+            $vcenterServerObject | Add-Member -notepropertyname 'vcStorage' -notepropertyvalue $pnpWorkbook.Workbook.Names["sizing_m01_vcenter_storage_size_chosen"].Value
+        }
+        else
+        {
+            $vcenterServerObject | Add-Member -notepropertyname 'vcSize' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_vcenter_appliance_size_result"].Value
+            $vcenterServerObject | Add-Member -notepropertyname 'vcStorage' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_vcenter_storage_size_result"].Value
+        }
+        
         If ($pnpWorkbook.Workbook.Names["mgmt_domain_existing_vcenter_chosen"].Value -eq 'Unselected')
         {
             $vcenterServerObject | Add-Member -notepropertyname 'useExisting' -notepropertyvalue $false
@@ -1969,6 +2804,7 @@ Function New-ManagementInstanceObject
         $az1PortGroups | Add-Member -notepropertyname 'mgmt' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_cl01_az1_mgmt_pg"].Value
         $az1PortGroups | Add-Member -notepropertyname 'vmotion' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_cl01_az1_vmotion_pg"].Value
         $az1PortGroups | Add-Member -notepropertyname 'vsan' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_cl01_az1_vsan_pg"].Value
+        $az1PortGroups | Add-Member -notepropertyname 'fleetMgmt' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_cl01_az1_vcf_mgmt_pg"].Value
         
         $az2PortGroups = New-Object -TypeName psobject
         $az2PortGroups | Add-Member -notepropertyname 'mgmtVm' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_cl01_az1_mgmt_vm_pg"].Value
@@ -2009,7 +2845,14 @@ Function New-ManagementInstanceObject
         $nsxtManagerObject | Add-Member -notepropertyname 'nodeAFQDN' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_mgra_fqdn"].Value
         $nsxtManagerObject | Add-Member -notepropertyname 'nodeBFQDN' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_mgrb_fqdn"].Value
         $nsxtManagerObject | Add-Member -notepropertyname 'nodeCFQDN' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_mgrc_fqdn"].Value
-        $nsxtManagerObject | Add-Member -notepropertyname 'mgrFormfactor' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_appliance_size_chosen"].Value
+        If ($workbookLayout -eq "9.0")
+        {
+            $nsxtManagerObject | Add-Member -notepropertyname 'mgrFormfactor' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_appliance_size_chosen"].Value
+        }
+        else
+        {
+            $nsxtManagerObject | Add-Member -notepropertyname 'mgrFormfactor' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_appliance_size_result"].Value
+        }
         If ($pnpWorkbook.Workbook.Names["mgmt_domain_existing_nsx_manager_chosen"].Value -eq 'Unselected')
         {
             $nsxtManagerObject | Add-Member -notepropertyname 'useExisting' -notepropertyvalue $false
@@ -2027,24 +2870,41 @@ Function New-ManagementInstanceObject
 
         #Define AZs for the domain
         $az1Object = New-Object -TypeName psobject
-        $az2Object = New-Object -TypeName psobject
+        If ($includeAz2)
+        {
+            $az2Object = New-Object -TypeName psobject
+        }
 
         # Start Rack Specific Stuff
         $rackIDArray = @()
         Foreach ($_ in (1..$totalRackCount)) {$rackIDArray += "rack$($_)"}
         Foreach ($rack in $rackIDArray)
         {
-            If ($rack -eq "rack1")
+            If ($platformTools)
             {
-                $rackVariableModifier = ""
+                If ($rack -eq "rack1")
+                {
+                    $rackVariableModifier = ""
+                    $pnpVariableNameModifier = "mgmt"
+                    $storageModifier = "vsan"
+                }
+                else
+                {
+                    $rackVariableModifier = "$($rack)_"
+                    $pnpVariableNameModifier = "wld"
+                    $storageModifier = "principal_storage"
+                }
             }
             else
             {
-                $rackVariableModifier = "$($rack)_"
+                #Always One Rack if not Platform Tools
+                $rackVariableModifier = ""
+                $pnpVariableNameModifier = "mgmt"
+                $storageModifier = "vsan"
             }
-            $az1RackHostNames = @(($pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)host_hostnames"].Value) | Where-Object {$_ -notin "Value Missing","Not Required"})
-            $az1RackHostMgmtIps = @(($pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)host_mgmt_ips"].Value) | Where-Object {$_ -notin "Value Missing","Not Required"})
-            $az1RackHostFqdns = @(($pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)host_fqdns"].Value) | Where-Object {$_ -notin "Value Missing","Not Required" -and $_ -ne ""})
+            $az1RackHostNames = @(($pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)host_hostnames"].Value) | Where-Object {$_ -notin "Value Missing","Not Required"})
+            $az1RackHostMgmtIps = @(($pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)host_mgmt_ips"].Value) | Where-Object {$_ -notin "Value Missing","Not Required"})
+            $az1RackHostFqdns = @(($pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)host_fqdns"].Value) | Where-Object {$_ -notin "Value Missing","Not Required" -and $_ -ne ""})
             
             $az1RackHostsObject = @()
             Foreach ($az1RackHost in $az1RackHostFqdns)
@@ -2057,197 +2917,307 @@ Function New-ManagementInstanceObject
                 $az1RackHostsObject += $az1RackHostObject           
             }
 
-            $az2RackHostNames = @(($pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_hostnames"].Value) | Where-Object {$_ -notin "Value Missing","Not Required"})
-            $az2RackHostMgmtIps = @(($pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_mgmt_ips"].Value) | Where-Object {$_ -notin "Value Missing","Not Required"})
-            $az2RackHostFqdns = @(($pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_fqdns"].Value) | Where-Object {$_ -notin "Value Missing","Not Required" -and $_ -ne ""})
-            
-            $az2RackHostsObject = @()
-            Foreach ($az2RackHost in $az2RackHostFqdns)
+            If ($includeAz2)
             {
-                $az2RackHostObject = [pscustomobject]@{
-                    'mgmtIp'   = $az2RackHostMgmtIps[$az2RackHostFqdns.indexof($az2RackHost)]
-                    'hostname' = $az2RackHostNames[$az2RackHostFqdns.indexof($az2RackHost)]
-                    'fqdn'     = $az2RackHostFqdns[$az2RackHostFqdns.indexof($az2RackHost)]
+                $az2RackHostNames = @(($pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)host_hostnames"].Value) | Where-Object {$_ -notin "Value Missing","Not Required"})
+                $az2RackHostMgmtIps = @(($pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)host_mgmt_ips"].Value) | Where-Object {$_ -notin "Value Missing","Not Required"})
+                $az2RackHostFqdns = @(($pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)host_fqdns"].Value) | Where-Object {$_ -notin "Value Missing","Not Required" -and $_ -ne ""})
+                
+                $az2RackHostsObject = @()
+                Foreach ($az2RackHost in $az2RackHostFqdns)
+                {
+                    $az2RackHostObject = [pscustomobject]@{
+                        'mgmtIp'   = $az2RackHostMgmtIps[$az2RackHostFqdns.indexof($az2RackHost)]
+                        'hostname' = $az2RackHostNames[$az2RackHostFqdns.indexof($az2RackHost)]
+                        'fqdn'     = $az2RackHostFqdns[$az2RackHostFqdns.indexof($az2RackHost)]
+                    }
+                    $az2RackHostsObject += $az2RackHostObject
                 }
-                $az2RackHostsObject += $az2RackHostObject
-            }
+            }            
                 
             $az1RackNetworkObject = New-Object -TypeName psobject
             
             #VMs
-            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_vlan"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_gateway_ip"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_mtu"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_cidr"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_network"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_mask"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_mgmt_vm_vlan"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_mgmt_vm_mtu"].Value
+            If ($workbookLayout -eq "9.0")
+            {
+                $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_mgmt_vm_gateway_ip"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_mgmt_vm_cidr"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_mgmt_vm_network"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_mgmt_vm_mask"].Value
+            }
+            else 
+            {
+                $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["mgmt_az1_mgmt_vm_gateway_cidr"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmGw' -notepropertyvalue $networkDetails.gw
+                $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmCidr' -notepropertyvalue $networkDetails.cidr
+                $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmNetwork' -notepropertyvalue $networkDetails.network
+                $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmNetmask' -notepropertyvalue $networkDetails.netmask
+            }        
 
             #Hosts
-            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vlan"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_gateway_ip"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_mtu"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_cidr"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_network"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_mask"].Value
-
-            $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)vmotion_vlan"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)vmotion_gateway_ip"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)vmotion_cidr"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)vmotion_network"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)vmotion_mask"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)vmotion_mtu"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)vmotion_pool_start_ip"].Value        
-            $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)vmotion_pool_end_ip"].Value
-
-            $az1RackNetworkObject | Add-Member -notepropertyname 'vsanVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)vsan_vlan"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)vsan_gateway_ip"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)vsan_cidr"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)vsan_network"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)vsan_mask"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'vsanMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)vsan_mtu"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'vsanPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)vsan_pool_start_ip"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'vsanPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)vsan_pool_end_ip"].Value
-
-            $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)secondary_storage_vlan"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)secondary_storage_gateway_ip"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)secondary_storage_cidr"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)secondary_storage_network"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetmask' -notepropertyvalue  $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)secondary_storage_mask"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)secondary_storage_mtu"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)secondary_storage_pool_start_ip"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)secondary_storage_pool_end_ip"].Value
-
-            $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)host_overlay_vlan"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)host_overlay_mask"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)host_overlay_mtu"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)host_overlay_gateway_ip"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)host_overlay_cidr"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)host_overlay_network"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)host_overlay_pool_start_ip"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)host_overlay_pool_end_ip"].Value
-
-            $az1RackNetworkObject | Add-Member -notepropertyname 'networkProfileName' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)host_overlay_network_profile_name"].Value
-            #$az1RackNetworkObject | Add-Member -notepropertyname 'vcfNetworkPoolName' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)pool_name"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'hostIpAddressPoolName' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)host_overlay_network_pool_name"].Value 
-            $az1RackNetworkObject | Add-Member -notepropertyname 'hostIpAddressPoolDesc' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)host_overlay_network_pool_description"].Value 
-            $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayAddressing' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_host_overlay_addressing_chosen"].Value
-
-            $az2RackNetworkObject = New-Object -TypeName psobject
-            #VMs
-            $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVmVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_vlan"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVmGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_gateway_ip"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVmMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_mtu"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVmCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_cidr"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVmNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_network"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVmNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_mask"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)mgmt_vlan"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)mgmt_mtu"].Value
             
-            #Hosts
-            $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)mgmt_vlan"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)mgmt_gateway_ip"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)mgmt_mtu"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)mgmt_cidr"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)mgmt_network"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)mgmt_mask"].Value
+            If ($workbookLayout -eq "9.0")
+            {
+                $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)mgmt_gateway_ip"].Value            
+                $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)mgmt_cidr"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)mgmt_network"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)mgmt_mask"].Value    
+            }
+            else 
+            {
+                $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)mgmt_gateway_cidr"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtGw' -notepropertyvalue $networkDetails.gw
+                $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtCidr' -notepropertyvalue $networkDetails.cidr
+                $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtNetwork' -notepropertyvalue $networkDetails.network
+                $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtNetmask' -notepropertyvalue $networkDetails.netmask
+            }
 
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vmotion_vlan"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vmotion_gateway_ip"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vmotion_cidr"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vmotion_network"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vmotion_mask"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vmotion_mtu"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vmotion_pool_start_ip"].Value        
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vmotion_pool_end_ip"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)vmotion_vlan"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)vmotion_mtu"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)vmotion_pool_start_ip"].Value        
+            $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)vmotion_pool_end_ip"].Value
+            If ($workbookLayout -eq "9.0")
+            {
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)vmotion_gateway_ip"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)vmotion_cidr"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)vmotion_network"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)vmotion_mask"].Value    
+            }
+            else 
+            {
+                $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)vmotion_gateway_cidr"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionGw' -notepropertyvalue $networkDetails.gw
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionCidr' -notepropertyvalue $networkDetails.cidr
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionNetwork' -notepropertyvalue $networkDetails.network
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionNetmask' -notepropertyvalue $networkDetails.netmask
+            }
 
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vsan_vlan"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vsan_gateway_ip"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vsan_cidr"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vsan_network"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vsan_mask"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vsan_mtu"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vsan_pool_start_ip"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)vsan_pool_end_ip"].Value
+            If ($pnpWorkbook.Workbook.Names["mgmt_principal_storage_chosen"].Value -in "vSAN-ESA","vSAN-OSA")
+            {
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)$($storageModifier)_vlan"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)$($storageModifier)_mtu"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)$($storageModifier)_pool_start_ip"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)$($storageModifier)_pool_end_ip"].Value
+                If ($workbookLayout -eq "9.0")
+                {
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)$($storageModifier)_gateway_ip"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)$($storageModifier)_cidr"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)$($storageModifier)_network"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)$($storageModifier)_mask"].Value    
+                }
+                else 
+                {
+                    $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)$($storageModifier)_gateway_cidr"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $networkDetails.gw
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $networkDetails.cidr
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $networkDetails.network
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $networkDetails.netmask
+                }
+            }
 
-            $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)secondary_storage_vlan"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)secondary_storage_gateway_ip"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)secondary_storage_cidr"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)secondary_storage_network"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)secondary_storage_mask"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)secondary_storage_mtu"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)secondary_storage_pool_start_ip"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)secondary_storage_pool_end_ip"].Value
+            If ($rack -eq "rack1")
+            {
+                $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)secondary_storage_vlan"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)secondary_storage_mtu"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)secondary_storage_pool_start_ip"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)secondary_storage_pool_end_ip"].Value
+                If ($workbookLayout -eq "9.0")
+                {
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)secondary_storage_gateway_ip"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)secondary_storage_cidr"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)secondary_storage_network"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)secondary_storage_mask"].Value
+                }
+                else
+                {
+                    If ($pnpWorkbook.Workbook.Names["mgmt_principal_storage_chosen"].Value -eq "NFSv3")
+                    {
+                        $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)secondary_storage_gateway_cidr"].Value
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageGw' -notepropertyvalue $networkDetails.gw
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageCidr' -notepropertyvalue $networkDetails.cidr
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetwork' -notepropertyvalue $networkDetails.network
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetmask' -notepropertyvalue $networkDetails.netmask
+                    }
+                }
 
-            $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_vlan"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_mask"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_mtu"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_gateway_ip"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_cidr"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_network"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_pool_start_ip"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_pool_end_ip"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_dtgw_vlan"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_dtgw_mtu"].Value
+                If ($workbookLayout -eq "9.0")
+                {
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_dtgw_gateway_ip"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_dtgw_cidr"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_dtgw_network"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_dtgw_mask"].Value
+                }
+                else 
+                {
+                    If ($pnpWorkbook.Workbook.Names["mgmt_vns_chosen"].value -eq "Distributed Connectivity")
+                    {
+                        $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_dtgw_gateway_cidr"].Value
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwGw' -notepropertyvalue $networkDetails.gw
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwCidr' -notepropertyvalue $networkDetails.cidr
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwNetwork' -notepropertyvalue $networkDetails.network
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwNetmask' -notepropertyvalue $networkDetails.netmask
+                    }
+                }
+            }
+            
+            $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)host_overlay_vlan"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)host_overlay_mtu"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)host_overlay_pool_start_ip"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)host_overlay_pool_end_ip"].Value
+            If ($workbookLayout -eq "9.0")
+            {
+                $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)host_overlay_gateway_ip"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)host_overlay_cidr"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)host_overlay_network"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)host_overlay_mask"].Value
+            }
+            else 
+            {
+                $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)host_overlay_gateway_cidr"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayGw' -notepropertyvalue $networkDetails.gw
+                $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayCidr' -notepropertyvalue $networkDetails.cidr
+                $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetwork' -notepropertyvalue $networkDetails.network
+                $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetmask' -notepropertyvalue $networkDetails.netmask
+            }
 
-            $az2RackNetworkObject | Add-Member -notepropertyname 'uplinkProfileName' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_uplink_profile_name"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'networkProfileName' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_network_profile_name"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'vcfNetworkPoolName' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)pool_name"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'hostIpAddressPoolName' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_network_pool_name"].Value 
-            $az2RackNetworkObject | Add-Member -notepropertyname 'hostIpAddressPoolDesc' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_network_pool_description"].Value 
-            $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayAddressing' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_host_overlay_addressing_chosen"].Value
-            $az2RackNetworkObject | Add-Member -notepropertyname 'reuseExistingVcfNetworkPool' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)reuse_vcf_networkpool_chosen"].Value
-            $az2RackNetworkObject | Add-Member -NotePropertyName 'reuseExistingStaticIpPool' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_az2_$($rackVariableModifier)host_overlay_new_pool_chosen"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'networkProfileName' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)host_overlay_network_profile_name"].Value
+            If ($rack -ne 'rack1')
+            {
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vcfNetworkPoolName' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)pool_name"].Value
+            }
+            $az1RackNetworkObject | Add-Member -notepropertyname 'hostIpAddressPoolName' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)host_overlay_network_pool_name"].Value 
+            $az1RackNetworkObject | Add-Member -notepropertyname 'hostIpAddressPoolDesc' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)host_overlay_network_pool_description"].Value 
+            $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayAddressing' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_host_overlay_addressing_chosen"].Value
+            
+            If ($workbookLayout -eq "9.0")
+            {
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_management_vlan"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_management_mtu"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_management_gateway_ip"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_management_cidr"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_management_network"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_custom_management_mask"].Value
+            }
+            else 
+            {             
+                If ($pnpWorkbook.Workbook.Names["mgmt_vcf_management_network_chosen"].Value -eq "Use a separate dedicated network")
+                {
+                    $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["mgmt_az1_vcf_mgmt_gateway_cidr"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_vcf_mgmt_vlan"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_vcf_mgmt_mtu"].Value
+                }
+                elseIf ($pnpWorkbook.Workbook.Names["mgmt_dpg_reuse_chosen"].Value -eq "Use a separate dedicated network")
+                {
+                    $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["mgmt_az1_mgmt_vm_gateway_cidr"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_mgmt_vm_vlan"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_mgmt_vm_mtu"].Value    
+                }
+                else
+                {
+                    $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["mgmt_az1_mgmt_gateway_cidr"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_mgmt_vlan"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_mgmt_mtu"].Value    
+                }
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkGw' -notepropertyvalue $networkDetails.gw
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkCidr' -notepropertyvalue $networkDetails.cidr
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkNetwork' -notepropertyvalue $networkDetails.network
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vcfManagementNetworkNetmask' -notepropertyvalue $networkDetails.netmask
+            }
 
             $az1RackObject = New-Object -TypeName psobject
             $az1RackObject | Add-Member -notepropertyname 'hosts' -notepropertyvalue $az1RackHostsObject
             $az1RackObject | Add-Member -notepropertyname 'network' -notepropertyvalue $az1RackNetworkObject
             $az1Object | Add-Member -notepropertyname $rack -notepropertyvalue $az1RackObject
 
-            $az2RackObject = New-Object -TypeName psobject
-            $az2RackObject | Add-Member -notepropertyname 'hosts' -notepropertyvalue $az2RackHostsObject
-            $az2RackObject | Add-Member -notepropertyname 'network' -notepropertyvalue $az2RackNetworkObject
-            $az2Object | Add-Member -notepropertyname $rack -notepropertyvalue $az2RackObject
-
-            If ($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value -eq "First Instance")
+            If ($includeAz2)
             {
-                $joinFleet = "N"
-            }
-            else
-            {
-                $joinFleet = "Y"
-            }
-
-            If ($pnpWorkbook.Workbook.Names["mgmt_domain_vcf_operations_ha_mode_chosen"].Value -eq "High Availability (Three-node)")
-            {
-                $singleNSXTManager = "N"
-                $fleetManagementDeploymentModel = "highlyAvailable"
-            }
-            else
-            {
-                $singleNSXTManager = "Y"
-                $fleetManagementDeploymentModel = "single"
-            }
+                If ($rack -eq "rack1")
+                {
+                    $az2RackNetworkObject = New-Object -TypeName psobject
+                    #VMs
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVmVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_vlan"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVmMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_mtu"].Value
+                    If ($workbookLayout -eq "9.0")
+                    {
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVmGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_gateway_ip"].Value
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVmCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_cidr"].Value
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVmNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_network"].Value
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVmNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_mask"].Value
+                    }
+                    else 
+                    {
+                        $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["mgmt_az1_$($rackVariableModifier)mgmt_vm_gateway_cidr"].Value
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVmGw' -notepropertyvalue $networkDetails.gw
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVmCidr' -notepropertyvalue $networkDetails.cidr
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVmNetwork' -notepropertyvalue $networkDetails.network
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVmNetmask' -notepropertyvalue $networkDetails.netmask
+                    }
+                    
+                    #Hosts
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)mgmt_vlan"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)mgmt_mtu"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)mgmt_gateway_ip"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)mgmt_cidr"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)mgmt_network"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)mgmt_mask"].Value
+        
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)vmotion_vlan"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)vmotion_mtu"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)vmotion_pool_start_ip"].Value        
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)vmotion_pool_end_ip"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)vmotion_gateway_ip"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)vmotion_cidr"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)vmotion_network"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)vmotion_mask"].Value
+                    
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'vsanVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)vsan_vlan"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'vsanMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)vsan_mtu"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'vsanPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)vsan_pool_start_ip"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'vsanPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)vsan_pool_end_ip"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)vsan_gateway_ip"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)vsan_cidr"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)vsan_network"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)vsan_mask"].Value
             
-            If ($pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value -eq "Selected")
-            {
-                $fleetManagementTiming = "later"
-            }
-            else
-            {
-                $fleetManagementTiming = "bringup"
-            }
-
-            If ($pnpWorkbook.Workbook.Names["mgmt_domain_vcf_automation_later_chosen"].Value -eq "Selected")
-            {
-                $skipAutomation = "Y"   
-            }
-            else
-            {
-                $skipAutomation = "N"
-            }
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)secondary_storage_vlan"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)secondary_storage_mtu"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)secondary_storage_pool_start_ip"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)secondary_storage_pool_end_ip"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)secondary_storage_gateway_ip"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)secondary_storage_cidr"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)secondary_storage_network"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)secondary_storage_mask"].Value
+        
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)host_overlay_vlan"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)host_overlay_mtu"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)host_overlay_pool_start_ip"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)host_overlay_pool_end_ip"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)host_overlay_gateway_ip"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)host_overlay_cidr"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)host_overlay_network"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)host_overlay_mask"].Value
             
-            $deploymentProfileObject = New-Object -TypeName psobject
-            $deploymentProfileObject | Add-Member -notepropertyname 'singleNSXTManager' -notepropertyvalue $singleNSXTManager
-            $deploymentProfileObject | Add-Member -notepropertyname 'skipAutomation' -notepropertyvalue $skipAutomation
-            $deploymentProfileObject | Add-Member -notepropertyname 'joinFleet' -notepropertyvalue $joinFleet
-            $deploymentProfileObject | Add-Member -notepropertyname 'fleetManagementDeploymentModel' -notepropertyvalue $fleetManagementDeploymentModel
-            $deploymentProfileObject | Add-Member -notepropertyname 'fleetManagementTiming' -notepropertyvalue $fleetManagementTiming
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'uplinkProfileName' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)host_overlay_uplink_profile_name"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'networkProfileName' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)host_overlay_network_profile_name"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'vcfNetworkPoolName' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)pool_name"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'hostIpAddressPoolName' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)host_overlay_network_pool_name"].Value 
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'hostIpAddressPoolDesc' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)host_overlay_network_pool_description"].Value 
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayAddressing' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_host_overlay_addressing_chosen"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'reuseExistingVcfNetworkPool' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)reuse_vcf_networkpool_chosen"].Value
+                    $az2RackNetworkObject | Add-Member -NotePropertyName 'reuseExistingStaticIpPool' -NotePropertyValue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)host_overlay_new_pool_chosen"].Value
+
+                    $az2RackObject = New-Object -TypeName psobject
+                    $az2RackObject | Add-Member -notepropertyname 'hosts' -notepropertyvalue $az2RackHostsObject
+                    $az2RackObject | Add-Member -notepropertyname 'network' -notepropertyvalue $az2RackNetworkObject
+                    $az2Object | Add-Member -notepropertyname $rack -notepropertyvalue $az2RackObject    
+                }
+            }
         }
         #  End Rack Specific Stuff
 
@@ -2257,7 +3227,7 @@ Function New-ManagementInstanceObject
             $edgeNode1Object | Add-Member -NotePropertyName 'hostGroupName' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_ec01_en01_host_group_affinity_rule_name"].value
             $edgeNode1Object | Add-Member -NotePropertyName 'clusterName' -NotePropertyValue $vsphereClusterArray[0].clusterName
             $edgeNode1Object | Add-Member -NotePropertyName 'datastoreName' -NotePropertyValue $vsphereClusterArray[0].vsanDatastore
-            $edgeNode1Object | Add-Member -NotePropertyName 'vmManagementPorgroupName' -NotePropertyValue $vsphereClusterArray[0].portGroupNames.az1.mgmtVm
+            $edgeNode1Object | Add-Member -NotePropertyName 'vmManagementPortgroupName' -NotePropertyValue $vsphereClusterArray[0].portGroupNames.az1.mgmtVm
             $edgeNode1Object | Add-Member -NotePropertyName 'name' -NotePropertyValue ($pnpWorkbook.Workbook.Names["mgmt_az1_en1_fqdn"].value).split(".",2)[0]
             $edgeNode1Object | Add-Member -NotePropertyName 'hostname' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_az1_en1_fqdn"].value
             $edgeNode1Object | Add-Member -NotePropertyName 'mgmtAddress' -NotePropertyValue ($pnpWorkbook.Workbook.Names["mgmt_az1_en1_mgmt_cidr"].value).split("/",2)[0]
@@ -2270,7 +3240,15 @@ Function New-ManagementInstanceObject
             }
             $edgeNode1Object | Add-Member -NotePropertyName 'overlayGateway' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_az1_edge_overlay_gateway_ip"].value
             $edgeNode1Object | Add-Member -NotePropertyName 'overlayMask' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_az1_edge_overlay_mask"].value
-            $edgeNode1Object | Add-Member -NotePropertyName 'formfactor' -NotePropertyValue $pnpWorkbook.Workbook.Names["sizing_mgmt_ec_formfactor_chosen"].value
+            If ($workbookLayout -eq "9.0")
+            {
+                $edgeNode1Object | Add-Member -NotePropertyName 'formfactor' -NotePropertyValue $pnpWorkbook.Workbook.Names["sizing_mgmt_ec_formfactor_chosen"].value
+            }
+            else
+            {
+                $edgeNode1Object | Add-Member -NotePropertyName 'formfactor' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_ec_formfactor_chosen"].value
+            }
+            
             $edgeNode1Object | Add-Member -NotePropertyName 'uplink01IpAddress' -NotePropertyValue ($pnpWorkbook.Workbook.Names["mgmt_az1_en1_uplink01_interface_cidr"].value).split("/",2)[0]
             $edgeNode1Object | Add-Member -NotePropertyName 'uplink02IpAddress' -NotePropertyValue ($pnpWorkbook.Workbook.Names["mgmt_az1_en1_uplink02_interface_cidr"].value).split("/",2)[0]
 
@@ -2278,7 +3256,7 @@ Function New-ManagementInstanceObject
             $edgeNode2Object | Add-Member -NotePropertyName 'hostGroupName' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_ec01_en02_host_group_affinity_rule_name"].value
             $edgeNode2Object | Add-Member -NotePropertyName 'clusterName' -NotePropertyValue $vsphereClusterArray[0].clusterName
             $edgeNode2Object | Add-Member -NotePropertyName 'datastoreName' -NotePropertyValue $vsphereClusterArray[0].vsanDatastore
-            $edgeNode2Object | Add-Member -NotePropertyName 'vmManagementPorgroupName' -NotePropertyValue $vsphereClusterArray[0].portGroupNames.az1.mgmtVm
+            $edgeNode2Object | Add-Member -NotePropertyName 'vmManagementPortgroupName' -NotePropertyValue $vsphereClusterArray[0].portGroupNames.az1.mgmtVm
             $edgeNode2Object | Add-Member -NotePropertyName 'name' -NotePropertyValue ($pnpWorkbook.Workbook.Names["mgmt_az1_en2_fqdn"].value).split(".",2)[0]
             $edgeNode2Object | Add-Member -NotePropertyName 'hostname' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_az1_en2_fqdn"].value
             $edgeNode2Object | Add-Member -NotePropertyName 'mgmtAddress' -NotePropertyValue ($pnpWorkbook.Workbook.Names["mgmt_az1_en2_mgmt_cidr"].value).split("/",2)[0]
@@ -2292,7 +3270,14 @@ Function New-ManagementInstanceObject
 
             $edgeNode2Object | Add-Member -NotePropertyName 'overlayGateway' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_az1_edge_overlay_gateway_ip"].value
             $edgeNode2Object | Add-Member -NotePropertyName 'overlayMask' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_az1_edge_overlay_mask"].value
-            $edgeNode2Object | Add-Member -NotePropertyName 'formfactor' -NotePropertyValue $pnpWorkbook.Workbook.Names["sizing_mgmt_ec_formfactor_chosen"].value
+            If ($workbookLayout -eq "9.0")
+            {
+                $edgeNode2Object | Add-Member -NotePropertyName 'formfactor' -NotePropertyValue $pnpWorkbook.Workbook.Names["sizing_mgmt_ec_formfactor_chosen"].value
+            }
+            else 
+            {
+                $edgeNode2Object | Add-Member -NotePropertyName 'formfactor' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_ec_formfactor_chosen"].value
+            }
             $edgeNode2Object | Add-Member -NotePropertyName 'uplink01IpAddress' -NotePropertyValue ($pnpWorkbook.Workbook.Names["mgmt_az1_en2_uplink01_interface_cidr"].value).split("/",2)[0]
             $edgeNode2Object | Add-Member -NotePropertyName 'uplink02IpAddress' -NotePropertyValue ($pnpWorkbook.Workbook.Names["mgmt_az1_en2_uplink02_interface_cidr"].value).split("/",2)[0]
 
@@ -2339,8 +3324,16 @@ Function New-ManagementInstanceObject
             $edgeClusterObject | Add-Member -NotePropertyName 'bgp' -NotePropertyValue $bgpObject
             $edgeClusterObject | Add-Member -NotePropertyName 'nodes' -NotePropertyValue $nodesObject
             $edgeClusterObject | Add-Member -NotePropertyName 'haMode' -NotePropertyValue (($pnpWorkbook.Workbook.Names["mgmt_tier0_ha_chosen"].value).ToUpper()).replace(" ","_")
-            $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_vpc_ext_ip_blocks"].value
-            $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_vpc_transit_gateway_ip_blocks"].value
+            If ($workbookLayout -eq "9.0")
+            {
+                $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_vpc_ext_ip_blocks"].value
+                $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_vpc_transit_gateway_ip_blocks"].value            
+            }
+            else
+            {
+                $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_vpc_ext_ip_blocks_cidr"].value
+                $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_vpc_transit_gateway_ip_blocks_cidr"].value
+            } 
             If ($pnpWorkbook.Workbook.Names["mgmt_az1_en1_edge_overlay_network_ip_allocation_chosen"].value -eq "Static IP List")
             {
                 $edgeClusterObject | Add-Member -NotePropertyName 'tepMode' -NotePropertyValue 'StaticIpv4List'
@@ -2355,16 +3348,19 @@ Function New-ManagementInstanceObject
                 $edgeClusterObject | Add-Member -NotePropertyName 'tepMode' -NotePropertyValue 'Dhcpv4'
             }
         }
-
+        
         $managementInstanceObject = New-Object -TypeName psobject
+        $managementInstanceObject | Add-Member -notepropertyname 'instance' -notepropertyvalue $instance
         $managementInstanceObject | Add-Member -notepropertyname 'version' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
-        $managementInstanceObject | Add-Member -notepropertyname 'instance' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value
-        $managementInstanceObject | Add-Member -notepropertyname 'vcfInstanceName' -notepropertyvalue $vcfInstanceName
         $managementInstanceObject | Add-Member -notepropertyname 'deploymentProfile' -notepropertyvalue $deploymentProfileObject
+        $managementInstanceObject | Add-Member -notepropertyname 'vcfInstanceName' -notepropertyvalue $vcfInstanceName
         $managementInstanceObject | Add-Member -notepropertyname 'domainType' -notepropertyvalue "Management"
         $managementInstanceObject | Add-Member -notepropertyname 'domainName' -notepropertyvalue $domainName
         $managementInstanceObject | Add-Member -notepropertyname 'az1' -notepropertyvalue $az1Object
-        $managementInstanceObject | Add-Member -notepropertyname 'az2' -notepropertyvalue $az2Object
+        If ($az2Object)
+        {
+            $managementInstanceObject | Add-Member -notepropertyname 'az2' -notepropertyvalue $az2Object
+        }        
         $managementInstanceObject | Add-Member -notepropertyname 'autoGeneratedPasswords' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_domain_password_creation_chosen"].Value
         $managementInstanceObject | Add-Member -notepropertyname 'hostCredentials' -notepropertyvalue $hostCredentialsObject
         $managementInstanceObject | Add-Member -notepropertyname 'sddcManager' -notepropertyvalue $sddcManagerObject
@@ -2377,7 +3373,7 @@ Function New-ManagementInstanceObject
             $managementInstanceObject | Add-Member -notepropertyname 'edgeCluster' -notepropertyvalue $edgeClusterObject
         }
         
-        If ($pnpWorkbook.Workbook.Names["mgmt_stretched_cluster_chosen"].value -eq "Include")
+        If ($az2Object)
         {
             $stretchClusterObject = New-Object -type pscustomobject
             $stretchClusterObject | Add-Member -notepropertyname 'required' -notepropertyvalue $true
@@ -2406,19 +3402,52 @@ Function New-ManagementInstanceObject
     }
     Catch {
         LogMessage -type ERROR -message "Management Object failed to generate for $instance Instance. Please consult the error message and remediate"
-        Break
+        LogMessage -type ERROR -message "At $($_.InvocationInfo.ScriptName):$($_.InvocationInfo.ScriptLineNumber)"
+        LogMessage -type ERROR -message "$($_.InvocationInfo.Line.Trim())"
+        LogMessage -type ERROR -message "$($_.Exception.Message)"
+        Throw $_
     }
 }
 
 Function New-WorkloadInstanceObject
 {   
     Param (
-        [Parameter (Mandatory = $true)] [Object]$pnpWorkbook
+        [Parameter (Mandatory = $true)] [Object]$pnpWorkbook,
+        [Parameter (Mandatory = $false)] [Switch]$silent,
+        [Parameter (Mandatory = $false)] [switch]$platformTools,
+        [Parameter (Mandatory = $false)] [string]$workbookLayout
     )
 
     Try {
-        LogMessage -type INFO -message "Extracting data specific to Workload Domain Creation"
+        
+        If (!$silent)
+        {
+            LogMessage -type INFO -message "Extracting data specific to Workload Domain Creation"
+        }
 
+        $vcfVersion = $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
+
+        If (!$workbookLayout)
+        {
+            If ($vcfVersion -like "9.0*")
+            {
+                $workbookLayout = "9.0"
+            }
+            else
+            {
+                $workbookLayout = "9.1"
+            }
+        }
+        If ($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value -eq "First Instance")
+        {
+            $instance = "InstanceA"
+        }
+        else
+        {
+            $instance = "InstanceB"
+        }
+        
+        $includeAz2 = ($pnpWorkbook.Workbook.Names["wld_stretched_cluster_result"].Value -eq "Included") -or ($platformTools)
         
         If ($pnpWorkbook.Workbook.Names["wld_domain_chosen"].Value -eq "Deploy Workload Domain with a Multi-Rack Layer 3 Cluster")
         {
@@ -2431,36 +3460,15 @@ Function New-WorkloadInstanceObject
         If ($multiRackChosen -eq "Y")
         {
             $totalRackCount = ([INT]($pnpWorkbook.Workbook.Names["wld_multi_rack_count_chosen"].Value) + 1)
-            If ($pnpWorkbook.Workbook.Names["wld_dedicated_edge_cluster_result"].Value -eq "Included")
-            {
-                $dedicatedEdgeClusters = $true
-                $computeRackCount = ($totalRackCount - 2)
-            }
-            else
-            {
-                $dedicatedEdgeClusters = $false
-                $computeRackCount = $totalRackCount
-            }
-            $edgeRackFirst = "rack$($pnpWorkbook.Workbook.Names["wld_dedicated_edge_cluster_chosen_first"].Value)"
-            $edgeRackSecond = "rack$($pnpWorkbook.Workbook.Names["wld_dedicated_edge_cluster_chosen_second"].Value)"
-            $computeHostsPerRack = $pnpWorkbook.Workbook.Names["wld_compute_hosts_per_rack_chosen"].Value
+            $computeRackCount = $totalRackCount
         }
         else
         {
             $totalRackCount = 1
             $computeRackCount = 1
-            If ($commonObject.environment.networkingModel -eq 'isolated')
-            {
-                $computeHostsPerRack = 3
-            }
-            else
-            {
-                $computeHostsPerRack = 4
-            }            
-            $dedicatedEdgeClusters = $false
-            $edgeRackFirst = "Exclude"
-            $edgeRackSecond = "Exclude"
         }
+        $dedicatedEdgeClusters = $false
+        $computeHostsPerRack = $pnpWorkbook.Workbook.Names["wld_compute_hosts_per_rack_chosen"].Value
         
         $rackInformation = New-Object -TypeName psobject
         $rackInformation | Add-Member -notepropertyname 'multiRackChosen' -notepropertyvalue $multiRackChosen
@@ -2468,9 +3476,6 @@ Function New-WorkloadInstanceObject
         $rackInformation | Add-Member -notepropertyname 'computeRackCount' -notepropertyvalue $computeRackCount
         $rackInformation | Add-Member -notepropertyname 'computeHostsPerRack' -notepropertyvalue $computeHostsPerRack
         $rackInformation | Add-Member -notepropertyname 'dedicatedEdgeClusters' -notepropertyvalue $dedicatedEdgeClusters
-        $rackInformation | Add-Member -notepropertyname 'edgeRackFirst' -notepropertyvalue $($edgeRackFirst)
-        $rackInformation | Add-Member -notepropertyname 'edgeRackSecond' -notepropertyvalue $($edgeRackSecond)
-        $rackInformation | Add-Member -notepropertyname 'edgeDeploymentModel' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_dedicated_edge_cluster_model_chosen"].Value
 
         $domainName = $pnpWorkbook.Workbook.Names["wld_sddc_domain"].Value
 
@@ -2587,7 +3592,7 @@ Function New-WorkloadInstanceObject
         $nsxtManagerObject | Add-Member -notepropertyname 'nodeCHostname' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_nsxt_mgrc_hostname"].Value
         $nsxtManagerObject | Add-Member -notepropertyname 'nodeCFQDN' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_nsxt_mgrc_fqdn"].Value
         $nsxtManagerObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_nsxt_mgrc_ip"].Value
-        $nsxtManagerObject | Add-Member -notepropertyname 'formFactor' -notepropertyvalue $pnpWorkbook.Workbook.Names["sizing_w01_nsxt_appliance_size"].Value
+        $nsxtManagerObject | Add-Member -notepropertyname 'formFactor' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_nsxt_appliance_size_chosen"].Value
 
         $hostCredentialsObject = New-Object -TypeName psobject
         $hostCredentialsObject | Add-Member -notepropertyname 'esxiPassword' -notepropertyvalue $pnpWorkbook.Workbook.names["wld_esx_root_password"].Value
@@ -2626,82 +3631,156 @@ Function New-WorkloadInstanceObject
                 }
                 $az1RackHostsObject += $az1RackHostObject
             }
-            
-            $az2RackHostNames = @(($pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_hostnames"].Value) | Where-Object {$_ -notin "Value Missing","Not Required"})
-            $az2RackHostMgmtIps = @(($pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_mgmt_ips"].Value) | Where-Object {$_ -notin "Value Missing","Not Required"})
-            $az2RackHostFqdns = @(($pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_fqdns"].Value) | Where-Object {$_ -notin "Value Missing","Not Required" -and $_ -ne ""})
-            
-            $az2RackHostsObject = @()
-            Foreach ($az2RackHost in $az2RackHostFqdns)
-            {
-                $az2RackHostObject = [pscustomobject]@{
-                    'mgmtIp'   = $az2RackHostMgmtIps[$az2RackHostFqdns.indexof($az2RackHost)]
-                    'hostname' = $az2RackHostNames[$az2RackHostFqdns.indexof($az2RackHost)]
-                    'fqdn'     = $az2RackHostFqdns[$az2RackHostFqdns.indexof($az2RackHost)]
-                }
-                $az2RackHostsObject += $az2RackHostObject
-            }
-            
+             
             $az1RackNetworkObject = New-Object -TypeName psobject
             
             #VMs
+            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_mgmt_vm_vlan"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_mgmt_vm_gateway_ip"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_mgmt_vm_mtu"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_mgmt_vm_cidr"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_mgmt_vm_network"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_mgmt_vm_mask"].Value
+            
             #Hosts
             $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)mgmt_vlan"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)mgmt_gateway_ip"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)mgmt_mtu"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)mgmt_cidr"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)mgmt_network"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)mgmt_mask"].Value
+            If ($workbookLayout -eq "9.0")
+            {
+                $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)mgmt_gateway_ip"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)mgmt_cidr"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)mgmt_network"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)mgmt_mask"].Value
+            }
+            else
+            {
+                $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)mgmt_gateway_cidr"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtGw' -notepropertyvalue $networkDetails.gw
+                $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtCidr' -notepropertyvalue $networkDetails.cidr
+                $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtNetwork' -notepropertyvalue $networkDetails.network
+                $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtNetmask' -notepropertyvalue $networkDetails.netmask
+            }
 
             $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)vmotion_vlan"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)vmotion_gateway_ip"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)vmotion_cidr"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)vmotion_network"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)vmotion_mask"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)vmotion_mtu"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)vmotion_pool_start_ip"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)vmotion_pool_end_ip"].Value
+            If ($workbookLayout -eq "9.0")
+            {
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)vmotion_gateway_ip"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)vmotion_cidr"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)vmotion_network"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)vmotion_mask"].Value
+            }
+            else
+            {
+                $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)vmotion_gateway_cidr"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionGw' -notepropertyvalue $networkDetails.gw
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionCidr' -notepropertyvalue $networkDetails.cidr
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionNetwork' -notepropertyvalue $networkDetails.network
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionNetmask' -notepropertyvalue $networkDetails.netmask
+            }
             
             If ($pnpWorkbook.Workbook.Names["wld_secondary_storage_chosen"].Value -eq "vSAN Storage Client Network")
             {
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vsanVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_vlan"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_gateway_ip"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_cidr"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_network"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue  $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_mask"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vsanMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_mtu"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vsanPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_pool_start_ip"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vsanPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_pool_end_ip"].Value
+                If ($workbookLayout -eq "9.0")
+                {
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_gateway_ip"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_cidr"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_network"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_mask"].Value
+                }
+                else
+                {
+                    $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_gateway_cidr"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $networkDetails.gw
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $networkDetails.cidr
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $networkDetails.network
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $networkDetails.netmask
+                }
             }
             else
             {
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vsanVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_vlan"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_gateway_ip"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_cidr"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_network"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue  $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_mask"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vsanMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_mtu"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vsanPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_pool_start_ip"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vsanPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_pool_end_ip"].Value
+                If ($workbookLayout -eq "9.0")
+                {
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_gateway_ip"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_cidr"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_network"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_mask"].Value
+                }
+                else
+                {
+                    $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_gateway_cidr"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $networkDetails.gw
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $networkDetails.cidr
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $networkDetails.network
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $networkDetails.netmask
+                }
             }
     
-            $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_vlan"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_gateway_ip"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_cidr"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_network"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_mask"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_mtu"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_pool_start_ip"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_pool_end_ip"].Value    
-        
+            If ($rack -eq "rack1")
+            {
+                If ($pnpWorkbook.Workbook.Names["wld_secondary_storage_chosen"].Value -ne "Exclude")
+                {
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_vlan"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_mtu"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_pool_start_ip"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_pool_end_ip"].Value
+                    If ($workbookLayout -eq "9.0")
+                    {
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_gateway_ip"].Value
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_cidr"].Value
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_network"].Value
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_mask"].Value
+                    }
+                    else
+                    {
+                        $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)secondary_storage_gateway_cidr"].Value
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageGw' -notepropertyvalue $networkDetails.gw
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageCidr' -notepropertyvalue $networkDetails.cidr
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetwork' -notepropertyvalue $networkDetails.network
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetmask' -notepropertyvalue $networkDetails.netmask
+                    }
+                }
+                
+                $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_dtgw_vlan"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_dtgw_mtu"].Value
+                If ($workbookLayout -eq "9.0")
+                {
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_dtgw_gateway_ip"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_dtgw_cidr"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_dtgw_network"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_dtgw_mask"].Value
+                }
+                else 
+                {
+                    If ($pnpWorkbook.Workbook.Names["wld_vns_chosen"].value -eq "Distributed Connectivity")
+                    {
+                        $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az1_dtgw_gateway_cidr"].Value
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwGw' -notepropertyvalue $networkDetails.gw
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwCidr' -notepropertyvalue $networkDetails.cidr
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwNetwork' -notepropertyvalue $networkDetails.network
+                        $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwNetmask' -notepropertyvalue $networkDetails.netmask
+                    }
+                }
+            }
+
             $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)host_overlay_vlan"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)host_overlay_mask"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)host_overlay_mtu"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)host_overlay_pool_start_ip"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)host_overlay_pool_end_ip"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)host_overlay_gateway_ip"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)host_overlay_cidr"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)host_overlay_Network"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)host_overlay_pool_start_ip"].Value
-            $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)host_overlay_pool_end_ip"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)host_overlay_mask"].Value
         
             $az1RackNetworkObject | Add-Member -notepropertyname 'vcfNetworkPoolName' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)pool_name"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'networkProfileName' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)host_overlay_network_profile_name"].Value
@@ -2716,69 +3795,83 @@ Function New-WorkloadInstanceObject
             $az1RackObject | Add-Member -notepropertyname 'network' -notepropertyvalue $az1RackNetworkObject
             $az1Object | Add-Member -notepropertyname $rack -notepropertyvalue $az1RackObject
       
-            If ($pnpWorkbook.Workbook.Names["wld_stretched_cluster_result"].Value -eq "Included")
+            If ($includeAz2)
             {
-                $az2Object = New-Object -TypeName psobject
-                $az2RackNetworkObject = New-Object -TypeName psobject
                 If ($rack -eq "rack1")
-                {
+                {                                       
                     #Hosts
+                    $az2RackHostNames = @(($pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_hostnames"].Value) | Where-Object {$_ -notin "Value Missing","Not Required"})
+                    $az2RackHostMgmtIps = @(($pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_mgmt_ips"].Value) | Where-Object {$_ -notin "Value Missing","Not Required"})
+                    $az2RackHostFqdns = @(($pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_fqdns"].Value) | Where-Object {$_ -notin "Value Missing","Not Required" -and $_ -ne ""})
+                    
+                    $az2RackHostsObject = @()
+                    Foreach ($az2RackHost in $az2RackHostFqdns)
+                    {
+                        $az2RackHostObject = [pscustomobject]@{
+                            'mgmtIp'   = $az2RackHostMgmtIps[$az2RackHostFqdns.indexof($az2RackHost)]
+                            'hostname' = $az2RackHostNames[$az2RackHostFqdns.indexof($az2RackHost)]
+                            'fqdn'     = $az2RackHostFqdns[$az2RackHostFqdns.indexof($az2RackHost)]
+                        }
+                        $az2RackHostsObject += $az2RackHostObject
+                    }        
+                    
+                    $az2RackNetworkObject = New-Object -TypeName psobject
                     $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)mgmt_vlan"].Value
-                    $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)mgmt_gateway_ip"].Value
                     $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)mgmt_mtu"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)mgmt_gateway_ip"].Value
                     $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)mgmt_cidr"].Value
                     $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)mgmt_network"].Value
                     $az2RackNetworkObject | Add-Member -notepropertyname 'mgmtNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)mgmt_mask"].Value
     
                     $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)vmotion_vlan"].Value
-                    $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)vmotion_gateway_ip"].Value
-                    $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)vmotion_cidr"].Value
-                    $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)vmotion_network"].Value
-                    $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)vmotion_mask"].Value
                     $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)vmotion_mtu"].Value
                     $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)vmotion_pool_start_ip"].Value
                     $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)vmotion_pool_end_ip"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)vmotion_gateway_ip"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)vmotion_cidr"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)vmotion_network"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'vmotionNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)vmotion_mask"].Value                
                     
                     If ($pnpWorkbook.Workbook.Names["wld_secondary_storage_chosen"].Value -eq "vSAN Storage Client Network")
                     {
                         $az2RackNetworkObject | Add-Member -notepropertyname 'vsanVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_vlan"].Value
-                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_gateway_ip"].Value
-                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_cidr"].Value
-                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_network"].Value
-                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_mask"].Value
                         $az2RackNetworkObject | Add-Member -notepropertyname 'vsanMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_mtu"].Value
                         $az2RackNetworkObject | Add-Member -notepropertyname 'vsanPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_pool_start_ip"].Value
                         $az2RackNetworkObject | Add-Member -notepropertyname 'vsanPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_pool_end_ip"].Value
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_gateway_ip"].Value
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_cidr"].Value
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_network"].Value
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_mask"].Value               
                     }
                     else 
                     {
                         $az2RackNetworkObject | Add-Member -notepropertyname 'vsanVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_vlan"].Value
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_mtu"].Value
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_pool_start_ip"].Value
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_pool_end_ip"].Value
                         $az2RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_gateway_ip"].Value
                         $az2RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_cidr"].Value
                         $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_network"].Value
-                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_mask"].Value
-                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_mtu"].Value
-                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_pool_start_ip"].Value
-                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_pool_end_ip"].Value        
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_mask"].Value        
                     }
                     
                     $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)secondary_storage_vlan"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)secondary_storage_mtu"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)secondary_storage_pool_start_ip"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)secondary_storage_pool_end_ip"].Value
                     $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)secondary_storage_gateway_ip"].Value
                     $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)secondary_storage_cidr"].Value
                     $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)secondary_storage_network"].Value
                     $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)secondary_storage_mask"].Value
-                    $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)secondary_storage_mtu"].Value
-                    $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)secondary_storage_pool_start_ip"].Value
-                    $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStoragePoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)secondary_storage_pool_end_ip"].Value
     
                     $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_overlay_vlan"].Value
-                    $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_overlay_mask"].Value
                     $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_overlay_mtu"].Value
-                    $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_overlay_gateway_ip"].Value
-                    $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_overlay_cidr"].Value   
-                    $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_overlay_network"].Value   
                     $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_overlay_pool_start_ip"].Value
                     $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_overlay_pool_end_ip"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_overlay_gateway_ip"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_overlay_cidr"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_overlay_network"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_overlay_mask"].Value             
             
                     $az2RackNetworkObject | Add-Member -notepropertyname 'vcfNetworkPoolName' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)pool_name"].Value
                     $az2RackNetworkObject | Add-Member -notepropertyname 'networkProfileName' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)host_overlay_network_profile_name"].Value
@@ -2791,25 +3884,17 @@ Function New-WorkloadInstanceObject
                     $az2RackObject = New-Object -TypeName psobject           
                     $az2RackObject | Add-Member -notepropertyname 'hosts' -notepropertyvalue $az2RackHostsObject
                     $az2RackObject | Add-Member -notepropertyname 'network' -notepropertyvalue $az2RackNetworkObject
+                    $az2Object = New-Object -TypeName psobject
                     $az2Object | Add-Member -notepropertyname $rack -notepropertyvalue $az2RackObject    
                 }
             }
-        }
-        If ($pnpWorkbook.Workbook.Names["wld_nsx_ha_mode_chosen"].Value -eq "High-Availbility")
-        {
-            $singleNSXTManager = "N"
-        }
-        else
-        {
-            $singleNSXTManager = "Y"
         }
 
         $ssoObject = New-Object -TypeName psobject
         $ssoObject | Add-Member -notepropertyname 'domain' -notepropertyvalue $pnpWorkbook.Workbook.names["wld_sso_domain_name"].Value 
         $ssoObject | Add-Member -notepropertyname 'adminPassword' -notepropertyvalue $pnpWorkbook.Workbook.names["wld_administrator_vsphere_local_password"].Value 
 
-        $deploymentProfileObject = New-Object -TypeName psobject
-        $deploymentProfileObject | Add-Member -notepropertyname 'singleNSXTManager' -notepropertyvalue $singleNSXTManager
+        $deploymentProfileObject = New-WorkbookDeploymentProfile -pnpWorkbook $pnpWorkbook -vcfVersion $vcfVersion -type workload
 
         If ($pnpWorkbook.Workbook.Names["wld_bgp_chosen"].value -eq "Centralized Connectivity")
         {
@@ -2817,7 +3902,7 @@ Function New-WorkloadInstanceObject
             $edgeNode1Object | Add-Member -NotePropertyName 'hostGroupName' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_ec01_en01_host_group_affinity_rule_name"].value
             $edgeNode1Object | Add-Member -NotePropertyName 'clusterName' -NotePropertyValue $vsphereClusterArray[0].clusterName
             $edgeNode1Object | Add-Member -NotePropertyName 'datastoreName' -NotePropertyValue $vsphereClusterArray[0].vsanDatastore
-            $edgeNode1Object | Add-Member -NotePropertyName 'vmManagementPorgroupName' -NotePropertyValue $vsphereClusterArray[0].portGroupNames.az1.mgmtVm
+            $edgeNode1Object | Add-Member -NotePropertyName 'vmManagementPortgroupName' -NotePropertyValue $vsphereClusterArray[0].portGroupNames.az1.mgmtVm
             $edgeNode1Object | Add-Member -NotePropertyName 'name' -NotePropertyValue ($pnpWorkbook.Workbook.Names["wld_az1_en1_fqdn"].value).split(".",2)[0]
             $edgeNode1Object | Add-Member -NotePropertyName 'hostname' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_az1_en1_fqdn"].value
             $edgeNode1Object | Add-Member -NotePropertyName 'mgmtAddress' -NotePropertyValue ($pnpWorkbook.Workbook.Names["wld_az1_en1_mgmt_cidr"].value).split("/",2)[0]
@@ -2838,7 +3923,7 @@ Function New-WorkloadInstanceObject
             $edgeNode2Object | Add-Member -NotePropertyName 'hostGroupName' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_ec01_en02_host_group_affinity_rule_name"].value
             $edgeNode2Object | Add-Member -NotePropertyName 'clusterName' -NotePropertyValue $vsphereClusterArray[0].clusterName
             $edgeNode2Object | Add-Member -NotePropertyName 'datastoreName' -NotePropertyValue $vsphereClusterArray[0].vsanDatastore
-            $edgeNode2Object | Add-Member -NotePropertyName 'vmManagementPorgroupName' -NotePropertyValue $vsphereClusterArray[0].portGroupNames.az1.mgmtVm
+            $edgeNode2Object | Add-Member -NotePropertyName 'vmManagementPortgroupName' -NotePropertyValue $vsphereClusterArray[0].portGroupNames.az1.mgmtVm
             $edgeNode2Object | Add-Member -NotePropertyName 'name' -NotePropertyValue ($pnpWorkbook.Workbook.Names["wld_az1_en2_fqdn"].value).split(".",2)[0]
             $edgeNode2Object | Add-Member -NotePropertyName 'hostname' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_az1_en2_fqdn"].value
             $edgeNode2Object | Add-Member -NotePropertyName 'mgmtAddress' -NotePropertyValue ($pnpWorkbook.Workbook.Names["wld_az1_en2_mgmt_cidr"].value).split("/",2)[0]
@@ -2898,8 +3983,16 @@ Function New-WorkloadInstanceObject
             $edgeClusterObject | Add-Member -NotePropertyName 'bgp' -NotePropertyValue $bgpObject
             $edgeClusterObject | Add-Member -NotePropertyName 'nodes' -NotePropertyValue $nodesObject
             $edgeClusterObject | Add-Member -NotePropertyName 'haMode' -NotePropertyValue (($pnpWorkbook.Workbook.Names["wld_tier0_ha_chosen"].value).ToUpper()).replace(" ","_")
-            $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_vpc_ext_ip_blocks"].value
-            $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_vpc_transit_gateway_ip_blocks"].value
+            If ($workbookLayout -eq "9.0")
+            {
+                $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_vpc_ext_ip_blocks"].value
+                $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_vpc_transit_gateway_ip_blocks"].value  
+            }
+            else
+            {
+                $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_vpc_ext_ip_blocks_cidr"].value
+                $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_vpc_transit_gateway_ip_blocks_cidr"].value
+            }            
             If ($pnpWorkbook.Workbook.Names["wld_az1_en1_edge_overlay_network_ip_allocation_chosen"].value -eq "Static IP List")
             {
                 $edgeClusterObject | Add-Member -NotePropertyName 'tepMode' -NotePropertyValue 'StaticIpv4List'
@@ -2916,9 +4009,9 @@ Function New-WorkloadInstanceObject
         }
 
         $workloadInstanceObject = New-Object -TypeName psobject
+        $workloadInstanceObject | Add-Member -notepropertyname 'instance' -notepropertyvalue $instance
         $workloadInstanceObject | Add-Member -notepropertyname 'version' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
         $workloadInstanceObject | Add-Member -notepropertyname 'deploymentProfile' -notepropertyvalue $deploymentProfileObject
-        $workloadInstanceObject | Add-Member -notepropertyname 'instance' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value
         $workloadInstanceObject | Add-Member -notepropertyname 'granularOperation' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_granular_option_chosen"].Value
         $workloadInstanceObject | Add-Member -notepropertyname 'domainType' -notepropertyvalue "Workload"
         $workloadInstanceObject | Add-Member -notepropertyname 'domainName' -notepropertyvalue $domainName
@@ -2939,7 +4032,7 @@ Function New-WorkloadInstanceObject
             $workloadInstanceObject | Add-Member -notepropertyname 'edgeCluster' -notepropertyvalue $edgeClusterObject
         }
 
-        If ($pnpWorkbook.Workbook.Names["wld_stretched_cluster_chosen"].value -eq "Include")
+        If ($az2Object)
         {
             $stretchClusterObject = New-Object -type pscustomobject
             $stretchClusterObject | Add-Member -notepropertyname 'required' -notepropertyvalue $true
@@ -2967,7 +4060,10 @@ Function New-WorkloadInstanceObject
     }
     Catch {
         LogMessage -type ERROR -message "Workload object failed to generate for $($workloadInstanceObject.instance). Please consult the error message and remediate"
-        $($_.Exception.Message)
+        LogMessage -type ERROR -message "At $($_.InvocationInfo.ScriptName):$($_.InvocationInfo.ScriptLineNumber)"
+        LogMessage -type ERROR -message "$($_.InvocationInfo.Line.Trim())"
+        LogMessage -type ERROR -message "$($_.Exception.Message)"
+        Throw $_
     }
 }
 
@@ -3291,7 +4387,7 @@ Function New-ClusterObject
         }
         $clusterObject | Add-Member -notepropertyname 'networkPoolCreationRequired' -notepropertyvalue $networkPoolCreationRequired
         
-        If ($clusterObject.rackInformation.multiRackChosen -eq "N")
+        If ($clusterObject.rackinformation.multiRackResult -eq "Excluded")
         {
             If ($clusterObject.vsphereClusters[0].vsanType -eq "vSAN HCI")
             {
@@ -3313,7 +4409,7 @@ Function New-ClusterObject
                 }                
             }
         }
-        elseIf ($clusterObject.rackInformation.multiRackChosen -eq "Y")
+        elseIf ($clusterObject.rackinformation.multiRackResult -eq "Included")
         {
             If ($clusterObject.vsphereClusters[0].vsanType -eq "vSAN HCI")
             {
@@ -3335,63 +4431,160 @@ Function New-ClusterObject
     Catch 
     {
         LogMessage -type ERROR -message "Cluster object failed to generate. Please consult the error message and remediate"
-        $($_.Exception.Message)
+        LogMessage -type ERROR -message "At $($_.InvocationInfo.ScriptName):$($_.InvocationInfo.ScriptLineNumber)"
+        LogMessage -type ERROR -message "$($_.InvocationInfo.Line.Trim())"
+        LogMessage -type ERROR -message "$($_.Exception.Message)"
+        Throw $_
     } 
     
 }
+#EndRegion Generate Global Objects
 
-# Domain JSON Files
+#Region Domain JSON Files
 Function New-ManagementDomainJsonFile
 {
+
     Param (
-        [Parameter (Mandatory = $true)] [Array]$instanceObject,
-        [Parameter (Mandatory = $true)] [Array]$sharedInstanceObject
+        [Parameter (Mandatory = $true)] [Object]$instanceObject,
+        [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
+        [Parameter (Mandatory = $false)] [string]$singleNSXTManager,
+        [Parameter (Mandatory = $false)] [string]$skipAutomation,
+        [Parameter (Mandatory = $false)] [string]$joinFleet,
+        [Parameter (Mandatory = $false)] [Object[]]$hostsToProcess,
+        [Parameter (Mandatory = $false)] [Switch]$noHostFingerprints,
+        [Parameter (Mandatory = $false)] [String]$targetFilePath,
+        [Parameter (Mandatory = $false)] [Switch]$userPromptBypass,
+        [Parameter (Mandatory = $false)] [switch]$platformTools,
+        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled
     )
 
     Try {
-        LogMessage -type INFO -message "Generating Management Domain JSON"
-        $singleNSXTManager = $instanceObject.deploymentProfile.singleNSXTManager
-        $joinFleet = $instanceObject.deploymentProfile.joinFleet
-        $skipAutomation = $instanceObject.deploymentProfile.skipAutomation
-        If (($joinFleet -eq "Y") -and ($instanceObject.instance -eq "Additional Instance"))
+        
+        LogMessage -type INFO -message "Generating Management Domain JSON (V3)"
+        
+        #Region Parameter Resolution
+        #Single NSX Manager
+        If ($platformTools)
         {
-            LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve fingerprints for ESX hosts plus existing Operations and Automation components? (Y/N): " -skipnewline
+            If (!$singleNSXTManager)
+            {
+                Do
+                {
+                    LogMessage -Type QUESTION -Message "Do you wish to use a single NSX-T Manager to conserve resources? (Y/N): " -skipnewline
+                    $singleNSXTManager = Read-Host
+                } Until ($singleNSXTManager -in "Y","N")
+                $singleNSXTManager = $singleNSXTManager -replace "`t|`n|`r", ""  
+            }
         }
         else
         {
-            LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve fingerprints for ESX hosts? (Y/N): " -skipnewline
+            $singleNSXTManager = $instanceObject.deploymentProfile.singleNSXTManager
         }
-        Do
-        {  
-            $interactiveEnabled = Read-Host    
-        } Until ($interactiveEnabled -in "Y","N")
-        $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""
-            
-        If (($joinFleet -eq "Y") -and ($instanceObject.instance -eq "Additional Instance"))
-        {            
-            If ($interactiveEnabled -eq "Y")
+
+        #Instance B Join Fleet or Not
+        If ($instanceObject.instance -eq "InstanceA")
+        {
+            $joinFleet = "N"
+        }
+        else
+        {
+            If (!($joinFleet))
             {
-                If ([System.Environment]::OSVersion.Platform -eq 'Win32NT')
+                If ($platformTools)
                 {
-                    $fm01fingerprint = (echo "Q" | openssl.exe s_client -connect "$($sharedInstanceObject.fleetManager.fqdn):443" -showcerts 2>$null |  Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
-                    $ops01fingerprint = (echo "Q" | openssl.exe s_client -connect "$($sharedInstanceObject.operations.nodeAFqdn):443" -showcerts 2>$null |  Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]                
+                    $joinFleet = $instanceObject.deploymentProfile.joinFleet
                 }
                 else
                 {
-                    $fm01fingerprint = (echo "Q" | openssl s_client -connect "$($sharedInstanceObject.fleetManager.fqdn):443" -showcerts 2>$null |  Filter-X509 | openssl x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
-                    $ops01fingerprint = (echo "Q" | openssl s_client -connect "$($sharedInstanceObject.operations.nodeAFqdn):443" -showcerts 2>$null |  Filter-X509 | openssl x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]                
+                    Do
+                    {
+                        LogMessage -Type QUESTION -Message "Do you wish this additional instance to join the existing VCF Fleet? (Y/N): " -skipnewline
+                        $joinFleet = Read-Host
+                    } Until ($joinFleet -in "Y","N")
+                    $joinFleet = $joinFleet -replace "`t|`n|`r", ""  
                 }
-                
-                If ($skipAutomation -ne "Y")
+            }
+        }
+
+        #Skip Automation
+        If ($instanceObject.instance -eq "instanceA")
+        {
+            If ($platformTools)
+            {
+                If (!($skipAutomation))
                 {
-                    If ([System.Environment]::OSVersion.Platform -eq 'Win32NT')
+                    Do
                     {
-                        $auto01fingerprint = (echo "Q" | openssl.exe s_client -connect "$($sharedInstanceObject.automation.vipFqdn):443" -showcerts 2>$null |  Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
-                    }
-                    else
-                    {
-                        $auto01fingerprint = (echo "Q" | openssl s_client -connect "$($sharedInstanceObject.automation.vipFqdn):443" -showcerts 2>$null |  Filter-X509 | openssl x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
-                    }
+                        LogMessage -Type QUESTION -Message "Do you wish to skip the deployment of VCF Automation? (Y/N): " -skipnewline
+                        $skipAutomation = Read-Host
+                    } Until ($skipAutomation -in "Y","N")
+                    $skipAutomation = $skipAutomation -replace "`t|`n|`r", "" 
+                }
+            }
+            else
+            {
+                $skipAutomation = $instanceObject.deploymentProfile.skipAutomation
+            }
+        }
+        else
+        {
+            $skipAutomation = "Y"
+        }
+
+        #Determine if component interaction is required
+        If (!$userPromptBypass)
+        {
+            If (($joinFleet -eq "Y") -and ($instanceObject.instance -eq "InstanceB"))
+            {
+                LogMessage -Type QUESTION -Message "Do you wish to retrieve fingerprints for ESX hosts plus existing Operations and Automation components? (Y/N): " -skipnewline
+            }
+            else
+            {
+                LogMessage -Type QUESTION -Message "Do you wish to retrieve fingerprints for ESX hosts? (Y/N): " -skipnewline
+            }
+            Do
+            {  
+                $componentInterrogationResponse = Read-Host    
+            } Until ($componentInterrogationResponse -in "Y","N")
+            $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
+        }
+        #EndRegion Parameter Resolution
+
+
+
+        If (($joinFleet -eq "Y") -and ($instanceObject.instance -eq "InstanceB"))
+        {
+            #Get FingerPrints
+            If ($componentInterrogationEnabled)
+            {
+                $ops01fingerprint = (echo "Q" | openssl.exe s_client -connect "$($sharedInstanceObject.operations.nodeAFqdn):443" -showcerts 2>$null | Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
+                If ($instanceObject.version -like "9.0*")
+                {
+                    $fm01fingerprint = (echo "Q" | openssl.exe s_client -connect "$($sharedInstanceObject.fleetManager.fqdn):443" -showcerts 2>$null | Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
+                }
+                If ($skipAutomation -eq "N")
+                {
+                    $auto01fingerprint = (echo "Q" | openssl.exe s_client -connect "$($sharedInstanceObject.automation.vipFqdn):443" -showcerts 2>$null | Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
+                }
+            }
+            else
+            {
+                $ops01fingerprint = "<-- ENTER OPS FINGERPRINT HERE -->"
+                If ($instanceObject.version -like "9.0*")
+                {
+                    $fm01fingerprint = "<-- ENTER FLEET MANAGER FINGERPRINT HERE -->"
+                }
+                If ($skipAutomation -eq "N")
+                {
+                    $auto01fingerprint = "<-- ENTER AUTOMATION FINGERPRINT HERE -->"
+                }
+            }            
+
+            #Report on Missing Fingerprints
+            If ($instanceObject.version -like "9.0*")
+            {
+                If ($skipAutomation -eq "N")
+                {
                     If ((!($fm01fingerprint)) -or (!($ops01fingerprint)) -or (!($auto01fingerprint)))
                     {
                         LogMessage -type ERROR -message "One or more of $($sharedInstanceObject.fleetManager.fqdn), $($sharedInstanceObject.operations.nodeAFqdn) or $($sharedInstanceObject.automation.vipFqdn) are not reachable. Unable to Join Fleet"
@@ -3406,32 +4599,47 @@ Function New-ManagementDomainJsonFile
                         LogMessage -type ERROR -message "One or more of $($sharedInstanceObject.fleetManager.fqdn) or $($sharedInstanceObject.operations.nodeAFqdn) are not reachable. Unable to Join Fleet"
                         anykey
                         Break
-                    }
-                }    
+                    }   
+                }
             }
             else
             {
-                $fm01fingerprint = '<--ENTER-FLEET-MANAGER-FINGERPRINT-HERE-->'
-                $ops01fingerprint = '<--ENTER-VCF-OPS-FINGERPRINT-HERE-->'
-                $auto01fingerprint = '<--ENTER-VCF-AUTO-FINGERPRINT-HERE-->'
-            }            
+                If ($skipAutomation -eq "N")
+                {
+                    If ((!($ops01fingerprint)) -or (!($auto01fingerprint)))
+                    {
+                        LogMessage -type ERROR -message "One or more of $($sharedInstanceObject.operations.nodeAFqdn) or $($sharedInstanceObject.automation.vipFqdn) are not reachable. Unable to Join Fleet"
+                        anykey
+                        Break
+                    }
+                }
+                else
+                {
+                    If (!($ops01fingerprint))
+                    {
+                        LogMessage -type ERROR -message "$($sharedInstanceObject.operations.nodeAFqdn) is not reachable. Unable to Join Fleet"
+                        anykey
+                        Break
+                    }
+                }
+            }
         }
 
         #dnsSpec
-        If ($sharedInstanceObject.dns.dnsServer2 -in "n/a","Value Missing") {
+        If ($sharedInstanceObject.dns.dnsServer2 -eq "n/a") {
             [Array]$nameServers =  $sharedInstanceObject.dns.dnsServer1
         }
         else {
             [Array]$nameServers =  $sharedInstanceObject.dns.dnsServer1,  $sharedInstanceObject.dns.dnsServer2
-        } 
+        }
         $dnsObject = @()
         $dnsObject += [pscustomobject]@{
             'nameservers'         = $nameServers
-            'subdomain'           = $sharedInstanceObject.dns.parentDnsDomain
+            'subdomain'           = $sharedInstanceObject.dns.rootDnsDomain
         }
 
         #ntpServers
-        If ($sharedInstanceObject.ntp.ntpServer2 -in "n/a","Value Missing") {
+        If ($sharedInstanceObject.ntp.ntpServer2 -eq "n/a") {
             [Array]$ntpServers =  $sharedInstanceObject.ntp.ntpserver1
         }
         else {
@@ -3439,30 +4647,34 @@ Function New-ManagementDomainJsonFile
         }
 
         #vcenterSpec
-        #$vcenterObject = @()
         $vcenterObject = [pscustomobject]@{
             'vcenterHostname'       = $instanceObject.vcenterServer.fqdn
             'vmSize'                = $instanceObject.vcenterServer.vcSize.tolower()
-            'storageSize'           = 'lstorage' #review
-            'ssoDomain'             = $sharedInstanceObject.sso.domain
             'useExistingDeployment' = $instanceObject.vcenterServer.useExisting
+            'ssoDomain'             = $sharedInstanceObject.sso.domain
+        }
+        If ($instanceObject.vcenterServer.vcSize -ieq 'default')
+        {
+            $vcenterObject | Add-Member -NotePropertyName 'storageSize' -NotePropertyValue ""
+        }
+        else
+        {
+            $vcenterObject | Add-Member -NotePropertyName 'storageSize' -NotePropertyValue $instanceObject.vcenterServer.vcStorage.tolower()
         }
         If ($instanceObject.autoGeneratedPasswords -ne "Selected")
         {
             $vcenterObject | Add-Member -NotePropertyName 'rootVcenterPassword' -NotePropertyValue $instanceObject.vcenterServer.rootPassword
             $vcenterObject | Add-Member -NotePropertyName 'adminUserSsoPassword' -NotePropertyValue $instanceObject.vcenterServer.adminPassword
         }
-        
-        #clusterSpec    
-        $clusterObject = @()
-        $clusterObject += [pscustomobject]@{
+
+        #clusterSpec
+        $clusterObject = [pscustomobject]@{
             'clusterName'    = $instanceObject.vsphereClusters[0].clusterName
             'datacenterName'    = $instanceObject.vcenterServer.datacenter
         }
 
         #vsanSpec
-        If ($instanceObject.vsphereClusters[0].storageModel -eq "VSAN-ESA")
-        {
+        If ($instanceObject.vsphereClusters[0].storageModel -eq "VSAN-ESA") {
             $ESAenabledtrueobject = @()
             $ESAenabledtrueobject  += [pscustomobject]@{
                     'enabled' = $true
@@ -3475,10 +4687,10 @@ Function New-ManagementDomainJsonFile
                     'enabled' = $false
             }
             $excelvsanDedup = $instanceObject.vsphereClusters[0].vsanDedup
-            If ($excelvsanDedup -eq "Unselected") {
+            If ($excelvsanDedup -eq "No") {
                 $vsanDedup = $false
             }
-            elseIf ($excelvsanDedup -eq "Selected") {
+            elseIf ($excelvsanDedup -eq "Yes") {
                 $vsanDedup = $true
             }
         }
@@ -3491,8 +4703,7 @@ Function New-ManagementDomainJsonFile
             $vsanObject | Add-Member -NotePropertyName 'vsanDedup' -NotePropertyValue $vsanDedup
             $vsanObject | Add-Member -NotePropertyName 'failuresToTolerate' -NotePropertyValue $($instanceObject.vsphereClusters[0].vsanftt -as [INT])
         }
-        $datastoreSpecObject = @()
-        $datastoreSpecObject += [pscustomobject]@{
+        $datastoreSpecObject = [pscustomobject]@{
             'vsanSpec' = ($vsanObject | Select-Object -Skip 0)
         }
 
@@ -3510,7 +4721,7 @@ Function New-ManagementDomainJsonFile
                 'hostname' = $instanceObject.nsxtManager.nodeCFqdn
             }
         }
-        #$nsxtObject = @()
+
         $nsxtObject = [pscustomobject]@{
             'nsxtManagerSize'                       = $instanceObject.nsxtManager.mgrFormfactor.tolower()            
             'nsxtManagers'                          = $nsxtManagerObject
@@ -3518,8 +4729,11 @@ Function New-ManagementDomainJsonFile
             'useExistingDeployment'                 = $instanceObject.nsxtManager.useExisting                        
             'skipNsxOverlayOverManagementNetwork'   = $true
             'transportVlanId'                       = $instanceObject.az1.rack1.network.hostOverlayVlanID -as [int]            
-            'rootLoginEnabledForNsxtManager'        = "true" #review
-            'sshEnabledForNsxtManager'              = "true" #review
+        }
+        If ($platformTools)
+        {
+            $nsxtObject | Add-Member -NotePropertyName 'rootLoginEnabledForNsxtManager' -NotePropertyValue "true"
+            $nsxtObject | Add-Member -NotePropertyName 'sshEnabledForNsxtManager' -NotePropertyValue "true"
         }
         If ($instanceObject.autoGeneratedPasswords -ne "Selected")
         {
@@ -3527,7 +4741,7 @@ Function New-ManagementDomainJsonFile
             $nsxtObject | Add-Member -NotePropertyName 'nsxtAuditPassword'-NotePropertyValue $instanceObject.nsxtManager.auditPassword
             $nsxtObject | Add-Member -NotePropertyName 'rootNsxtManagerPassword' -NotePropertyValue $instanceObject.nsxtManager.rootPassword
         }
-        
+
         $ipAddressPoolSpec = New-Object -type PSObject
         If ($instanceObject.az1.rack1.network.hostOverlayAddressing -eq "IP Pool")
         {
@@ -3553,12 +4767,56 @@ Function New-ManagementDomainJsonFile
         {
             $ipAddressPoolSpec = $null
         } 
-        $nsxtObject | Add-Member -NotePropertyName 'ipAddressPoolSpec' -NotePropertyValue $ipAddressPoolSpec   
-        
+        $nsxtObject | Add-Member -NotePropertyName 'ipAddressPoolSpec' -NotePropertyValue $ipAddressPoolSpec
+
+        If ($instanceObject.version -notlike "9.0.*")
+        {
+            #vspClusterSpec
+            $ipRangeObject = New-Object -type PSObject
+            $ipRangeObject | Add-Member -NotePropertyName 'startIpAddress' -NotePropertyValue $sharedInstanceObject.vsp.startIpAddress
+            $ipRangeObject | Add-Member -NotePropertyName 'endIpAddress' -NotePropertyValue $sharedInstanceObject.vsp.endIpAddress            
+            
+            $ipv4PoolObject = New-Object -type PSObject
+            $ipv4PoolObject | Add-Member -NotePropertyName 'ipRange' -NotePropertyValue $ipRangeObject
+            
+            $vspClusterSpecObject = New-Object -type PSObject
+            $vspClusterSpecObject | Add-Member -NotePropertyName 'platformFqdn' -NotePropertyValue $sharedInstanceObject.vsp.platformFqdn
+            $vspClusterSpecObject | Add-Member -NotePropertyName 'instanceFqdn' -NotePropertyValue $sharedInstanceObject.vsp.instanceFqdn
+            If ($instanceObject.instance -eq 'instanceA')
+            {
+                $vspClusterSpecObject | Add-Member -NotePropertyName 'fleetFqdn' -NotePropertyValue $sharedInstanceObject.vsp.fleetFqdn
+            }
+
+            $vspClusterSpecObject | Add-Member -NotePropertyName 'size' -NotePropertyValue $sharedInstanceObject.vsp.size
+            $vspClusterSpecObject | Add-Member -NotePropertyName 'internalClusterCidrIpv4' -NotePropertyValue $sharedInstanceObject.vsp.internalClusterCidrIpv4
+            $vspClusterSpecObject | Add-Member -NotePropertyName 'ipv4Pool' -NotePropertyValue $ipv4PoolObject
+            If ($instanceObject.autoGeneratedPasswords -ne "Selected")
+            {
+                $vspClusterSpecObject | Add-Member -NotePropertyName 'systemUserPassword' -NotePropertyValue $sharedInstanceObject.vsp.systemUserPassword
+            }
+            
+            <#>
+            #vcfOperationsLogsSpec
+            $vcfOperationsLogsSpecObject += [pscustomobject]@{
+                'hostname' = $sharedInstanceObject.operationsLogs.vipFqdn
+                'password' = $sharedInstanceObject.operationsLogs.systemUserPassword
+            }#>
+
+            #sddcLcmSpec
+            #$fleetLcmSpecObject += [pscustomobject]@{
+            #    'hostname' = $sharedInstanceObject.vsp.fleetFqdn
+            #}
+
+            #sddcLcmSpec
+            $sddcLcmSpecObject += [pscustomobject]@{
+                'hostname' = $sharedInstanceObject.vsp.instanceFqdn
+            }
+        }
+
         #vcfOperationsSpec
         $vcfOpsNodesObject = @()
 
-        If ($instanceObject.instance -eq "First Instance")
+        If ($instanceObject.instance -eq "InstanceA")
         {
             If ($instanceObject.deploymentProfile.fleetManagementDeploymentModel -eq "single")
             {
@@ -3609,7 +4867,7 @@ Function New-ManagementDomainJsonFile
             }
         }
 
-        #$vcfOperationsSpecObject = @()
+        $vcfOperationsSpecObject = @()
         $vcfOperationsSpecObject = [pscustomobject]@{
             'nodes' = $vcfOpsNodesObject
             
@@ -3618,23 +4876,22 @@ Function New-ManagementDomainJsonFile
         {
             $vcfOperationsSpecObject | Add-Member -notepropertyName 'adminUserPassword' -NotePropertyValue $sharedInstanceObject.operations.adminUserPassword
         }
-        
+
         If ($joinFleet -eq "N")
         {
             $vcfOperationsSpecObject | Add-Member -NotePropertyName 'applianceSize' -NotePropertyValue $sharedInstanceObject.operations.applianceSize
             $vcfOperationsSpecObject | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue $sharedInstanceObject.operations.useExisting
-        } 
-        else 
+        }
+        else
         {
             $vcfOperationsSpecObject | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue $true
         }
         If ($instanceObject.deploymentProfile.fleetManagementDeploymentModel -eq "highlyAvailable")
         {
-            $vcfOperationsSpecObject | Add-Member -NotePropertyName 'loadBalancerFqdn' -NotePropertyValue $sharedInstanceObject.operations.useExisting
+            $vcfOperationsSpecObject | Add-Member -NotePropertyName 'loadBalancerFqdn' -NotePropertyValue $sharedInstanceObject.operations.vipFqdn
         }
 
         #vcfOperationsManagementSpec
-        #$vcfOperationsManagementSpecObject = @()
         $vcfOperationsManagementSpecObject = [pscustomobject]@{
             'hostname' = $sharedInstanceObject.fleetManager.fqdn
         } 
@@ -3648,14 +4905,13 @@ Function New-ManagementDomainJsonFile
         {
             $vcfOperationsManagementSpecObject | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue $false
         }
-        else 
+        else
         {
             $vcfOperationsManagementSpecObject | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue $true
             $vcfOperationsManagementSpecObject | Add-Member -NotePropertyName 'sslThumbprint'  -NotePropertyValue $fm01fingerprint
         }
 
         #vcfOperationsCloudProxySpec
-        #$vcfOperationsCloudProxySpecObject = @()
         $vcfOperationsCloudProxySpecObject = [pscustomobject]@{
             'hostname' = $sharedInstanceObject.operations.opsCollectorFqdn
             'useExistingDeployment' = $false
@@ -3664,36 +4920,87 @@ Function New-ManagementDomainJsonFile
         {
             $vcfOperationsCloudProxySpecObject | Add-Member -NotePropertyName 'rootUserPassword' -NotePropertyValue $sharedInstanceObject.operations.opsCollectorRootUserPassword
         }
+        If ($instanceObject.version -notlike "9.0.*")
+        {
+            $vcfOperationsCloudProxySpecObject | Add-Member -NotePropertyName 'applianceSize' -NotePropertyValue $sharedInstanceObject.operations.collectorApplianceSize
+        }
 
         #vcfAutomationSpecObject
-        $ipPoolObject = @()
-        $ipPoolObject += $sharedInstanceObject.automation.nodeAIpAddress
-        $ipPoolObject += $sharedInstanceObject.automation.nodeBIpAddress
-        If ($instanceObject.deploymentProfile.fleetManagementDeploymentModel -eq "highlyAvailable")
+        If ($instanceObject.version -like "9.0.*")
         {
-            $ipPoolObject += $sharedInstanceObject.automation.nodeCIpAddress
-            $ipPoolObject += $sharedInstanceObject.automation.extraNodeIpAddress    
+            $ipPoolObject = @()
+            $ipPoolObject += $sharedInstanceObject.automation.nodeAIpAddress
+            $ipPoolObject += $sharedInstanceObject.automation.nodeBIpAddress
+            If ($instanceObject.deploymentProfile.fleetManagementDeploymentModel -eq "highlyAvailable")
+            {
+                $ipPoolObject += $sharedInstanceObject.automation.nodeCIpAddress
+                $ipPoolObject += $sharedInstanceObject.automation.nodeDIpAddress
+            }
         }
-        #$vcfAutomationSpecObjectObject = @()
-        $vcfAutomationSpecObjectObject = [pscustomobject]@{
+        elseif ($instanceObject.version -notlike "9.0.*")        
+        {                        
+            $ipPoolObject = @()
+            $ipPoolObject += $sharedInstanceObject.automation.nodeAIpAddress
+            $ipPoolObject += $sharedInstanceObject.automation.nodeBIpAddress
+            $ipPoolObject += $sharedInstanceObject.automation.nodeCIpAddress
+            $ipPoolObject += $sharedInstanceObject.automation.nodeDIpAddress
+            $ipPoolObject += $sharedInstanceObject.automation.nodeEIpAddress
+        }
+        
+        $vcfAutomationSpecObject = [pscustomobject]@{
             'hostname' = $sharedInstanceObject.automation.vipFqdn   
             'nodePrefix' = $sharedInstanceObject.automation.vcfaNodePrefix
             
         }
+        
+        If ($instanceObject.version -notlike "9.0.*" -and $sharedInstanceObject.automation.platformFqdn) {
+            $vcfAutomationSpecObject | Add-Member -NotePropertyName 'platformFqdn' -NotePropertyValue $sharedInstanceObject.automation.platformFqdn -Force
+        }
         If ($instanceObject.autoGeneratedPasswords -ne "Selected")
         {
-            $vcfAutomationSpecObjectObject | Add-Member -NotePropertyName 'adminUserPassword' -NotePropertyValue $sharedInstanceObject.automation.adminUserPassword
+            $vcfAutomationSpecObject | Add-Member -NotePropertyName 'adminUserPassword' -NotePropertyValue $sharedInstanceObject.automation.adminUserPassword
         }
+
         If ($joinFleet -eq "N")
         {
-            $vcfAutomationSpecObjectObject | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue $false
-            $vcfAutomationSpecObjectObject | Add-Member -NotePropertyName 'ipPool' -NotePropertyValue $ipPoolObject
-            $vcfAutomationSpecObjectObject | Add-Member -NotePropertyName 'internalClusterCidr' -NotePropertyValue $sharedInstanceObject.automation.internalClusterCidr
+            $vcfAutomationSpecObject | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue $false
+            $vcfAutomationSpecObject | Add-Member -NotePropertyName 'ipPool' -NotePropertyValue $ipPoolObject
+            $vcfAutomationSpecObject | Add-Member -NotePropertyName 'internalClusterCidr' -NotePropertyValue $sharedInstanceObject.automation.internalClusterCidr
+            If ($instanceObject.version -notlike "9.0.*")
+            {
+                $vcfAutomationSpecObject | Add-Member -NotePropertyName 'size' -NotePropertyValue $sharedInstanceObject.automation.size
+            }
         }
-        else 
+        else
         {
-            $vcfAutomationSpecObjectObject | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue $true
-            $vcfAutomationSpecObjectObject | Add-Member -NotePropertyName 'sslThumbprint'  -NotePropertyValue $auto01fingerprint
+            $vcfAutomationSpecObject | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue $true
+            $vcfAutomationSpecObject | Add-Member -NotePropertyName 'sslThumbprint'  -NotePropertyValue $auto01fingerprint
+        }
+
+        #vidbSpecObject
+        $vidbSpecObject += [pscustomobject]@{
+            'hostname' = $sharedInstanceObject.idb.vipFqdn
+        }
+
+        #licenseServerObject
+        $licenseServerSpecObject += [pscustomobject]@{
+            'hostname' = $sharedInstanceObject.licenseServer.fqdn
+        }
+
+        #saltSpecObject
+        $saltSpecObject = [pscustomobject]@{
+        }
+
+        #saltRaasSpecObject
+        $saltRaasSpecObject = [pscustomobject]@{
+        }
+
+        #telemetryAcceptorSpecObject
+        $telemetryAcceptorSpecObject = [pscustomobject]@{
+        }
+
+        #fleetDepotSpecObject
+        $fleetDepotSpecObject = [pscustomobject]@{
         }
 
         #hostSpecsObject
@@ -3702,47 +5009,62 @@ Function New-ManagementDomainJsonFile
             'username' = $instanceObject.hostcredentials.esxiUsername
             'password' = $instanceObject.hostcredentials.esxiPassword
         }
-        $HostObject = @()
-        Foreach ($hostInstance in $instanceObject.az1.rack1.hosts)
+        
+        $hostSpecs = @()
+        If (-not $hostsToProcess) {
+            $hostsToProcess = $instanceObject.az1.rack1.hosts
+        }
+        Foreach ($hostInstance in $hostsToProcess)
         {
-            If ($interactiveEnabled -eq "Y")
+            If (!$noHostFingerprints)
             {
-                If ([System.Environment]::OSVersion.Platform -eq 'Win32NT')
+                If ($componentInterrogationEnabled)
                 {
-                    $fingerprint = (echo "Q" | openssl.exe s_client -connect "$($hostInstance.fqdn):443" -showcerts 2>$null |  Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
+                    If ([System.Environment]::OSVersion.Platform -eq 'Win32NT')
+                    {
+                        $fingerprint = (echo "Q" | openssl.exe s_client -connect "$($hostInstance.fqdn):443" -showcerts 2>$null | Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
+                    }
+                    else
+                    {
+                        $fingerprint = (echo "Q" | openssl s_client -connect "$($hostInstance.fqdn):443" -showcerts 2>$null | Filter-X509 | openssl x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
+                    }
+                    If ($fingerprint)
+                    {
+                        LogMessage -Type INFO -Message "Obtaining fingerprint for host $($hostInstance.fqdn): Found"
+                        $fingerprintText = $fingerprint
+                    }
+                    else
+                    {
+                        LogMessage -Type WARNING -Message "Obtaining fingerprint for host $($hostInstance.fqdn): Not found. Adding placeholder to JSON File"
+                        $fingerprintText = "<--ENTER-ESX-THUMBPRINT-HERE-->"
+                    }
                 }
                 else
                 {
-                    $fingerprint = (echo "Q" | openssl s_client -connect "$($hostInstance.fqdn):443" -showcerts 2>$null |  Filter-X509 | openssl x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
-                }
-                If ($fingerprint)
-                {
-                    LogMessage -Type INFO -Message "Obtaining fingerprint for host $($hostInstance.fqdn): Found"
-                }
-                else
-                {
-                    LogMessage -Type ERROR -Message "Obtaining fingerprint for host $($hostInstance.fqdn): Not found. Adding placeholder to JSON File"
-                    $fingerprint = "<--ENTER-ESX-THUMBPRINT-HERE-->"
-                }                
+                    LogMessage -Type INFO -Message "Adding fingerprint placeholder for host $($hostInstance.fqdn) to JSON File"
+                    $fingerprintText = "<--ENTER-ESX-THUMBPRINT-HERE-->"
+                }                     
             }
             else
             {
-                $fingerprint = "<--ENTER-ESX-THUMBPRINT-HERE-->"
+                LogMessage -Type INFO -Message "Adding fingerprint placeholder for host $($hostInstance.fqdn) to JSON File"
+                $fingerprintText = "<--ENTER-ESX-THUMBPRINT-HERE-->"
             }
-            $HostObject += [pscustomobject]@{
+                            
+            $hostSpecs += [pscustomobject]@{
                 'hostname'       = $hostInstance.fqdn
                 'credentials'      = ($hostCredentialsObject | Select-Object -Skip 0)
-                'sslThumbprint' = $fingerprint
+                'sslThumbprint' = $fingerprintText
             }
         }
 
         #dvsSpecsObject
-        $vmotionMtu = $instanceObject.az1.rack1.network.vmotionMtu -as [int]
-        $vsanMtu = $instanceObject.az1.rack1.network.vsanMtu -as [int]
-        $vdsMtu = $instanceObject.vsphereClusters[0].vds[0].mtu -as [int]
-
         $networks = New-Object System.Collections.ArrayList
         [Array]$networks = "MANAGEMENT", "VMOTION", "VSAN","VM_MANAGEMENT"
+        If (($instanceObject.version -notlike "9.0*") -and ($instanceObject.deploymentProfile.vcfmsNetworkModel -eq "DedicatedManagement"))
+        {
+            $networks += "FLEET_MANAGEMENT"
+        }
 
         If ($instanceObject.vsphereClusters[0].nsxOperationDefaultMode -eq "Selected")
         {
@@ -3773,17 +5095,22 @@ Function New-ManagementDomainJsonFile
         $dvsObject = @()
         If ($instanceObject.vsphereClusters[0].vdsProfile -eq "Default")
         {
-            ##### VDS 1 #####
+            ##### VDS 0 #####
             #Figure out nsxtSwitchConfig
             $nsxtSwitchConfigObject = New-Object -type psobject
             $vlanTransportZone = [pscustomobject]@{
                 'name'          = "nsx-vlan-transportzone-0"
                 'transportType' = "VLAN"
             }
-            $transportZoneArray = @()
-            $transportZoneArray += $vlanTransportZone
-            $transportZoneArray += $overlayTransportZone
-            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZoneArray
+            If ($instanceObject.version -notlike "9.0.*")
+            {
+                $transportZones = @($overlayTransportZone)
+            }
+            else
+            {
+                $transportZones = @($vlanTransportZone, $overlayTransportZone)
+            }
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZones
             $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
 
             #figure out teamingArray
@@ -3820,7 +5147,7 @@ Function New-ManagementDomainJsonFile
             $dvsObject += [pscustomobject]@{
                 'dvsName'  = $instanceObject.vsphereClusters[0].vds[0].vdsName
                 'networks' = $networks
-                'mtu' = $vdsMtu
+                'mtu' = $instanceObject.vsphereClusters[0].vds[0].mtu -as [int]
                 'vmnicsToUplinks' = $vmnicObject
                 'nsxtSwitchConfig' = $nsxtSwitchConfigObject
                 'nsxTeamings' = $teamingsArray
@@ -3840,17 +5167,22 @@ Function New-ManagementDomainJsonFile
         }
         elseif ($instanceObject.vsphereClusters[0].vdsProfile -eq "Storage Traffic Separation")
         {
-            ##### VDS 1 #####
+            ##### VDS 0 #####
             #Figure out nsxtSwitchConfig
             $nsxtSwitchConfigObject = New-Object -type psobject
             $vlanTransportZone = [pscustomobject]@{
                 'name'          = "nsx-vlan-transportzone-0"
                 'transportType' = "VLAN"
             }
-            $transportZoneArray = @()
-            $transportZoneArray += $vlanTransportZone
-            $transportZoneArray += $overlayTransportZone
-            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZoneArray
+            If ($instanceObject.version -notlike "9.0.*")
+            {
+                $transportZones = @($overlayTransportZone)
+            }
+            else
+            {
+                $transportZones = @($vlanTransportZone, $overlayTransportZone)
+            }
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZones
             $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
 
             #figure out teamingArray
@@ -3886,8 +5218,8 @@ Function New-ManagementDomainJsonFile
             }
             $dvsObject += [pscustomobject]@{
                 'dvsName'  = $instanceObject.vsphereClusters[0].vds[0].vdsName
-                'networks' = $networks | Where-Object {$_ -in "MANAGEMENT","VM_MANAGEMENT","VMOTION"}
-                'mtu' = $vdsMtu
+                'networks' = $networks | Where-Object { $_ -in "MANAGEMENT", "VM_MANAGEMENT", "VMOTION", "FLEET_MANAGEMENT" }
+                'mtu' = $instanceObject.vsphereClusters[0].vds[0].mtu -as [int]
                 'vmnicsToUplinks' = $vmnicObject
                 'nsxtSwitchConfig' = $nsxtSwitchConfigObject
                 'nsxTeamings' = $teamingsArray
@@ -3905,16 +5237,15 @@ Function New-ManagementDomainJsonFile
                 $dvsObject[0] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
             }
 
-            ##### VDS 2 #####
+            ##### VDS 1 #####
             #Figure out nsxtSwitchConfig
             $nsxtSwitchConfigObject = New-Object -type psobject
             $vlanTransportZone = [pscustomobject]@{
                 'name'          = "nsx-vlan-transportzone-1"
                 'transportType' = "VLAN"
             }
-            $transportZoneArray = @()
-            $transportZoneArray += $vlanTransportZone
-            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZoneArray
+            $transportZones = @($vlanTransportZone)
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZones
             $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
 
             #figure out teamingArray
@@ -3951,7 +5282,7 @@ Function New-ManagementDomainJsonFile
             $dvsObject += [pscustomobject]@{
                 'dvsName'  = $instanceObject.vsphereClusters[0].vds[1].vdsName
                 'networks' =  @($networks | Where-Object {$_ -in "VSAN"})
-                'mtu'      = $vdsMtu
+                'mtu'      = $instanceObject.vsphereClusters[0].vds[1].mtu -as [int]
                 'vmnicsToUplinks' = $vmnicObject
             }
             If  ($instanceObject.vsphereClusters[0].vds[1].type -eq "VDS LAG")
@@ -3974,17 +5305,22 @@ Function New-ManagementDomainJsonFile
         }
         elseif ($instanceObject.vsphereClusters[0].vdsProfile -eq "NSX Traffic Separation")
         {
-            ##### VDS 1 #####
+            ##### VDS 0 #####
             #Figure out nsxtSwitchConfig
             $nsxtSwitchConfigObject = New-Object -type psobject
             $vlanTransportZone = [pscustomobject]@{
                 'name'          = "nsx-vlan-transportzone-0"
                 'transportType' = "VLAN"
             }
-            $transportZoneArray = @()
-            $transportZoneArray += $vlanTransportZone
-            $transportZoneArray += $overlayTransportZone
-            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZoneArray
+            If ($instanceObject.version -notlike "9.0.*")
+            {
+                $transportZones = @($overlayTransportZone)
+            }
+            else
+            {
+                $transportZones = @($vlanTransportZone, $overlayTransportZone)
+            }
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZones
             $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
 
             #figure out teamingArray
@@ -4020,8 +5356,8 @@ Function New-ManagementDomainJsonFile
             }
             $dvsObject += [pscustomobject]@{
                 'dvsName'  = $instanceObject.vsphereClusters[0].vds[0].vdsName
-                'networks' = $networks | Where-Object {$_ -in "MANAGEMENT","VM_MANAGEMENT","VMOTION","VSAN"}
-                'mtu' = $vdsMtu
+                'networks' = $networks | Where-Object {$_ -in "MANAGEMENT","VM_MANAGEMENT","VMOTION","VSAN","FLEET_MANAGEMENT"}
+                'mtu' = $instanceObject.vsphereClusters[0].vds[0].mtu -as [int]
                 'vmnicsToUplinks' = $vmnicObject
             }
             If  ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
@@ -4034,22 +5370,30 @@ Function New-ManagementDomainJsonFile
                     'lacpTimeoutMode' = ($instanceObject.vsphereClusters[0].vds[0].lagTimeout).toUpper()
                     'uplinksCount' = $instanceObject.vsphereClusters[0].vds[0].uplinkCount -as [INT]
                 }
-                $dvsObject[0] | Add-Member -notePropertyName 'nsxtSwitchConfig' -notePropertyValue $nsxtSwitchConfigObject
-                $dvsObject[0] | Add-Member -notePropertyName 'nsxTeamings' -notePropertyValue $teamingsArray
+                If ($instanceObject.version -like "9.0.*")
+                {
+                    $dvsObject[0] | Add-Member -notePropertyName 'nsxtSwitchConfig' -notePropertyValue $nsxtSwitchConfigObject
+                    $dvsObject[0] | Add-Member -notePropertyName 'nsxTeamings' -notePropertyValue $teamingsArray        
+                }
                 $dvsObject[0] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
             }
 
-            ##### VDS 2 #####
+            ##### VDS 1 #####
             #Figure out nsxtSwitchConfig
             $nsxtSwitchConfigObject = New-Object -type psobject
             $vlanTransportZone = [pscustomobject]@{
                 'name'          = "nsx-vlan-transportzone-1"
                 'transportType' = "VLAN"
             }
-            $transportZoneArray = @()
-            $transportZoneArray += $vlanTransportZone
-            $transportZoneArray += $overlayTransportZone
-            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZoneArray
+            If ($instanceObject.version -notlike "9.0.*")
+            {
+                $transportZones = @($overlayTransportZone)
+            }
+            else
+            {
+                $transportZones = @($vlanTransportZone, $overlayTransportZone)
+            }
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZones
             $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
 
             #figure out teamingArray
@@ -4086,7 +5430,7 @@ Function New-ManagementDomainJsonFile
 
             $dvsObject += [pscustomobject]@{
                 'dvsName'  = $instanceObject.vsphereClusters[0].vds[1].vdsName
-                'mtu'      = $vdsMtu
+                'mtu'      = $instanceObject.vsphereClusters[0].vds[1].mtu -as [int]
                 'vmnicsToUplinks' = $vmnicObject
                 'nsxtSwitchConfig' = $nsxtSwitchConfigObject
                 'nsxTeamings' = $teamingsArray
@@ -4106,16 +5450,15 @@ Function New-ManagementDomainJsonFile
         }
         else
         {
-            ##### VDS 1 #####
+            ##### VDS 0 #####
             #Figure out nsxtSwitchConfig
             $nsxtSwitchConfigObject = New-Object -type psobject
             $vlanTransportZone = [pscustomobject]@{
                 'name'          = "nsx-vlan-transportzone-0"
                 'transportType' = "VLAN"
             }
-            $transportZoneArray = @()
-            $transportZoneArray += $vlanTransportZone
-            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZoneArray
+            $transportZones = @($vlanTransportZone)
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZones
             $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
 
             #figure out teamingArray
@@ -4152,8 +5495,8 @@ Function New-ManagementDomainJsonFile
 
             $dvsObject += [pscustomobject]@{
                 'dvsName'  = $instanceObject.vsphereClusters[0].vds[0].vdsName
-                'networks' = $networks | Where-Object {$_ -in "MANAGEMENT","VM_MANAGEMENT","VMOTION"}
-                'mtu'      = $vdsMtu
+                'networks' = $networks | Where-Object {$_ -in "MANAGEMENT","VM_MANAGEMENT","VMOTION","FLEET_MANAGEMENT"}
+                'mtu'      = $instanceObject.vsphereClusters[0].vds[0].mtu -as [int]
                 'vmnicsToUplinks' = $vmnicObject
             }
             If  ($instanceObject.vsphereClusters[0].vds[0].type -eq "VDS LAG")
@@ -4166,21 +5509,23 @@ Function New-ManagementDomainJsonFile
                     'lacpTimeoutMode' = ($instanceObject.vsphereClusters[0].vds[0].lagTimeout).toUpper()
                     'uplinksCount' = $instanceObject.vsphereClusters[0].vds[0].uplinkCount -as [INT]
                 }
-                $dvsObject[0] | Add-Member -notePropertyName 'nsxtSwitchConfig' -notePropertyValue $nsxtSwitchConfigObject
-                $dvsObject[0] | Add-Member -notePropertyName 'nsxTeamings' -notePropertyValue $teamingsArray
+                If ($instanceObject.version -like "9.0.*")
+                {
+                    $dvsObject[0] | Add-Member -notePropertyName 'nsxtSwitchConfig' -notePropertyValue $nsxtSwitchConfigObject
+                    $dvsObject[0] | Add-Member -notePropertyName 'nsxTeamings' -notePropertyValue $teamingsArray    
+                }
                 $dvsObject[0] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
             }
 
-            ##### VDS 2 #####
+            ##### VDS 1 #####
             #Figure out nsxtSwitchConfig
             $nsxtSwitchConfigObject = New-Object -type psobject
             $vlanTransportZone = [pscustomobject]@{
                 'name'          = "nsx-vlan-transportzone-1"
                 'transportType' = "VLAN"
             }
-            $transportZoneArray = @()
-            $transportZoneArray += $vlanTransportZone
-            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZoneArray
+            $transportZones = @($vlanTransportZone)
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZones
             $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
 
             #figure out teamingArray
@@ -4217,7 +5562,7 @@ Function New-ManagementDomainJsonFile
            $dvsObject += [pscustomobject]@{
                'dvsName'  = $instanceObject.vsphereClusters[0].vds[1].vdsName
                'networks' =  @($networks | Where-Object {$_ -in "VSAN"})
-               'mtu'      = $vdsMtu
+               'mtu'      = $instanceObject.vsphereClusters[0].vds[1].mtu -as [int]
                'vmnicsToUplinks' = $vmnicObject
            }
            If  ($instanceObject.vsphereClusters[0].vds[1].type -eq "VDS LAG")
@@ -4238,7 +5583,7 @@ Function New-ManagementDomainJsonFile
                $dvsObject[1] | Add-Member -notePropertyName 'lagSpecs' -notePropertyValue $lagSpecsObject
            }
 
-            ##### VDS 3 #####
+            ##### VDS 2 #####
             #Figure out nsxtSwitchConfig
             $nsxtSwitchConfigObject = New-Object -type psobject
             If ($instanceObject.version -in "9.0.0.0","9.0.1.0")
@@ -4253,10 +5598,15 @@ Function New-ManagementDomainJsonFile
                 'name'          = $vlanTransportZoneName
                 'transportType' = "VLAN"
             }
-            $transportZoneArray = @()
-            $transportZoneArray += $vlanTransportZone
-            $transportZoneArray += $overlayTransportZone
-            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZoneArray
+            If ($instanceObject.version -notlike "9.0.*")
+            {
+                $transportZones = @($overlayTransportZone)
+            }
+            else
+            {
+                $transportZones = @($vlanTransportZone, $overlayTransportZone)
+            }
+            $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'transportZones' -NotePropertyValue $transportZones
             $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
 
             #figure out teamingArray
@@ -4293,7 +5643,7 @@ Function New-ManagementDomainJsonFile
 
             $dvsObject += [pscustomobject]@{
                 'dvsName'  = $instanceObject.vsphereClusters[0].vds[2].vdsName
-                'mtu'      = $vdsMtu
+                'mtu'      = $instanceObject.vsphereClusters[0].vds[2].mtu -as [int]
                 'vmnicsToUplinks' = $vmnicObject
                 'nsxtSwitchConfig' = $nsxtSwitchConfigObject
                 'nsxTeamings' = $teamingsArray
@@ -4362,7 +5712,7 @@ Function New-ManagementDomainJsonFile
             'includeIpAddress' = $null
             'includeIpAddressRanges' = $vmotionIpObject
             'vlanId' = $instanceObject.az1.rack1.network.vmotionVlanID -as [int]
-            'mtu' = $vmotionMtu
+            'mtu' = $instanceObject.az1.rack1.network.vmotionMtu -as [int]
             'teamingPolicy' =  'loadbalance_loadbased'
             'activeUplinks' = $activeUplinksArray
             'standbyUplinks' = $null
@@ -4376,11 +5726,28 @@ Function New-ManagementDomainJsonFile
             'includeIpAddress' = $null
             'includeIpAddressRanges' = $vsanIpObject
             'vlanId'               = $instanceObject.az1.rack1.network.vsanVlanID  -as [int]
-            'mtu'                  = $vsanMtu
+            'mtu'                  = $instanceObject.az1.rack1.network.vsanMtu -as [int]
             'teamingPolicy' =  'loadbalance_loadbased'
             'activeUplinks' = $activeUplinksArray
             'standbyUplinks' = $null
             'portGroupKey' = $instanceObject.vsphereClusters[0].portgroupNames.az1.vsan
+        }
+        If (($instanceObject.version -notlike "9.0*") -and ($instanceObject.deploymentProfile.vcfmsNetworkModel -eq "DedicatedManagement"))
+        {
+            $networkObject += [pscustomobject]@{
+                'networkType'  = "FLEET_MANAGEMENT"
+                'subnet' = $instanceObject.az1.rack1.network.vcfManagementNetworkCidr
+                'gateway' = $instanceObject.az1.rack1.network.vcfManagementNetworkGw
+                'subnetMask' = $null
+                'includeIpAddress' = $null
+                'includeIpAddressRanges' =$null
+                'vlanId' = $instanceObject.az1.rack1.network.vcfManagementNetworkVlanID  -as [int]
+                'mtu' = $instanceObject.az1.rack1.network.vcfManagementNetworkMtu -as [int]
+                'teamingPolicy' =  'loadbalance_loadbased'
+                'activeUplinks' = $activeUplinksArray
+                'standbyUplinks' = $null
+                'portGroupKey' = $instanceObject.vsphereClusters[0].portgroupNames.az1.fleetMgmt
+            }
         }
 
         # Update activeUplinks if Lag is required
@@ -4444,7 +5811,7 @@ Function New-ManagementDomainJsonFile
         $managementDomainObject = New-Object -TypeName psobject
         $managementDomainObject | Add-Member -notepropertyname 'sddcId' -notepropertyvalue $instanceObject.domainName
         $managementDomainObject | Add-Member -notepropertyname 'vcfInstanceName' -notepropertyvalue $instanceObject.vcfInstanceName
-        If ($instanceObject.instance -eq "First Instance")
+        If ($instanceObject.instance -eq "InstanceA")
         {
             $managementDomainObject | Add-Member -notepropertyname 'workflowType' -notepropertyvalue "VCF"
         }
@@ -4452,29 +5819,50 @@ Function New-ManagementDomainJsonFile
         {
             $managementDomainObject | Add-Member -notepropertyname 'workflowType' -notepropertyvalue "VCF_EXTEND"
         }
-
         $managementDomainObject | Add-Member -notepropertyname 'version' -notepropertyvalue $instanceObject.version
         $managementDomainObject | Add-Member -notepropertyname 'ceipEnabled' -notepropertyvalue $ceipEnabled
-        #$managementDomainObject | Add-Member -notepropertyname 'managementPoolName' -notepropertyvalue $instanceObject.az1.rack1.network.vcfNetworkPoolName
-        $managementDomainObject | Add-Member -notepropertyname 'managementPoolName' -notepropertyvalue "$($instanceObject.domainName)-network-pool-01"
+        $managementDomainObject | Add-Member -notepropertyname 'managementPoolName' -notepropertyvalue $instanceObject.az1.rack1.network.vcfNetworkPoolName
         $managementDomainObject | Add-Member -notepropertyname 'dnsSpec' -notepropertyvalue ($dnsObject | Select-Object -Skip 0)
         $managementDomainObject | Add-Member -notepropertyname 'ntpServers' -notepropertyvalue $ntpServers
         $managementDomainObject | Add-Member -notepropertyname 'vcenterSpec' -notepropertyvalue $vcenterObject
-        $managementDomainObject | Add-Member -notepropertyname 'clusterSpec' -notepropertyvalue ($clusterObject | Select-Object -Skip 0)
-        $managementDomainObject | Add-Member -notepropertyname 'datastoreSpec' -notepropertyvalue ($datastoreSpecObject | Select-Object -Skip 0)
+        $managementDomainObject | Add-Member -notepropertyname 'clusterSpec' -notepropertyvalue $clusterObject 
+        $managementDomainObject | Add-Member -notepropertyname 'datastoreSpec' -notepropertyvalue $datastoreSpecObject
         $managementDomainObject | Add-Member -notepropertyname 'nsxtSpec' -notepropertyvalue $nsxtObject
-        If (($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and (($instanceObject.instance -eq "First Instance") -OR (($instanceObject.instance -eq "Additional Instance") -AND ($joinFleet -eq "Y")))){$managementDomainObject | Add-Member -notepropertyname 'vcfOperationsSpec' -notepropertyvalue $vcfOperationsSpecObject}
-        If (($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and (($instanceObject.instance -eq "First Instance") -OR (($instanceObject.instance -eq "Additional Instance") -AND ($joinFleet -eq "Y")))) {$managementDomainObject | Add-Member -notepropertyname 'vcfOperationsFleetManagementSpec' -notepropertyvalue $vcfOperationsManagementSpecObject}
-        If (($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and (($instanceObject.instance -eq "First Instance") -OR (($instanceObject.instance -eq "Additional Instance") -AND ($joinFleet -eq "Y")))) {$managementDomainObject | Add-Member -notepropertyname 'vcfOperationsCollectorSpec' -notepropertyvalue $vcfOperationsCloudProxySpecObject}
-        If ((($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and ($instanceObject.instance -eq "First Instance") -AND ($skipAutomation -ne 'Y')) -or (($instanceObject.instance -eq "Additional Instance") -and ($joinFleet -eq "Y") -AND ($skipAutomation -ne 'Y'))) {$managementDomainObject | Add-Member -notepropertyname 'vcfAutomationSpec' -notepropertyvalue $vcfAutomationSpecObjectObject}
-        $managementDomainObject | Add-Member -notepropertyname 'hostSpecs' -notepropertyvalue $hostObject
+        If (($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and (($instanceObject.instance -eq "InstanceA") -OR (($instanceObject.instance -eq "InstanceB") -AND ($joinFleet -eq "Y")))){$managementDomainObject | Add-Member -notepropertyname 'vcfOperationsSpec' -notepropertyvalue ($vcfOperationsSpecObject | Select-Object -Skip 0)}
+        If (($instanceObject.version -like "9.0.*") -and ($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and (($instanceObject.instance -eq "InstanceA") -OR (($instanceObject.instance -eq "InstanceB") -AND ($joinFleet -eq "Y")))) {$managementDomainObject | Add-Member -notepropertyname 'vcfOperationsFleetManagementSpec' -notepropertyvalue ($vcfOperationsManagementSpecObject | Select-Object -Skip 0)}
+        If (($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and (($instanceObject.instance -eq "InstanceA") -OR (($instanceObject.instance -eq "InstanceB") -AND ($joinFleet -eq "Y")))) {$managementDomainObject | Add-Member -notepropertyname 'vcfOperationsCollectorSpec' -notepropertyvalue ($vcfOperationsCloudProxySpecObject | Select-Object -Skip 0)}
+        If ((($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and ($instanceObject.instance -eq "InstanceA") -AND ($skipAutomation -ne 'Y')) -or (($instanceObject.instance -eq "InstanceB") -and ($joinFleet -eq "Y") -AND ($skipAutomation -ne 'Y'))) {$managementDomainObject | Add-Member -notepropertyname 'vcfAutomationSpec' -notepropertyvalue ($vcfAutomationSpecObject | Select-Object -Skip 0)}
+        If ($instanceObject.version -notlike "9.0.*")
+        {            
+            $managementDomainObject | Add-Member -notepropertyname 'vspClusterSpec' -notepropertyvalue $vspClusterSpecObject
+            $managementDomainObject | Add-Member -notepropertyname 'sddcLcmSpec' -notepropertyvalue $sddcLcmSpecObject
+            $managementDomainObject | Add-Member -notepropertyname 'saltSpec' -notepropertyvalue $saltSpecObject            
+            $managementDomainObject | Add-Member -notepropertyname 'telemetryAcceptorSpec' -notepropertyvalue $telemetryAcceptorSpecObject            
+            If ($instanceObject.instance -eq "instanceA")
+            {
+                $managementDomainObject | Add-Member -notepropertyname 'vidbSpec' -notepropertyvalue $vidbSpecObject
+                If ($instanceObject.deploymentProfile.fleetManagementTiming -ne "later")
+                {
+                    $managementDomainObject | Add-Member -notepropertyname 'licenseServerSpec' -notepropertyvalue $licenseServerSpecObject    
+                }
+                #$managementDomainObject | Add-Member -notepropertyname 'fleetLcmSpec' -notepropertyvalue $fleetLcmSpecObject
+                $managementDomainObject | Add-Member -notepropertyname 'saltRaasSpec' -notepropertyvalue $saltRaasSpecObject
+                $managementDomainObject | Add-Member -notepropertyname 'fleetDepotSpec' -notepropertyvalue $fleetDepotSpecObject            
+            }
+        }   
+        $managementDomainObject | Add-Member -notepropertyname 'hostSpecs' -notepropertyvalue $hostSpecs
         $managementDomainObject | Add-Member -notepropertyname 'networkSpecs' -notepropertyvalue $networkObject
         $managementDomainObject | Add-Member -notepropertyname 'dvsSpecs' -notepropertyvalue $dvsObject
-        $managementDomainObject | Add-Member -notepropertyname 'sddcManagerSpec' -notepropertyvalue $sddcManagerObject
+        $managementDomainObject | Add-Member -notepropertyname 'sddcManagerSpec' -notepropertyvalue ($sddcManagerObject | Select-Object -Skip 0)
 
-        LogMessage -Type INFO -Message "Exporting the Management Domain JSON to managementDomainSpec-$($instanceObject.domainName).json"
-        $managementDomainObject | ConvertTo-Json -Depth 12 | Out-File -Encoding UTF8 -FilePath "managementDomainSpec-$($instanceObject.domainName).json"
-        LogMessage -Type NOTE -Message "Completed the Process of Generating the Management Domain JSON"
+        $outputFileName = If ($targetFilePath) {
+            $targetFilePath
+        } else {
+            "managementDomainSpec-$($instanceObject.domainName).json"
+        }
+        LogMessage -Type INFO -Message "Exporting the Management Domain JSON to $outputFileName"
+        $managementDomainObject | ConvertTo-Json -Depth 12 | Out-File -Encoding UTF8 -FilePath $outputFileName
+        LogMessage -Type NOTE -Message "Completed the Process of Generating the Management Domain JSON File"
     }
     Catch {
         catchWriter -object $_
@@ -4484,79 +5872,105 @@ Function New-ManagementDomainJsonFile
 Function New-WorkloadDomainJsonFile 
 {
     Param (
-        [Parameter (Mandatory = $true)] [Array]$instanceObject
+        [Parameter (Mandatory = $true)] [Object]$instanceObject,
+        [Parameter (Mandatory = $false)] [Switch]$noHostFingerprints,
+        [Parameter (Mandatory = $false)] [Switch]$userPromptBypass,
+        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled,
+        [Parameter (Mandatory = $false)] [String]$targetFilePath,
+        [Parameter (Mandatory = $false)] [String]$singleNSXTManager,
+        [Parameter (Mandatory = $false)] [Object]$selectedNSXManagerWorkloadObject        
     )
 
     Try 
     {
         LogMessage -type INFO -message "Generating Workload Domain JSON"
-        Do
-        {
-            LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve host and personality IDs from SDDC Manager? (Y/N): " -skipnewline
-            $interactiveEnabled = Read-Host    
-        } Until ($interactiveEnabled -in "Y","N")
-        $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""
-        If ($interactiveEnabled -eq "Y")
+        If (!$userPromptBypass)
         {
             Do
             {
-                LogMessage -type INFO -message "SDDC Manager FQDN: " -skipnewline
-                $sddcMgrFqdn = Read-Host
-                LogMessage -type INFO -message "SDDC Manager Administrator: " -skipnewline
-                $sddcMgrUser = Read-Host
-                LogMessage -type INFO -message "SDDC Manager Administrator password: " -skipnewline
-                $adminPassword = Read-Host -AsSecureString
-                $decodedPassword = New-DecodedPassword -securePassword $adminPassword
-                New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
-                If (!($accessToken))
-                {
-                    LogMessage -type ERROR -message "Failed to connect to $sddcMgrFqdn. Please check details and try again"
-                }
-            } Until ($accessToken)
+                LogMessage -Type QUESTION -Message "Do you wish to retrieve host and personality IDs from SDDC Manager? (Y/N): " -skipnewline
+                $componentInterrogationResponse = Read-Host    
+            } Until ($componentInterrogationResponse -in "Y","N")
+            $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
         }
+        else
+        {
+            $sddcMgrFqdn = $instanceObject.sddcManager.fqdn
+            $sddcMgrUser = $instanceObject.sddcManager.adminUser
+            $decodedPassword = $instanceObject.sddcManager.adminPassword
+        }
+        If ($componentInterrogationEnabled)
+        {
+            If (!$userPromptBypass)
+            {
+                Do
+                {
+                    LogMessage -type INFO -message "SDDC Manager FQDN: " -skipnewline
+                    $sddcMgrFqdn = Read-Host
+                    LogMessage -type INFO -message "SDDC Manager Administrator: " -skipnewline
+                    $sddcMgrUser = Read-Host
+                    LogMessage -type INFO -message "SDDC Manager Administrator password: " -skipnewline
+                    $adminPassword = Read-Host -AsSecureString
+                    $decodedPassword = New-DecodedPassword -securePassword $adminPassword
+                    New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
+                    If (!($accessToken))
+                    {
+                        LogMessage -type ERROR -message "Failed to connect to $sddcMgrFqdn. Please check details and try again"
+                    }
+                } Until ($accessToken)
+            }
+            else
+            {
+                New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
+            }
+            
+        }
+
+        If (!$selectedNSXManagerWorkloadObject) {$selectedNSXManagerWorkloadObject = $instanceObject}
+        If (!$singleNSXTManager) { $singleNSXTManager = $selectedNSXManagerWorkloadObject.deploymentProfile.singleNSXTManager }
 
         $nsxtNode1Object = @()
         $nsxtNode1Object += [pscustomobject]@{
-            'ipAddress'  = $instanceObject.nsxtManager.nodeAIpAddress
-            'dnsName'    = $instanceObject.nsxtManager.nodeAFQDN
+            'ipAddress'  = $selectedNSXManagerWorkloadObject.nsxtManager.nodeAIpAddress
+            'dnsName'    = $selectedNSXManagerWorkloadObject.nsxtManager.nodeAFQDN
         }
 
         $nsxtNode2Object = @()
         $nsxtNode2Object += [pscustomobject]@{
-            'ipAddress'  = $instanceObject.nsxtManager.nodeBIpAddress
-            'dnsName'    = $instanceObject.nsxtManager.nodeBFQDN
+            'ipAddress'  = $selectedNSXManagerWorkloadObject.nsxtManager.nodeBIpAddress
+            'dnsName'    = $selectedNSXManagerWorkloadObject.nsxtManager.nodeBFQDN
         }
 
         $nsxtNode3Object = @()
         $nsxtNode3Object += [pscustomobject]@{
-            'ipAddress'  = $instanceObject.nsxtManager.nodeCIpAddress
-            'dnsName'    = $instanceObject.nsxtManager.nodeCFQDN
+            'ipAddress'  = $selectedNSXManagerWorkloadObject.nsxtManager.nodeCIpAddress
+            'dnsName'    = $selectedNSXManagerWorkloadObject.nsxtManager.nodeCFQDN
         }
 
         $nsxtManagerObject = @()
         $nsxtManagerObject += [pscustomobject]@{
-            'name'             = $instanceObject.nsxtManager.nodeAHostname
+            'name'             = $selectedNSXManagerWorkloadObject.nsxtManager.nodeAHostname
             'networkDetailsSpec' = ($nsxtNode1Object | Select-Object -Skip 0)
         }
-        If ($instanceObject.deploymentProfile.singleNSXTManager -eq "N")
+        If ($singleNSXTManager -eq "N")
         {
             $nsxtManagerObject += [pscustomobject]@{
-                'name'             = $instanceObject.nsxtManager.nodeBHostname
+                'name'             = $selectedNSXManagerWorkloadObject.nsxtManager.nodeBHostname
                 'networkDetailsSpec' = ($nsxtNode2Object | Select-Object -Skip 0)
             }
             $nsxtManagerObject += [pscustomobject]@{
-                'name'             = $instanceObject.nsxtManager.nodeCHostname
+                'name'             = $selectedNSXManagerWorkloadObject.nsxtManager.nodeCHostname
                 'networkDetailsSpec' = ($nsxtNode3Object | Select-Object -Skip 0)
             }
         }
         
         $nsxtObject = @()
         $nsxtObject += [pscustomobject]@{
-            'formFactor'              = $instanceObject.nsxtManager.formFactor
+            'formFactor'              = $selectedNSXManagerWorkloadObject.nsxtManager.formFactor
             'nsxManagerSpecs'         = $nsxtManagerObject
-            'vip'                     = $instanceObject.nsxtManager.ipAddress
-            'vipFqdn'                 = $instanceObject.nsxtManager.fqdn
-            'nsxManagerAdminPassword' = $instanceObject.nsxtManager.adminPassword
+            'vip'                     = $selectedNSXManagerWorkloadObject.nsxtManager.ipAddress
+            'vipFqdn'                 = $selectedNSXManagerWorkloadObject.nsxtManager.fqdn
+            'nsxManagerAdminPassword' = $selectedNSXManagerWorkloadObject.nsxtManager.adminPassword
         }
 
         $vmnicObject = @()
@@ -4653,50 +6067,51 @@ Function New-WorkloadDomainJsonFile
         $rackArray = @(($instanceObject.az1 | Get-Member -type NoteProperty).name)
         Foreach ($rack in $rackArray)
         {
-            $selectedHosts = @(0..$([INT]$instanceObject.az1.$($rack).hosts.count -1))
-            If ((($instanceObject.rackInformation.dedicatedEdgeClusters -eq $true ) -AND ($rack -ne $instanceObject.rackInformation.edgeRackFirst) -AND ($rack -ne $instanceObject.rackInformation.edgeRackSecond)) -OR ($instanceObject.rackInformation.dedicatedEdgeClusters -eq $false ))
+            $selectedHosts = @(0..$([INT]$instanceObject.rackInformation.computeHostsPerRack -1))
+            <#If (-not $selectedHosts) {
+                $selectedHosts = @(0..$([INT]$instanceObject.az1.$($rack).hosts.count -1))
+            }#>
+            Foreach ($selectedHost in $selectedHosts)
             {
-                Foreach ($selectedHost in $selectedHosts)
+                $hostnetworkObject = @()
+                $hostnetworkObject += [pscustomobject]@{
+                    'vmNics' = $vmnicObject
+                }
+                If ($instanceObject.rackinformation.multiRackResult -eq "Included")
                 {
-                    $hostnetworkObject = @()
-                    $hostnetworkObject += [pscustomobject]@{
-                        'vmNics' = $vmnicObject
-                    }
-                    If ($instanceObject.rackinformation.multiRackChosen -eq "Y")
-                    {
-                        $hostnetworkObject | Add-Member -notepropertyName 'networkProfileName' -NotePropertyValue $instanceObject.az1.$($rack).network.networkProfileName
-                    }
+                    $hostnetworkObject | Add-Member -notepropertyName 'networkProfileName' -NotePropertyValue $instanceObject.az1.$($rack).network.networkProfileName
+                }
 
-                    If ($interactiveEnabled -eq "Y")
+                If (($componentInterrogationEnabled) -and (!$noHostFingerprints))
+                {
+                    $hostID = Get-VCFHostDetails -Status UNASSIGNED_USEABLE | Select-Object fqdn, id | Where-Object { $_.fqdn -eq $instanceObject.az1.$($rack).hosts[$selectedHost].fqdn }
+                    If ($hostID)
                     {
-                        $hostID = Get-VCFHostDetails -Status UNASSIGNED_USEABLE | Select-Object fqdn, id | Where-Object { $_.fqdn -eq $instanceObject.az1.$($rack).hosts[$selectedHost].fqdn }
-                        If ($hostID)
-                        {
-                            LogMessage -Type INFO -Message "Obtaining Host ID from SDDC Manager for host $($instanceObject.az1.$($rack).hosts[$selectedHost].fqdn): Found"
-                            $hostIdValue = $hostId.id
-                        }
-                        else
-                        {
-                            LogMessage -Type WARNING -Message "Obtaining Host ID from SDDC Manager for host $($instanceObject.az1.$($rack).hosts[$selectedHost].fqdn): Not found. Not adding to JSON File"
-                            $hostIdValue = "None Found"
-                        }
+                        LogMessage -Type INFO -Message "Obtaining Host ID from SDDC Manager for host $($instanceObject.az1.$($rack).hosts[$selectedHost].fqdn): Found"
+                        $hostIdValue = $hostId.id
                     }
                     else
                     {
-                        $hostIdValue = "<--ENTER-SDDC-HOSTID-HERE-->"
+                        LogMessage -Type WARNING -Message "Obtaining Host ID from SDDC Manager for host $($instanceObject.az1.$($rack).hosts[$selectedHost].fqdn): Not found. Not adding to JSON File"
+                        $hostIdValue = "None Found"
                     }
-                    If ($hostIdValue -ne "None Found")
-                    {
-                        $newHost = [pscustomobject]@{
-                            'id'                = "$hostIdValue"
-                            'hostname'          = $instanceObject.az1.$($rack).hosts[$selectedHost].fqdn
-                            'hostNetworkSpec'   = ($hostnetworkObject | Select-Object -Skip 0)
-                        }
-                        $hostArray += $newHost
-                    }
-                    $hostCounter++
                 }
+                else
+                {
+                    $hostIdValue = "<--ENTER-SDDC-HOSTID-HERE-->"
+                }
+                If ($hostIdValue -ne "None Found")
+                {
+                    $newHost = [pscustomobject]@{
+                        'id'                = "$hostIdValue"
+                        'hostname'          = $instanceObject.az1.$($rack).hosts[$selectedHost].fqdn
+                        'hostNetworkSpec'   = ($hostnetworkObject | Select-Object -Skip 0)
+                    }
+                    $hostArray += $newHost
+                }
+                $hostCounter++
             }
+            
         }
         If ($hostCounter -gt $maxClusterNodeCount)
         {
@@ -4815,7 +6230,7 @@ Function New-WorkloadDomainJsonFile
         
         $vdsMtu = $([INT]$instanceObject.vsphereClusters[0].vds[0].mtu)
         $overlayTransportZone = [pscustomobject]@{
-            'name'          = "overlay-tz-$($instanceObject.nsxtManager.hostname)"
+            'name'          = "overlay-tz-$($selectedNSXManagerWorkloadObject.nsxtManager.hostname)"
             'transportType' = "OVERLAY"
         }
         
@@ -5291,7 +6706,7 @@ Function New-WorkloadDomainJsonFile
 
         If ($instanceObject.vsphereClusters[0].vlcmModel -eq "Images") 
         {
-            If ($interactiveEnabled -eq "Y")
+            If ($componentInterrogationEnabled)
             {
                 LogMessage -Type INFO -Message "Obtaining Cluster Image Personality ID from SDDC Manager"
                 $clusterImageId = (Get-VCFPersonalityDetails | Where-Object { $_.personalityName -eq $instanceObject.vsphereClusters[0].imageName }).personalityId
@@ -5332,7 +6747,6 @@ Function New-WorkloadDomainJsonFile
             $vcenterObject[0] | Add-Member -notepropertyName 'storageSize' -NotePropertyValue "xlstorage"
         }
 
-        #review
         $ssoDomainSpecObject = @()
         $ssoDomainSpecObject += [pscustomobject]@{
             'ssoDomainName' = $instanceObject.sso.domain
@@ -5350,8 +6764,13 @@ Function New-WorkloadDomainJsonFile
         $workloadDomainObject[0] | Add-Member -NotePropertyName 'ssoDomainSpec' -NotePropertyValue ($ssoDomainSpecObject | Select-Object -Skip 0)
         $workloadDomainObject[0] | Add-Member -NotePropertyName 'deployWithoutLicenseKeys' -NotePropertyValue "true"
 
-        LogMessage -Type INFO -Message "Exporting the Workload Domain JSON to workloadDomainSpec-$($instanceObject.domainName).json"
-        $workloadDomainObject | ConvertTo-Json -Depth 12 | Out-File -Encoding UTF8 -FilePath "workloadDomainSpec-$($instanceObject.domainName).json"
+        $outputFileName = If ($targetFilePath) {
+            $targetFilePath
+        } else {
+            "workloadDomainSpec-$($instanceObject.domainName).json"
+        }
+        LogMessage -Type INFO -Message "Exporting the Workload Domain JSON to $outputFileName"
+        $workloadDomainObject | ConvertTo-Json -Depth 12 | Out-File -Encoding UTF8 -FilePath $outputFileName
         LogMessage -Type NOTE -Message "Completed the Process of Generating the Workload Domain JSON"
     }
     Catch 
@@ -5359,8 +6778,9 @@ Function New-WorkloadDomainJsonFile
         catchWriter -object $_
     }
 }
+#EndRegion Domain JSON Files
 
-# SDDC Manager Supporting Functions
+#Region Network Pools Functions
 Function New-NetworkPoolJsonFile 
 {
     Param (
@@ -5404,7 +6824,7 @@ Function New-NetworkPoolJsonFile
                     $networkObject = @()
                     $networkObject += [pscustomobject]@{
                         'type'    = "VMOTION"
-                        'vlanId'  = $instanceObject.$($az).$($rack).network.vmotionVlanID
+                        'vlanId'  = $instanceObject.$($az).$($rack).network.vmotionVlanID -as [string]
                         'mtu'     = $vmotionMtu
                         'subnet'  = $instanceObject.$($az).$($rack).network.vmotionNetwork
                         'mask'    = $instanceObject.$($az).$($rack).network.vmotionNetmask
@@ -5413,7 +6833,7 @@ Function New-NetworkPoolJsonFile
                     }
                     $networkObject += [pscustomobject]@{
                         'type'    = "VSAN"
-                        'vlanId'  = $instanceObject.$($az).$($rack).network.vsanVlanID
+                        'vlanId'  = $instanceObject.$($az).$($rack).network.vsanVlanID -as [string]
                         'mtu'     = $vsanMtu
                         'subnet'  = $instanceObject.$($az).$($rack).network.vsanNetwork
                         'mask'    = $instanceObject.$($az).$($rack).network.vsanNetmask
@@ -5451,193 +6871,86 @@ Function New-NetworkPoolJsonFile
         catchWriter -object $_
     }
 }
+#EndRegion Network Pools Functions
 
-Function New-RackBasedHostCommissioning
-{
-    Param (
-        [Parameter(Mandatory = $true)][Object]$instanceObject,
-        [Parameter(Mandatory = $false)][string]$az
-    )
-    Remove-Variable commissionNestedHosts -errorAction silentlyContinue
-
-    Do
-    {
-        LogMessage -Type QUESTION -Message "Do you wish to create a commissioning JSON for submission via API (A) or UI (U)? " -skipnewline
-        $jsonMode = Read-Host    
-    } Until ($jsonMode -in "A","U")
-    
-    Do
-    {
-        LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve network pool IDs from SDDC Manager? (Y/N): " -skipnewline
-        $interactiveEnabled = Read-Host    
-    } Until ($interactiveEnabled -in "Y","N")
-    $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""
-    If ($interactiveEnabled -eq "Y")
-    {
-        Do
-        {
-            LogMessage -type INFO -message "SDDC Manager FQDN: " -skipnewline
-            $sddcMgrFqdn = Read-Host
-            LogMessage -type INFO -message "SDDC Manager Administrator: " -skipnewline
-            $sddcMgrUser = Read-Host
-            LogMessage -type INFO -message "SDDC Manager Administrator password: " -skipnewline
-            $adminPassword = Read-Host -AsSecureString
-            $decodedPassword = New-DecodedPassword -securePassword $adminPassword
-            New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
-            If (!($accessToken))
-            {
-                LogMessage -type ERROR -message "Failed to connect to $sddcMgrFqdn. Please check details and try again"
-            }
-        } Until ($accessToken)
-    }
-
-    If (!($az))
-    {
-        If ($instanceObject.az2)
-        { 
-            $azs = @("az1","az2") 
-        }
-        else
-        {
-            $azs = @("az1")
-        }
-    }
-    else
-    {
-        $azs = @($az)
-    }
-    
-    Foreach ($az in $azs)
-    {
-        $selectedRackArray = @(($instanceObject.$($az) | Get-Member -type NoteProperty).name)
-        $commissionNestedHosts = @()
-        If (!$exitFunction)
-        {
-            Foreach ($rack in $selectedRackArray)
-            {
-                $selectedHostArray = @($instanceObject.$($az).$($rack).hosts)
-    
-                If (!$exitFunction)
-                {
-                    If ($instanceObject.vsphereClusters[0].storageModel -eq "VSAN-ESA") 
-                    {
-                        $vSanTypeObject="VSAN_ESA" 
-                    }
-                    elseIf ($instanceObject.vsphereClusters[0].storageModel -eq "vSAN Storage Cluster")
-                    {
-                        $vSanTypeObject="VSAN_MAX"
-                    }
-                    else
-                    {
-                        $vSanTypeObject="VSAN"
-                    }
-        
-                    If ($interactiveEnabled -eq "Y")
-                    {
-                        LogMessage -Type INFO -Message "Obtaining Network Pool ID from SDDC Manager for pool $($instanceObject.$($az).$($rack).network.vcfNetworkPoolName): Found"
-                        $networkPool = (Get-VCFNetworkPoolDetails | Where-Object { $_.name -eq $instanceObject.$($az).$($rack).network.vcfNetworkPoolName }).id
-                    }
-                    else
-                    {
-                        $networkPool = '<--ENTER-NETWORK-POOL-ID-HERE-->'
-                    }
-    
-                    Foreach ($selectedHost in $selectedHostArray)
-                    {
-                        $commissionNestedHosts += [pscustomobject]@{
-                            "fqdn" = $selectedHost.fqdn
-                            "username" = "root"
-                            "storageType" = $vSanTypeObject
-                            "password" = $instanceObject.hostCredentials.esxiPassword
-                            'networkPoolName' = $instanceObject.$($az).$($rack).network.vcfNetworkPoolName
-                            'networkPoolId'   = $networkPool
-                        } 
-                    }
-                Remove-Variable selectedHostArray
-                }
-            }
-    
-            If (!$exitFunction)
-            {
-                
-                If ($jsonMode -eq "A")
-                {
-                    #Create API JSON Spec
-                    LogMessage -Type INFO -Message "Exporting API Commissioning JSON to commissionHostSpec-$($instanceObject.vsphereClusters[0].clustername)-$($az)-api.json"
-                    ConvertTo-Json $commissionNestedHosts -Depth 10 | Out-File -FilePath "commissionHostSpec-$($instanceObject.vsphereClusters[0].clustername)-$($az)-api.json"
-                }
-                else
-                {
-                    #Create UI JSON Spec
-                    $uiSpecObject = @()
-                    $uiSpecObject += [pscustomobject]@{
-                        'hosts' = $commissionNestedHosts
-                    }                
-                    $uiSpecObject[0].hosts = $uiSpecObject.hosts | ForEach-Object {            
-                        $_ | Select-Object @{Name = 'fqdn'; Expression = {$_.fqdn}}, 'username', 'storageType', 'password', 'networkPoolName'
-                    } | Select-Object -Skip 0
-                    LogMessage -Type INFO -Message "Exporting UI Commissioning JSON to commissionHostSpec-$($instanceObject.vsphereClusters[0].clustername)-$($az)-ui.json"
-                    $uiSpecObject | Convertto-json -depth 10 | Out-File -FilePath "commissionHostSpec-$($instanceObject.vsphereClusters[0].clustername)-$($az)-ui.json"    
-                }
-                LogMessage -Type NOTE -Message "Completed the Process of Generating the Commissioning JSON"
-            }
-        }
-    }
-}
-
-#Cluster JSON Files
+#Region Cluster JSON Files
 Function New-L2vSphereClusterJsonFile
 {
     Param (
-        [Parameter (Mandatory = $true)] [Object]$clusterObject
+        [Parameter (Mandatory = $true)] [Object]$clusterObject,
+        [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
+        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled
     )
-    Do
-    {
-        If ($clusterObject.determinedClusterConfig -eq "Single-Rack Compute Only")
-        {
-            LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve Domain, Host, Image and Datastore IDs from SDDC Manager/vCenter? (Y/N): " -skipnewline
-        }
-        else
-        {
-            LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve Domain, Host and Image IDs from SDDC Manager? (Y/N): " -skipnewline
-        }
-        $interactiveEnabled = Read-Host    
-    } Until ($interactiveEnabled -in "Y","N")
-    $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""
-    If ($interactiveEnabled -eq "Y")
+    If (!$userPromptBypass)
     {
         Do
         {
-            LogMessage -type INFO -message "SDDC Manager FQDN: " -skipnewline
-            $sddcMgrFqdn = Read-Host
-            LogMessage -type INFO -message "SDDC Manager Administrator: " -skipnewline
-            $sddcMgrUser = Read-Host
-            LogMessage -type INFO -message "SDDC Manager Administrator password: " -skipnewline
-            $adminPassword = Read-Host -AsSecureString
-            $decodedPassword = New-DecodedPassword -securePassword $adminPassword
-            New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
-            If (!($accessToken))
+            If ($clusterObject.determinedClusterConfig -eq "Single-Rack Compute Only")
             {
-                LogMessage -type ERROR -message "Failed to connect to $sddcMgrFqdn. Please check details and try again"
+                LogMessage -Type QUESTION -Message "Do you wish to retrieve Domain, Host, Image and Datastore IDs from SDDC Manager/vCenter? (Y/N): " -skipnewline
             }
-        } Until ($accessToken)
-        If ($clusterObject.determinedClusterConfig -eq "Single-Rack Compute Only")
+            else
+            {
+                LogMessage -Type QUESTION -Message "Do you wish to retrieve Domain, Host and Image IDs from SDDC Manager? (Y/N): " -skipnewline
+            }
+            $componentInterrogationResponse = Read-Host    
+        } Until ($componentInterrogationResponse -in "Y","N")
+        $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
+    }
+    else
+    {
+        $sddcMgrFqdn = $clusterObject.sddcManager.fqdn
+        $sddcMgrUser = $clusterObject.sddcManager.adminUser
+        $decodedPassword = $clusterObject.sddcManager.adminPassword
+        $vCenterFqdn = $clusterObject.vcenterServer.fqdn
+        $vCenterAdminUser = $clusterObject.vcenterServer.adminUser
+        $decodedVcenterPassword = $clusterObject.vcenterServer.adminPassword
+    }
+    If ($componentInterrogationEnabled)
+    {
+        If (!$userPromptBypass)
         {
             Do
             {
-                LogMessage -type INFO -message "vCenter FQDN: " -skipnewline
-                $vCenterFqdn = Read-Host
-                LogMessage -type INFO -message "vCenter Administrator: " -skipnewline
-                $vCenterAdminUser = Read-Host
-                LogMessage -type INFO -message "vCenter Administrator password: " -skipnewline
-                $vCenterPassword = Read-Host -AsSecureString
-                $decodedVcenterPassword = New-DecodedPassword -securePassword $vCenterPassword
-                $vCenterConnection = Connect-VIServer -server $vCenterFQDN -user $vCenterAdminUser -password $decodedvCenterPassword -errorAction SilentlyContinue
-                If (!($vCenterConnection))
+                LogMessage -type INFO -message "SDDC Manager FQDN: " -skipnewline
+                $sddcMgrFqdn = Read-Host
+                LogMessage -type INFO -message "SDDC Manager Administrator: " -skipnewline
+                $sddcMgrUser = Read-Host
+                LogMessage -type INFO -message "SDDC Manager Administrator password: " -skipnewline
+                $adminPassword = Read-Host -AsSecureString
+                $decodedPassword = New-DecodedPassword -securePassword $adminPassword
+                New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
+                If (!($accessToken))
                 {
-                    LogMessage -type ERROR -message "Failed to connect to successfully read information from $vCenterFqdn. Please check details and try again"
+                    LogMessage -type ERROR -message "Failed to connect to $sddcMgrFqdn. Please check details and try again"
                 }
-            } Until ($vCenterConnection)
+            } Until ($accessToken)
+            If ($clusterObject.determinedClusterConfig -eq "Single-Rack Compute Only")
+            {
+                Do
+                {
+                    LogMessage -type INFO -message "vCenter FQDN: " -skipnewline
+                    $vCenterFqdn = Read-Host
+                    LogMessage -type INFO -message "vCenter Administrator: " -skipnewline
+                    $vCenterAdminUser = Read-Host
+                    LogMessage -type INFO -message "vCenter Administrator password: " -skipnewline
+                    $vCenterPassword = Read-Host -AsSecureString
+                    $decodedVcenterPassword = New-DecodedPassword -securePassword $vCenterPassword
+                    $vCenterConnection = Connect-VIServer -server $vCenterFQDN -user $vCenterAdminUser -password $decodedvCenterPassword -errorAction SilentlyContinue
+                    If (!($vCenterConnection))
+                    {
+                        LogMessage -type ERROR -message "Failed to connect to successfully read information from $vCenterFqdn. Please check details and try again"
+                    }
+                } Until ($vCenterConnection)
+            }
+        }
+        else
+        {
+            New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
+            If ($clusterObject.determinedClusterConfig -eq "Single-Rack Compute Only")
+            {
+                $vCenterConnection = Connect-VIServer -server $vCenterFqdn -user $vCenterAdminUser -password $decodedVcenterPassword -errorAction SilentlyContinue
+            }
         }
     }
     
@@ -5697,7 +7010,7 @@ Function New-L2vSphereClusterJsonFile
 
     Foreach ($selectedHost in $clusterObject.az1.$($rack).hosts)
     {
-        If ($interactiveEnabled -eq "Y")
+        If ($componentInterrogationEnabled)
         {
             $hostID = Get-VCFHostDetails -Status UNASSIGNED_USEABLE | Select-Object fqdn, id | Where-Object { $_.fqdn -eq $selectedHost.fqdn }
             If ($hostID)
@@ -5768,7 +7081,7 @@ Function New-L2vSphereClusterJsonFile
 
     If ($clusterObject.determinedClusterConfig -eq "Single-Rack Compute Only")
     {
-        If ($interactiveEnabled -eq "Y")
+        If ($componentInterrogationEnabled)
         {
             $datastoreUuid = (Get-Datastore -name $clusterObject.vsphereClusters[0].vsanDatastore).ExtensionData.info.ContainerId
         }
@@ -5802,7 +7115,7 @@ Function New-L2vSphereClusterJsonFile
             'esaConfig' =  ($ESAenabledtrueobject | Select-Object -Skip 0)
             }
         }
-        elseIf ($instanceObject.vsphereClusters[0].storageModel -eq "VSAN-OSA") 
+        elseIf ($clusterObject.vsphereClusters[0].storageModel -eq "VSAN-OSA") 
         {
             $vsanDatastoreObject += [pscustomobject]@{
             'failuresToTolerate' = "1"
@@ -6076,7 +7389,7 @@ Function New-L2vSphereClusterJsonFile
     
     If ($clusterObject.vsphereClusters[0].vlcmModel -eq "Images") 
     {
-        If ($interactiveEnabled -eq "Y")
+        If ($componentInterrogationEnabled)
         {
             LogMessage -Type INFO -Message "Obtaining Cluster Image Personality ID from SDDC Manager"
             $clusterImageId = (Get-VCFPersonalityDetails | Where-Object { $_.personalityName -eq $clusterObject.vsphereClusters[0].imageName }).personalityId
@@ -6093,7 +7406,7 @@ Function New-L2vSphereClusterJsonFile
         'clusterSpecs' = $clusterSpecObject
     }
 
-    If ($interactiveEnabled -eq "Y")
+    If ($componentInterrogationEnabled)
     {
         $domainID = (Get-VCFWorkloadDomainDetails -name $clusterObject.domainName).id
         If ($domainID)
@@ -6126,55 +7439,80 @@ Function New-L2vSphereClusterJsonFile
 Function New-L3vSphereClusterJsonFile
 {
     Param (
-        [Parameter (Mandatory = $true)] [Object]$clusterObject
+        [Parameter (Mandatory = $true)] [Object]$clusterObject,
+        [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
+        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled
     )
-    Do
-    {
-        If ($clusterObject.determinedClusterConfig -eq "Multi-Rack Compute Only")
-        {
-            LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve Domain, Host, Image and Datastore IDs from SDDC Manager/vCenter? (Y/N): " -skipnewline
-        }
-        else
-        {
-            LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve Domain, Host and Image IDs from SDDC Manager? (Y/N): " -skipnewline
-        }
-        $interactiveEnabled = Read-Host    
-    } Until ($interactiveEnabled -in "Y","N")
-    $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""
-    If ($interactiveEnabled -eq "Y")
+    If (!$userPromptBypass)
     {
         Do
         {
-            LogMessage -type INFO -message "SDDC Manager FQDN: " -skipnewline
-            $sddcMgrFqdn = Read-Host
-            LogMessage -type INFO -message "SDDC Manager Administrator: " -skipnewline
-            $sddcMgrUser = Read-Host
-            LogMessage -type INFO -message "SDDC Manager Administrator password: " -skipnewline
-            $adminPassword = Read-Host -AsSecureString
-            $decodedPassword = New-DecodedPassword -securePassword $adminPassword
-            New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
-            If (!($accessToken))
+            If ($clusterObject.determinedClusterConfig -eq "Multi-Rack Compute Only")
             {
-                LogMessage -type ERROR -message "Failed to connect to $sddcMgrFqdn. Please check details and try again"
+                LogMessage -Type QUESTION -Message "Do you wish to retrieve Domain, Host, Image and Datastore IDs from SDDC Manager/vCenter? (Y/N): " -skipnewline
             }
-        } Until ($accessToken)
-        If ($clusterObject.determinedClusterConfig -eq "Multi-Rack Compute Only")
+            else
+            {
+                LogMessage -Type QUESTION -Message "Do you wish to retrieve Domain, Host and Image IDs from SDDC Manager? (Y/N): " -skipnewline
+            }
+            $componentInterrogationResponse = Read-Host    
+        } Until ($componentInterrogationResponse -in "Y","N")
+        $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
+    }
+    else
+    {
+        $sddcMgrFqdn = $clusterObject.sddcManager.fqdn
+        $sddcMgrUser = $clusterObject.sddcManager.adminUser
+        $decodedPassword = $clusterObject.sddcManager.adminPassword
+        $vCenterFqdn = $clusterObject.vcenterServer.fqdn
+        $vCenterAdminUser = $clusterObject.vcenterServer.adminUser
+        $decodedVcenterPassword = $clusterObject.vcenterServer.adminPassword
+    }
+    If ($componentInterrogationEnabled)
+    {
+        If (!$userPromptBypass)
         {
             Do
             {
-                LogMessage -type INFO -message "vCenter FQDN: " -skipnewline
-                $vCenterFqdn = Read-Host
-                LogMessage -type INFO -message "vCenter Administrator: " -skipnewline
-                $vCenterAdminUser = Read-Host
-                LogMessage -type INFO -message "vCenter Administrator password: " -skipnewline
-                $vCenterPassword = Read-Host -AsSecureString
-                $decodedVcenterPassword = New-DecodedPassword -securePassword $vCenterPassword
-                $vCenterConnection = Connect-VIServer -server $vCenterFQDN -user $vCenterAdminUser -password $decodedvCenterPassword -errorAction SilentlyContinue
-                If (!($vCenterConnection))
+                LogMessage -type INFO -message "SDDC Manager FQDN: " -skipnewline
+                $sddcMgrFqdn = Read-Host
+                LogMessage -type INFO -message "SDDC Manager Administrator: " -skipnewline
+                $sddcMgrUser = Read-Host
+                LogMessage -type INFO -message "SDDC Manager Administrator password: " -skipnewline
+                $adminPassword = Read-Host -AsSecureString
+                $decodedPassword = New-DecodedPassword -securePassword $adminPassword
+                New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
+                If (!($accessToken))
                 {
-                    LogMessage -type ERROR -message "Failed to connect to successfully read information from $vCenterFqdn. Please check details and try again"
+                    LogMessage -type ERROR -message "Failed to connect to $sddcMgrFqdn. Please check details and try again"
                 }
-            } Until ($vCenterConnection)
+            } Until ($accessToken)
+            If ($clusterObject.determinedClusterConfig -eq "Multi-Rack Compute Only")
+            {
+                Do
+                {
+                    LogMessage -type INFO -message "vCenter FQDN: " -skipnewline
+                    $vCenterFqdn = Read-Host
+                    LogMessage -type INFO -message "vCenter Administrator: " -skipnewline
+                    $vCenterAdminUser = Read-Host
+                    LogMessage -type INFO -message "vCenter Administrator password: " -skipnewline
+                    $vCenterPassword = Read-Host -AsSecureString
+                    $decodedVcenterPassword = New-DecodedPassword -securePassword $vCenterPassword
+                    $vCenterConnection = Connect-VIServer -server $vCenterFQDN -user $vCenterAdminUser -password $decodedvCenterPassword -errorAction SilentlyContinue
+                    If (!($vCenterConnection))
+                    {
+                        LogMessage -type ERROR -message "Failed to connect to successfully read information from $vCenterFqdn. Please check details and try again"
+                    }
+                } Until ($vCenterConnection)
+            }
+        }
+        else
+        {
+            New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
+            If ($clusterObject.determinedClusterConfig -eq "Multi-Rack Compute Only")
+            {
+                $vCenterConnection = Connect-VIServer -server $vCenterFqdn -user $vCenterAdminUser -password $decodedVcenterPassword -errorAction SilentlyContinue
+            }
         }
     }
     
@@ -6237,7 +7575,7 @@ Function New-L3vSphereClusterJsonFile
         $newNetworkProfileName = $clusterObject.az1.$($rack).network.networkProfileName
         Foreach ($selectedHost in $clusterObject.az1.$($rack).hosts)
         {
-            If ($interactiveEnabled -eq "Y")
+            If ($componentInterrogationEnabled)
             {
                 $hostID = Get-VCFHostDetails -Status UNASSIGNED_USEABLE | Select-Object fqdn, id | Where-Object { $_.fqdn -eq $selectedHost.fqdn }
                 If ($hostID)
@@ -6308,7 +7646,7 @@ Function New-L3vSphereClusterJsonFile
 
     If ($clusterObject.determinedClusterConfig -eq "Multi-Rack Compute Only")
     {
-        If ($interactiveEnabled -eq "Y")
+        If ($componentInterrogationEnabled)
         {
             $datastoreUuid = (Get-Datastore -name $clusterObject.vsphereClusters[0].vsanDatastore).ExtensionData.info.ContainerId
         }
@@ -6622,7 +7960,7 @@ Function New-L3vSphereClusterJsonFile
 
     If ($clusterObject.vsphereClusters[0].vlcmModel -eq "Images") 
     {
-        If ($interactiveEnabled -eq "Y")
+        If ($componentInterrogationEnabled)
         {
             LogMessage -Type INFO -Message "Obtaining Cluster Image Personality ID from SDDC Manager"
             $clusterImageId = (Get-VCFPersonalityDetails | Where-Object { $_.personalityName -eq $clusterObject.vsphereClusters[0].imageName }).personalityId
@@ -6639,7 +7977,7 @@ Function New-L3vSphereClusterJsonFile
         'clusterSpecs' = $clusterSpecObject
     }
 
-    If ($interactiveEnabled -eq "Y")
+    If ($componentInterrogationEnabled)
     {
         $domainID = (Get-VCFWorkloadDomainDetails -name $clusterObject.domainName).id
         If ($domainID)
@@ -6672,32 +8010,50 @@ Function New-L3vSphereClusterJsonFile
 Function New-StretchedClusterJsonFile
 {
     Param (
-        [Parameter (Mandatory = $true)] [Object]$instanceObject
+        [Parameter (Mandatory = $true)] [Object]$instanceObject,
+        [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
+        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled
     )
 
-    Do
-    {
-        LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve Host IDs from SDDC Manager? (Y/N): " -skipnewline
-        $interactiveEnabled = Read-Host    
-    } Until ($interactiveEnabled -in "Y","N")
-    $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""
-    If ($interactiveEnabled -eq "Y")
+    If (!$userPromptBypass)
     {
         Do
         {
-            LogMessage -type INFO -message "SDDC Manager FQDN: " -skipnewline
-            $sddcMgrFqdn = Read-Host
-            LogMessage -type INFO -message "SDDC Manager Administrator: " -skipnewline
-            $sddcMgrUser = Read-Host
-            LogMessage -type INFO -message "SDDC Manager Administrator password: " -skipnewline
-            $adminPassword = Read-Host -AsSecureString
-            $decodedPassword = New-DecodedPassword -securePassword $adminPassword
-            New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
-            If (!($accessToken))
+            LogMessage -Type QUESTION -Message "Do you wish to retrieve Host IDs from SDDC Manager? (Y/N): " -skipnewline
+            $componentInterrogationResponse = Read-Host    
+        } Until ($componentInterrogationResponse -in "Y","N")
+        $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
+    }
+    else
+    {
+        $sddcMgrFqdn = $instanceObject.sddcManager.fqdn
+        $sddcMgrUser = $instanceObject.sddcManager.adminUser
+        $decodedPassword = $instanceObject.sddcManager.adminPassword
+    }
+    If ($componentInterrogationEnabled)
+    {
+        If (!$userPromptBypass)
+        {
+            Do
             {
-                LogMessage -type ERROR -message "Failed to connect to $sddcMgrFqdn. Please check details and try again"
-            }
-        } Until ($accessToken)
+                LogMessage -type INFO -message "SDDC Manager FQDN: " -skipnewline
+                $sddcMgrFqdn = Read-Host
+                LogMessage -type INFO -message "SDDC Manager Administrator: " -skipnewline
+                $sddcMgrUser = Read-Host
+                LogMessage -type INFO -message "SDDC Manager Administrator password: " -skipnewline
+                $adminPassword = Read-Host -AsSecureString
+                $decodedPassword = New-DecodedPassword -securePassword $adminPassword
+                New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
+                If (!($accessToken))
+                {
+                    LogMessage -type ERROR -message "Failed to connect to $sddcMgrFqdn. Please check details and try again"
+                }
+            } Until ($accessToken)
+        }
+        else
+        {
+            New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
+        }
     }
 
     $vmnicObject = @()
@@ -6758,7 +8114,7 @@ Function New-StretchedClusterJsonFile
     $hostSpecsObject = @()
     Foreach ($az2Host in $instanceObject.az2.rack1.hosts)
     {
-        If ($interactiveEnabled -eq "Y")
+        If ($componentInterrogationEnabled)
         {
             $hostID = Get-VCFHostDetails -Status UNASSIGNED_USEABLE | Select-Object fqdn, id | Where-Object { $_.fqdn -eq $az2Host.fqdn }
             If ($hostID)
@@ -6931,46 +8287,68 @@ Function New-StretchedClusterJsonFile
 Function New-SingleOperationStretchedComputeClusterJsonFile
 {
     Param (
-        [Parameter (Mandatory = $true)] [Object]$clusterObject
+        [Parameter (Mandatory = $true)] [Object]$clusterObject,
+        [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
+        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled
     )
-    Do
-    {
-        LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve Domain, Host, Image and Datastore IDs from SDDC Manager/vCenter? (Y/N): " -skipnewline
-        $interactiveEnabled = Read-Host    
-    } Until ($interactiveEnabled -in "Y","N")
-    $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""
-    If ($interactiveEnabled -eq "Y")
+    If (!$userPromptBypass)
     {
         Do
         {
-            LogMessage -type INFO -message "SDDC Manager FQDN: " -skipnewline
-            $sddcMgrFqdn = Read-Host
-            LogMessage -type INFO -message "SDDC Manager Administrator: " -skipnewline
-            $sddcMgrUser = Read-Host
-            LogMessage -type INFO -message "SDDC Manager Administrator password: " -skipnewline
-            $adminPassword = Read-Host -AsSecureString
-            $decodedPassword = New-DecodedPassword -securePassword $adminPassword
+            LogMessage -Type QUESTION -Message "Do you wish to retrieve Domain, Host, Image and Datastore IDs from SDDC Manager/vCenter? (Y/N): " -skipnewline
+            $componentInterrogationResponse = Read-Host    
+        } Until ($componentInterrogationResponse -in "Y","N")
+        $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
+    }
+    else
+    {
+        $sddcMgrFqdn = $clusterObject.sddcManager.fqdn
+        $sddcMgrUser = $clusterObject.sddcManager.adminUser
+        $decodedPassword = $clusterObject.sddcManager.adminPassword
+        $vCenterFqdn = $clusterObject.vcenterServer.fqdn
+        $vCenterAdminUser = $clusterObject.vcenterServer.adminUser
+        $decodedVcenterPassword = $clusterObject.vcenterServer.adminPassword
+    }
+    If ($componentInterrogationEnabled)
+    {
+        If (!$userPromptBypass)
+        {
+            Do
+            {
+                LogMessage -type INFO -message "SDDC Manager FQDN: " -skipnewline
+                $sddcMgrFqdn = Read-Host
+                LogMessage -type INFO -message "SDDC Manager Administrator: " -skipnewline
+                $sddcMgrUser = Read-Host
+                LogMessage -type INFO -message "SDDC Manager Administrator password: " -skipnewline
+                $adminPassword = Read-Host -AsSecureString
+                $decodedPassword = New-DecodedPassword -securePassword $adminPassword
+                New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
+                If (!($accessToken))
+                {
+                    LogMessage -type ERROR -message "Failed to connect to $sddcMgrFqdn. Please check details and try again"
+                }
+            } Until ($accessToken)
+            Do
+            {
+                LogMessage -type INFO -message "vCenter FQDN: " -skipnewline
+                $vCenterFqdn = Read-Host
+                LogMessage -type INFO -message "vCenter Administrator: " -skipnewline
+                $vCenterAdminUser = Read-Host
+                LogMessage -type INFO -message "vCenter Administrator password: " -skipnewline
+                $vCenterPassword = Read-Host -AsSecureString
+                $decodedVcenterPassword = New-DecodedPassword -securePassword $vCenterPassword
+                $vCenterConnection = Connect-VIServer -server $vCenterFQDN -user $vCenterAdminUser -password $decodedvCenterPassword -errorAction SilentlyContinue
+                If (!($vCenterConnection))
+                {
+                    LogMessage -type ERROR -message "Failed to connect to successfully read information from $vCenterFqdn. Please check details and try again"
+                }
+            } Until ($vCenterConnection)
+        }
+        else
+        {
             New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
-            If (!($accessToken))
-            {
-                LogMessage -type ERROR -message "Failed to connect to $sddcMgrFqdn. Please check details and try again"
-            }
-        } Until ($accessToken)
-        Do
-        {
-            LogMessage -type INFO -message "vCenter FQDN: " -skipnewline
-            $vCenterFqdn = Read-Host
-            LogMessage -type INFO -message "vCenter Administrator: " -skipnewline
-            $vCenterAdminUser = Read-Host
-            LogMessage -type INFO -message "vCenter Administrator password: " -skipnewline
-            $vCenterPassword = Read-Host -AsSecureString
-            $decodedVcenterPassword = New-DecodedPassword -securePassword $vCenterPassword
-            $vCenterConnection = Connect-VIServer -server $vCenterFQDN -user $vCenterAdminUser -password $decodedvCenterPassword -errorAction SilentlyContinue
-            If (!($vCenterConnection))
-            {
-                LogMessage -type ERROR -message "Failed to connect to successfully read information from $vCenterFqdn. Please check details and try again"
-            }
-        } Until ($vCenterConnection)
+            $vCenterConnection = Connect-VIServer -server $vCenterFqdn -user $vCenterAdminUser -password $decodedVcenterPassword -errorAction SilentlyContinue
+        }
     }
     
     $rack = "rack1"
@@ -7029,7 +8407,7 @@ Function New-SingleOperationStretchedComputeClusterJsonFile
 
     Foreach ($selectedHost in $clusterObject.az1.$($rack).hosts)
     {
-        If ($interactiveEnabled -eq "Y")
+        If ($componentInterrogationEnabled)
         {
             $hostID = Get-VCFHostDetails -Status UNASSIGNED_USEABLE | Select-Object fqdn, id | Where-Object { $_.fqdn -eq $selectedHost.fqdn }
             If ($hostID)
@@ -7068,7 +8446,7 @@ Function New-SingleOperationStretchedComputeClusterJsonFile
 
     Foreach ($selectedHost in $clusterObject.az2.$($rack).hosts)
     {
-        If ($interactiveEnabled -eq "Y")
+        If ($componentInterrogationEnabled)
         {
             $hostID = Get-VCFHostDetails -Status UNASSIGNED_USEABLE | Select-Object fqdn, id | Where-Object { $_.fqdn -eq $selectedHost.fqdn }
             If ($hostID)
@@ -7135,7 +8513,7 @@ Function New-SingleOperationStretchedComputeClusterJsonFile
     
     If ($clusterObject.determinedClusterConfig -eq "Stretched Compute Only")
     {
-        If ($interactiveEnabled -eq "Y")
+        If ($componentInterrogationEnabled)
         {
             $datastoreUuid = (Get-Datastore -name $clusterObject.vsphereClusters[0].vsanDatastore).ExtensionData.info.ContainerId
         }
@@ -7489,7 +8867,7 @@ Function New-SingleOperationStretchedComputeClusterJsonFile
     
     If ($clusterObject.vsphereClusters[0].vlcmModel -eq "Images") 
     {
-        If ($interactiveEnabled -eq "Y")
+        If ($componentInterrogationEnabled)
         {
             LogMessage -Type INFO -Message "Obtaining Cluster Image Personality ID from SDDC Manager"
             $clusterImageId = (Get-VCFPersonalityDetails | Where-Object { $_.personalityName -eq $clusterObject.vsphereClusters[0].imageName }).personalityId
@@ -7506,7 +8884,7 @@ Function New-SingleOperationStretchedComputeClusterJsonFile
         'clusterSpecs' = $clusterSpecObject
     }
 
-    If ($interactiveEnabled -eq "Y")
+    If ($componentInterrogationEnabled)
     {
         $domainID = (Get-VCFWorkloadDomainDetails -name $clusterObject.domainName).id
         If ($domainID)
@@ -7535,73 +8913,74 @@ Function New-SingleOperationStretchedComputeClusterJsonFile
     $clusterJsonObject | ConvertTo-Json -Depth 12 | Out-File -Encoding UTF8 -FilePath "clusterSpec-$($clusterObject.vsphereClusters[0].clusterName).json"
     LogMessage -Type NOTE -Message "Completed the Process of Generating the Cluster Creation JSON"
 }
+#EndRegion Cluster JSON Files
 
-Function New-DecodedPassword
+#Region Transit Gateways
+Function New-CentralizedTransitGatewayJsonFile
 {
     Param (
-        [Parameter (Mandatory = $true)] [securestring]$securePassword
+        [Parameter (Mandatory = $true)] [Object]$instanceObject,
+        [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
+        [Parameter (Mandatory = $false)] [switch]$platformTools,
+        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled
     )
-    If ([System.Environment]::OSVersion.Platform -eq 'Win32NT')
+    If ($platformTools)
     {
-        $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
-        $decodedPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+        $nsxtManagerFqdn = $instanceObject.nsxtManager.fqdn
+        $nsxtManagerAdminUser = $instanceObject.nsxtManager.adminUser
+        $decodedNsxPassword = $instanceObject.nsxtManager.adminPassword
+        $jumpboxName = hostname
+        $vCenterFqdn = $instanceObject.vcenterServer.fqdn
+        $vCenterAdminUser = $instanceObject.vcenterServer.adminUser
+        $decodedVcenterPassword = $instanceObject.vcenterServer.adminPassword
     }
     else
     {
-        $serializedSecureString = $securePassword | ConvertFrom-SecureString
-        $byteArray = [byte[]] -split ($serializedSecureString -replace '..', '0x$& ')
-        $decodedPassword = [System.Text.Encoding]::Unicode.GetString($byteArray)
-    }
-    Return $decodedPassword
-}
-
-#Edge JSON Files
-Function New-EdgeJSONFile
-{
-    Param (
-        [Parameter (Mandatory = $true)] [Object]$instanceObject
-    )
-    Do
-    {
-        LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve Transport Zone, Host Switch Profile and Target Infrastructure IDs from NSX Manager/vCenter? (Y/N): " -skipnewline
-        $interactiveEnabled = Read-Host    
-    } Until ($interactiveEnabled -in "Y","N")
-    $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""
-    If ($interactiveEnabled -eq "Y")
-    {
-        Do
+        If (!$userPromptBypass)
         {
-            LogMessage -type INFO -message "NSX Manager FQDN: " -skipnewline
-            $nsxtManagerFqdn = Read-Host
-            LogMessage -type INFO -message "NSX Manager Administrator: " -skipnewline
-            $nsxtManagerAdminUser = Read-Host
-            LogMessage -type INFO -message "NSX Manager Administrator password: " -skipnewline
-            $nsxtManagerPassword = Read-Host -AsSecureString
-            $decodedNsxPassword = New-DecodedPassword -securePassword $nsxtManagerPassword
-            $overlayTransportZoneId = (Get-NsxTransportZones -nsxtManagerFqdn $nsxtManagerFqdn -nsxtusername $nsxtManagerAdminUser -nsxtpassword $decodedNsxPassword | Where-Object {$_.tz_type -in "OVERLAY_STANDARD","OVERLAY_BACKED" -and $_.is_default -eq "True"}).nsx_id
-            If (!($overlayTransportZoneId))
+            Do
             {
-                LogMessage -type ERROR -message "Failed to connect to successfully read information from $nsxtManagerFqdn. Please check details and try again"
-            }
-        } Until ($overlayTransportZoneId)
-        Do
+                LogMessage -Type QUESTION -Message "Do you wish to retrieve Transport Zone, Host Switch Profile and Target Infrastructure IDs from NSX Manager/vCenter? (Y/N): " -skipnewline
+                $componentInterrogationResponse = Read-Host    
+            } Until ($componentInterrogationResponse -in "Y","N")
+            $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
+        }
+        If ($componentInterrogationEnabled)
         {
-            LogMessage -type INFO -message "vCenter FQDN: " -skipnewline
-            $vCenterFqdn = Read-Host
-            LogMessage -type INFO -message "vCenter Administrator: " -skipnewline
-            $vCenterAdminUser = Read-Host
-            LogMessage -type INFO -message "vCenter Administrator password: " -skipnewline
-            $vCenterPassword = Read-Host -AsSecureString
-            $decodedVcenterPassword = New-DecodedPassword -securePassword $vCenterPassword
-            $vCenterConnection = Connect-VIServer -server $vCenterFQDN -user $vCenterAdminUser -password $decodedvCenterPassword -errorAction SilentlyContinue
-            If (!($vCenterConnection))
+            Do
             {
-                LogMessage -type ERROR -message "Failed to connect to successfully read information from $vCenterFqdn. Please check details and try again"
-            }
-        } Until ($vCenterConnection)
+                LogMessage -type INFO -message "NSX Manager FQDN: " -skipnewline
+                $nsxtManagerFqdn = Read-Host
+                LogMessage -type INFO -message "NSX Manager Administrator: " -skipnewline
+                $nsxtManagerAdminUser = Read-Host
+                LogMessage -type INFO -message "NSX Manager Administrator password: " -skipnewline
+                $nsxtManagerPassword = Read-Host -AsSecureString
+                $decodedNsxPassword = New-DecodedPassword -securePassword $nsxtManagerPassword
+                $overlayTransportZoneId = (Get-NsxTransportZones -nsxtManagerFqdn $nsxtManagerFqdn -nsxtusername $nsxtManagerAdminUser -nsxtpassword $decodedNsxPassword | Where-Object {$_.tz_type -in "OVERLAY_STANDARD","OVERLAY_BACKED" -and $_.is_default -eq "True"}).nsx_id
+                If (!($overlayTransportZoneId))
+                {
+                    LogMessage -type ERROR -message "Failed to connect to successfully read information from $nsxtManagerFqdn. Please check details and try again"
+                }
+            } Until ($overlayTransportZoneId)
+            Do
+            {
+                LogMessage -type INFO -message "vCenter FQDN: " -skipnewline
+                $vCenterFqdn = Read-Host
+                LogMessage -type INFO -message "vCenter Administrator: " -skipnewline
+                $vCenterAdminUser = Read-Host
+                LogMessage -type INFO -message "vCenter Administrator password: " -skipnewline
+                $vCenterPassword = Read-Host -AsSecureString
+                $decodedVcenterPassword = New-DecodedPassword -securePassword $vCenterPassword
+                $vCenterConnection = Connect-VIServer -server $vCenterFQDN -user $vCenterAdminUser -password $decodedvCenterPassword -errorAction SilentlyContinue
+                If (!($vCenterConnection))
+                {
+                    LogMessage -type ERROR -message "Failed to connect to successfully read information from $vCenterFqdn. Please check details and try again"
+                }
+            } Until ($vCenterConnection)
+        }
     }
 
-    If ($interactiveEnabled -eq "Y")
+    If ($componentInterrogationEnabled)
     {
         $overlayTransportZonePath = (Get-NsxTransportZones -nsxtManagerFqdn $nsxtManagerFqdn -nsxtusername $nsxtManagerAdminUser -nsxtpassword $decodedNsxPassword | Where-Object {$_.tz_type -in "OVERLAY_BACKED" -and $_.is_default -eq "True"}).path
         $computeCollection1 = Get-NsxComputeCollections -nsxtManagerFqdn $nsxtManagerFqdn -nsxtUsername $nsxtManagerAdminUser -nsxtPassword $decodedNSXPassword  | Where-Object {$_.display_name -eq $instanceObject.edgeCluster.nodes.node1.clusterName}
@@ -7613,8 +8992,8 @@ Function New-EdgeJSONFile
         $storageId2 = (Get-Cluster -name $instanceObject.edgeCluster.nodes.node2.clusterName | Get-Datastore | Where-Object {$_.name -eq $instanceObject.edgeCluster.nodes.node2.datastoreName}).id.split("Datastore-")[1]
         $edgeTrunk01PortgroupId = (Get-VDPortGroup -name $instanceObject.edgeCluster.edgeTrunk01PortgroupName).key
         $edgeTrunk02PortgroupId = (Get-VDPortGroup -name $instanceObject.edgeCluster.edgeTrunk02PortgroupName).key
-        $mgmtPortGroupID1 = (Get-VDPortGroup -name $instanceObject.edgeCluster.nodes.node1.vmManagementPorgroupName).key
-        $mgmtPortGroupID2 = (Get-VDPortGroup -name $instanceObject.edgeCluster.nodes.node2.vmManagementPorgroupName).key
+        $mgmtPortGroupID1 = (Get-VDPortGroup -name $instanceObject.edgeCluster.nodes.node1.vmManagementPortgroupName).key
+        $mgmtPortGroupID2 = (Get-VDPortGroup -name $instanceObject.edgeCluster.nodes.node2.vmManagementPortgroupName).key
     }
     else
     {
@@ -8141,14 +9520,22 @@ Function New-EdgeJSONFile
 
     # Start ChildVpcConnectivityProfile & ChildTransitGateway
 
-    If ($tier0Object.ha_mode -ne "ACTIVE_ACTIVE")
+    If ($instanceObject.version -like "9.0*")
+    {
+        If ($tier0Object.ha_mode -ne "ACTIVE_ACTIVE")
+        {
+            $snatValue = $true
+        }
+        else
+        {
+            $snatValue = $false
+        }
+    }
+    else 
     {
         $snatValue = $true
     }
-    else
-    {
-        $snatValue = $false
-    }
+    
     $natConfigObject = New-Object -type psobject
     $natConfigObject | Add-Member -NotePropertyName 'enable_default_snat' -NotePropertyValue $snatValue
 
@@ -8158,7 +9545,7 @@ Function New-EdgeJSONFile
     $serviceGatwayObject | Add-Member -NotePropertyName 'nat_config' -NotePropertyValue $natConfigObject
 
     
-    If ($interactiveEnabled -eq "Y")
+    If ($componentInterrogationEnabled)
     {
         $vpcConnectivityProfileRevision = ((Get-NsxVpcConnectivityProfiles -nsxtUsername $nsxtManagerAdminUser -nsxtManagerFqdn $nsxtManagerFqdn -nsxtPassword $decodedNSXPassword) | Where-Object {$_.display_name -eq "Default VPC Connectivity Profile"})._revision
     }
@@ -8204,7 +9591,7 @@ Function New-EdgeJSONFile
     $ChildTransitGatewayAttachmentObject | Add-Member -NotePropertyName 'TransitGatewayAttachment' -NotePropertyValue $TransitGatewayAttachmentObject
     $ChildTransitGatewayAttachmentObject | Add-Member -NotePropertyName 'resource_type' -NotePropertyValue "ChildTransitGatewayAttachment"
 
-    If ($interactiveEnabled -eq "Y")
+    If ($componentInterrogationEnabled)
     {
         $transitGatewayRevision = ((Get-NsxTransitGateways -nsxtUsername $nsxtManagerAdminUser -nsxtManagerFqdn $nsxtManagerFqdn -nsxtPassword $decodedNSXPassword) | Where-Object {$_.display_name -eq "Default Transit Gateway"})._revision
     }
@@ -8263,15 +9650,23 @@ Function New-EdgeJSONFile
     $singleApiObject = New-Object -type psobject
     $singleApiObject | Add-Member -NotePropertyName 'resource_type' -NotePropertyValue "OrgRoot"
     $singleApiObject | Add-Member -NotePropertyName 'children' -NotePropertyValue $singleApiChildrenArray
-    LogMessage -Type INFO -Message "Exporting the Edge Deployment JSON to edgeDeploymentSpec-$($instanceObject.edgeCluster.name).json"
-    ConvertTo-Json $singleApiObject -depth 20 | Out-File "edgeDeploymentSpec-$($instanceObject.edgeCluster.name).json"
+    If ($platformTools)
+    {
+        LogMessage -Type INFO -Message "[$jumpboxName] Exporting the Edge Deployment JSON to edgeDeploymentSpec-$($instanceObject.edgeCluster.name).json"
+    }
+    else
+    {
+        LogMessage -Type INFO -Message "Exporting the Edge Deployment JSON to ctgwDeploymentSpec-$($instanceObject.edgeCluster.name).json"
+    }    
+    ConvertTo-Json $singleApiObject -depth 20 | Out-File "ctgwDeploymentSpec-$($instanceObject.edgeCluster.name).json"
 }
+#EndRegion Transit Gateways
 
-#Day N Aria JSON Files
+#Region Ops & Automation SDDC Manager
 Function New-DayNOpsAndAutomationJsonFile
 {
     Param (
-        [Parameter (Mandatory = $true)] [Array]$sharedInstanceObject
+        [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject
     )
 
     $vcfOperationsManagementSpecObject = @()
@@ -8336,8 +9731,8 @@ Function New-DayNOpsAndAutomationJsonFile
         $ipPoolObject += $sharedInstanceObject.automation.nodeCIpAddress
         $ipPoolObject += $sharedInstanceObject.automation.extraNodeIpAddress    
     }
-    $vcfAutomationSpecObjectObject = @()
-    $vcfAutomationSpecObjectObject += [pscustomobject]@{
+    $vcfAutomationSpecObject = @()
+    $vcfAutomationSpecObject += [pscustomobject]@{
         'hostname' = $sharedInstanceObject.automation.vipFqdn   
         'adminUserPassword' = $sharedInstanceObject.automation.adminUserPassword
         'nodePrefix' = $sharedInstanceObject.automation.vcfaNodePrefix
@@ -8370,13 +9765,16 @@ Function New-DayNOpsAndAutomationJsonFile
     $dayNOpsAndAutomationSpecObject | Add-Member -notepropertyname 'vcfOperationsFleetManagementSpec' -notepropertyvalue ($vcfOperationsManagementSpecObject | Select-Object -Skip 0)
     $dayNOpsAndAutomationSpecObject | Add-Member -notepropertyname 'vcfOperationsSpec' -notepropertyvalue ($vcfOperationsSpecObject | Select-Object -Skip 0)
     $dayNOpsAndAutomationSpecObject | Add-Member -notepropertyname 'vcfOperationsCollectorSpec' -notepropertyvalue ($vcfOperationsCloudProxySpecObject | Select-Object -Skip 0)
-    $dayNOpsAndAutomationSpecObject | Add-Member -notepropertyname 'vcfAutomationSpec' -notepropertyvalue ($vcfAutomationSpecObjectObject | Select-Object -Skip 0)
+    $dayNOpsAndAutomationSpecObject | Add-Member -notepropertyname 'vcfAutomationSpec' -notepropertyvalue ($vcfAutomationSpecObject | Select-Object -Skip 0)
     $dayNOpsAndAutomationSpecObject | Add-Member -notepropertyname 'vcfMangementComponentsInfrastructureSpec' -notepropertyvalue ($vcfMangementComponentsInfrastructureSpecObject | Select-Object -Skip 0)
     LogMessage -Type INFO -Message "Exporting the VCF Operations and Automation Post Bringup JSON to opsAutomation-dayNDeploymentSpec.json"
     ConvertTo-Json $dayNOpsAndAutomationSpecObject -depth 12 | Out-File -Encoding UTF8 -FilePath "opsAutomation-dayNDeploymentSpec.json"
 }
+#EndRegion Ops & Automation SDDC Manager
 
-Function createBasicAuthHeader {
+#Region Fleet Manager Supporting Functions
+Function createBasicAuthHeader 
+{
     $base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(("{0}:{1}" -f $username, $password))) # Create Basic Authentication Encoded Credentials
     $headers = @{"Accept" = "application/json" }
     $headers.Add("Authorization", "Basic $base64AuthInfo")
@@ -8384,7 +9782,8 @@ Function createBasicAuthHeader {
     $headers
 }
 
-Function Request-FleetManagerToken {
+Function Request-FleetManagerToken 
+{
     Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$fqdn,
         [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$username,
@@ -8425,7 +9824,8 @@ Function Get-FleetManagerLockerPassword
     }
 }
 
-Function Get-FleetManagerLockerCertificate {
+Function Get-FleetManagerLockerCertificate 
+{
     Param (
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$fqdn,
         [Parameter (Mandatory = $true)] [ValidateNotNullOrEmpty()] [String]$username,
@@ -8442,45 +9842,94 @@ Function Get-FleetManagerLockerCertificate {
     }
 }
 
+Function New-VSPBearerToken
+{
+    Param (       
+        [Parameter (Mandatory = $true)] [string]$fleetFqdn,
+        [Parameter (Mandatory = $true)] [string]$fleetUsername,
+        [Parameter (Mandatory = $true)] [string]$fleetPassword
+    )
+    LogMessage -type INFO -message "[$fleetFqdn] Getting Authentication token"
+    $tokenBody = @{
+        grant_type = "password"
+        username   = $fleetUsername
+        password   = $fleetPassword
+        }
+    $tokenResponse = Invoke-RestMethod -Method Post -Uri "https://$fleetFqdn/api/v1/identity/token" -ContentType "application/x-www-form-urlencoded" -Body $tokenBody -SkipCertificateCheck
+    $token = $tokenResponse.access_token
+    Return $token
+}
+
+Function Get-SddcLcmId
+{
+    Param (       
+        [Parameter (Mandatory = $true)] [string]$fleetFqdn,
+        [Parameter (Mandatory = $true)] [string]$fleetUsername,
+        [Parameter (Mandatory = $true)] [string]$fleetPassword
+    )
+
+    LogMessage -type INFO -message "[$fleetFqdn] Getting SDDC LCM ID"
+    $token = New-VSPBearerToken -fleetFqdn $fleetFqdn -fleetUserName $fleetUsername -fleetPassword $fleetPassword 
+    $response = Invoke-RestMethod -Uri "https://$fleetFqdn/fleet-lcm/v1/sddc-lcms" -Headers @{ Authorization = "Bearer $token" } -SkipCertificateCheck
+    $sddclcmid = $response.sddcLcms[0].id
+    Return $sddclcmid
+}
+#EndRegion Fleet Manager Supporting Functions
+
+#Region IDB
 Function New-DayNIdbJsonFile
 {
     Param (
-        [Parameter (Mandatory = $true)] [Array]$sharedInstanceObject
+        [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
+        [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
+        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled
     )
 
-    Do
-    {
-        LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve locker information from Fleet Manager? (Y/N): " -skipnewline
-        $interactiveEnabled = Read-Host    
-    } Until ($interactiveEnabled -in "Y","N")
-    $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""
-    If ($interactiveEnabled -eq "Y")
+    If (!$userPromptBypass)
     {
         Do
         {
-            LogMessage -type INFO -message "Fleet Manager FQDN: " -skipnewline
-            $fleetManagerFqdn = Read-Host
-            LogMessage -type INFO -message "Fleet Manager Administrator: " -skipnewline
-            $fleetManagerAdminUser = Read-Host
-            LogMessage -type INFO -message "Fleet Manager Administrator password: " -skipnewline
-            $fleetManagerPassword = Read-Host -AsSecureString
-            $decodedFmPassword = New-DecodedPassword -securePassword $fleetManagerPassword
-            $uri = "https://$fleetManagerFqdn/lcmversion"
-            $fmHeaders = createBasicAuthHeader $fleetManagerAdminUser $decodedFmPassword
-            if ($PSEdition -eq 'Core') {
-                $fmResponse = Invoke-WebRequest -Method GET -Uri $uri -Headers $fmHeaders -SkipCertificateCheck -UseBasicParsing # PS Core has -SkipCertificateCheck implemented, PowerShell 5.x does not
-            } else {
-                $fmResponse = Invoke-WebRequest -Method GET -Uri $uri -Headers $fmHeaders -UseBasicParsing
-            }
-            If (!($fmResponse))
+            LogMessage -Type QUESTION -Message "Do you wish to retrieve locker information from Fleet Manager? (Y/N): " -skipnewline
+            $componentInterrogationResponse = Read-Host    
+        } Until ($componentInterrogationResponse -in "Y","N")
+        $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
+    }
+    else
+    {
+        $fleetManagerFqdn = $sharedInstanceObject.fleetManager.fqdn
+        $fleetManagerAdminUser = $sharedInstanceObject.fleetManager.adminUser
+        $decodedFmPassword = $sharedInstanceObject.fleetManager.adminUserPassword
+    }
+    If ($componentInterrogationEnabled)
+    {
+        If (!$userPromptBypass)
+        {
+            Do
             {
-                LogMessage -type ERROR -message "Failed to connect to successfully read information from $fleetManagerFqdn. Please check details and try again"
-            }
-        } Until ($fmResponse)
+                LogMessage -type INFO -message "Fleet Manager FQDN: " -skipnewline
+                $fleetManagerFqdn = Read-Host
+                LogMessage -type INFO -message "Fleet Manager Administrator: " -skipnewline
+                $fleetManagerAdminUser = Read-Host
+                LogMessage -type INFO -message "Fleet Manager Administrator password: " -skipnewline
+                $fleetManagerPassword = Read-Host -AsSecureString
+                $decodedFmPassword = New-DecodedPassword -securePassword $fleetManagerPassword
+                $uri = "https://$fleetManagerFqdn/lcmversion"
+                $fmHeaders = createBasicAuthHeader $fleetManagerAdminUser $decodedFmPassword
+                if ($PSEdition -eq 'Core') {
+                    $fmResponse = Invoke-WebRequest -Method GET -Uri $uri -Headers $fmHeaders -SkipCertificateCheck -UseBasicParsing # PS Core has -SkipCertificateCheck implemented, PowerShell 5.x does not
+                } else {
+                    $fmResponse = Invoke-WebRequest -Method GET -Uri $uri -Headers $fmHeaders -UseBasicParsing
+                }
+                If (!($fmResponse))
+                {
+                    LogMessage -type ERROR -message "Failed to connect to successfully read information from $fleetManagerFqdn. Please check details and try again"
+                }
+            } Until ($fmResponse)
+        }
     }
 
     
-    If ($interactiveEnabled -eq "Y")
+    If ($componentInterrogationEnabled)
     {
         $vcLockerPasswordEntry = (Get-FleetManagerLockerPassword -fqdn $fleetManagerFqdn -username $fleetManagerAdminUser -password $decodedFmPassword | Where-Object {$_.alias -like "*$($sharedInstanceObject.idb.vCenter)*"})
         $vcLockerPasswordUsername = $vcLockerPasswordEntry.userName
@@ -8581,46 +10030,62 @@ Function New-DayNIdbJsonFile
     LogMessage -Type INFO -Message "Exporting the IDB Deployment JSON to idbDeploymentSpec-$(($sharedInstanceObject.idb.vipFqdn).split(".")[0]).json"
     ConvertTo-Json $idbJsonObject -depth 20 | Out-File "idbDeploymentSpec-$(($sharedInstanceObject.idb.vipFqdn).split(".")[0]).json"
 }
+#EndRegion IDB
 
-Function New-DayNLogsJsonFile
+#Region Log Managment
+Function New-DayNLogsLegacyJsonFile
 {
     Param (
-        [Parameter (Mandatory = $true)] [Array]$sharedInstanceObject
+        [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
+        [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
+        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled
     )
 
-    Do
-    {
-        LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve locker information from Fleet Manager? (Y/N): " -skipnewline
-        $interactiveEnabled = Read-Host    
-    } Until ($interactiveEnabled -in "Y","N")
-    $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""
-    If ($interactiveEnabled -eq "Y")
+    If (!$userPromptBypass)
     {
         Do
         {
-            LogMessage -type INFO -message "Fleet Manager FQDN: " -skipnewline
-            $fleetManagerFqdn = Read-Host
-            LogMessage -type INFO -message "Fleet Manager Administrator: " -skipnewline
-            $fleetManagerAdminUser = Read-Host
-            LogMessage -type INFO -message "Fleet Manager Administrator password: " -skipnewline
-            $fleetManagerPassword = Read-Host -AsSecureString
-            $decodedFmPassword = New-DecodedPassword -securePassword $fleetManagerPassword
-            $uri = "https://$fleetManagerFqdn/lcmversion"
-            $fmHeaders = createBasicAuthHeader $fleetManagerAdminUser $decodedFmPassword
-            if ($PSEdition -eq 'Core') {
-                $fmResponse = Invoke-WebRequest -Method GET -Uri $uri -Headers $fmHeaders -SkipCertificateCheck -UseBasicParsing # PS Core has -SkipCertificateCheck implemented, PowerShell 5.x does not
-            } else {
-                $fmResponse = Invoke-WebRequest -Method GET -Uri $uri -Headers $fmHeaders -UseBasicParsing
-            }
-            If (!($fmResponse))
+            LogMessage -Type QUESTION -Message "Do you wish to retrieve locker information from Fleet Manager? (Y/N): " -skipnewline
+            $componentInterrogationResponse = Read-Host    
+        } Until ($componentInterrogationResponse -in "Y","N")
+        $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
+    }
+    else
+    {
+        $fleetManagerFqdn = $sharedInstanceObject.fleetManager.fqdn
+        $fleetManagerAdminUser = $sharedInstanceObject.fleetManager.adminUser
+        $decodedFmPassword = $sharedInstanceObject.fleetManager.adminUserPassword
+    }
+    If ($componentInterrogationEnabled)
+    {
+        If (!$userPromptBypass)
+        {
+            Do
             {
-                LogMessage -type ERROR -message "Failed to connect to successfully read information from $fleetManagerFqdn. Please check details and try again"
-            }
-        } Until ($fmResponse)
+                LogMessage -type INFO -message "Fleet Manager FQDN: " -skipnewline
+                $fleetManagerFqdn = Read-Host
+                LogMessage -type INFO -message "Fleet Manager Administrator: " -skipnewline
+                $fleetManagerAdminUser = Read-Host
+                LogMessage -type INFO -message "Fleet Manager Administrator password: " -skipnewline
+                $fleetManagerPassword = Read-Host -AsSecureString
+                $decodedFmPassword = New-DecodedPassword -securePassword $fleetManagerPassword
+                $uri = "https://$fleetManagerFqdn/lcmversion"
+                $fmHeaders = createBasicAuthHeader $fleetManagerAdminUser $decodedFmPassword
+                if ($PSEdition -eq 'Core') {
+                    $fmResponse = Invoke-WebRequest -Method GET -Uri $uri -Headers $fmHeaders -SkipCertificateCheck -UseBasicParsing # PS Core has -SkipCertificateCheck implemented, PowerShell 5.x does not
+                } else {
+                    $fmResponse = Invoke-WebRequest -Method GET -Uri $uri -Headers $fmHeaders -UseBasicParsing
+                }
+                If (!($fmResponse))
+                {
+                    LogMessage -type ERROR -message "Failed to connect to successfully read information from $fleetManagerFqdn. Please check details and try again"
+                }
+            } Until ($fmResponse)
+        }
     }
 
     
-    If ($interactiveEnabled -eq "Y")
+    If ($componentInterrogationEnabled)
     {
         $vcLockerPasswordEntry = (Get-FleetManagerLockerPassword -fqdn $fleetManagerFqdn -username $fleetManagerAdminUser -password $decodedFmPassword | Where-Object {$_.alias -like "*$($sharedInstanceObject.logs.vCenter)*"})
         $vcLockerPasswordUsername = $vcLockerPasswordEntry.userName
@@ -8805,45 +10270,150 @@ Function New-DayNLogsJsonFile
     ConvertTo-Json $logsJsonObject -depth 20 | Out-File "opsLogsDeploymentSpec-$(($sharedInstanceObject.logs.vipFqdn).split(".")[0]).json"
 }
 
-Function New-DayNNetworksJsonFile
+Function New-DayNLogsModernJsonFile
 {
     Param (
-        [Parameter (Mandatory = $true)] [Array]$sharedInstanceObject
+        [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
+        [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
+        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled
     )
 
-    Do
+    <# Reference Sample JSON
+    '{
+    "componentSpecs": [
+        {
+            "sddcLcmId": "18b9fe29-3db2-46a6-8d98-c13c163e5501",
+            "componentType": "OPS_LOGS",
+            "deploymentType": "VspComponentSpec",
+            "version": "flt_logs_install_version",
+            "fqdn": "flt_logs_vip_fqdn",
+            "configSpec": {
+                "size": "flt_logs_node_size_chosen",
+                "numberOfNodes": flt_logs_number_replicas_chosen
+            }
+        }
+    ]
+    }'
+    #>
+
+    If (!$userPromptBypass)
     {
-        LogMessage -Type QUESTION -Message "Do you wish to interactively retrieve locker information from Fleet Manager? (Y/N): " -skipnewline
-        $interactiveEnabled = Read-Host    
-    } Until ($interactiveEnabled -in "Y","N")
-    $interactiveEnabled = $interactiveEnabled -replace "`t|`n|`r", ""
-    If ($interactiveEnabled -eq "Y")
+        LogMessage -Type QUESTION -Message "Do you wish to retrieve SDDC LCM ID? (Y/N): " -skipnewline            
+        Do
+        {  
+            $componentInterrogationResponse = Read-Host    
+        } Until ($componentInterrogationResponse -in "Y","N")
+        $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
+    }
+
+    If ($componentInterrogationEnabled)
+    { 
+        If (!$userPromptBypass)
+        {
+            Do
+            {
+                LogMessage -type INFO -message "Fleet FQDN: " -skipnewline
+                $fleetFqdn = Read-Host
+                LogMessage -type INFO -message "Fleet Username (eg admin@vsp.local): " -skipnewline
+                $fleetUserName = Read-Host
+                LogMessage -type INFO -message "Fleet Password: " -skipnewline
+                $adminPassword = Read-Host -AsSecureString
+                $fleetPassword = New-DecodedPassword -securePassword $adminPassword
+                $token = New-VSPBearerToken -fleetFqdn $fleetFqdn -fleetUserName $fleetUserName -fleetPassword $fleetPassword
+            } Until ($token)
+            $sddclcmId = Get-SddcLcmId -fleetUserName $fleetUserName -fleetPassword $fleetPassword -fleetFqdn $fleetFqdn
+        }
+        else
+        {
+            $fleetFqdn =  $sharedInstanceObject.vsp.platformFqdn
+            $fleetUserName = 'admin@vsp.local'
+            $fleetPassword = $sharedInstanceObject.vsp.systemUserPassword
+            $sddclcmId = Get-SddcLcmId -fleetUserName $fleetUserName -fleetPassword $fleetPassword -fleetFqdn $fleetFqdn
+        }
+    }
+    else
+    {
+        $sddclcmId = "<-- ENTER SDDC LCM ID HERE -->"
+    }
+
+    $configSpecObject = New-Object -type psobject
+    $configSpecObject | Add-Member -NotePropertyName 'size' -NotePropertyValue $sharedInstanceObject.logs.nodeSize
+    $configSpecObject | Add-Member -NotePropertyName 'numberOfNodes' -NotePropertyValue $sharedInstanceObject.logs.noOfReplicas
+
+    $componentSpecObject = New-Object -type psobject
+    $componentSpecObject | Add-Member -NotePropertyName 'sddcLcmId' -NotePropertyValue $sddclcmId
+    $componentSpecObject | Add-Member -NotePropertyName 'componentType' -NotePropertyValue 'OPS_LOGS'
+    $componentSpecObject | Add-Member -NotePropertyName 'deploymentType' -NotePropertyValue 'VspComponentSpec'
+    $componentSpecObject | Add-Member -NotePropertyName 'version' -NotePropertyValue $sharedInstanceObject.version
+    $componentSpecObject | Add-Member -NotePropertyName 'fqdn' -NotePropertyValue $sharedInstanceObject.logs.vipFqdn
+    $componentSpecObject | Add-Member -NotePropertyName 'configSpec' -NotePropertyValue $configSpecObject
+
+    $componentSpecsArray = @()
+    $componentSpecsArray += $componentSpecObject
+
+    $logsJsonObject = New-Object -type psobject
+    $logsJsonObject | Add-Member -NotePropertyName 'componentSpecs' -NotePropertyValue @($componentSpecsArray)
+
+    LogMessage -Type INFO -Message "Exporting the Logs Management Deployment JSON to logMangementDeploymentSpec-$(($sharedInstanceObject.logs.vipFqdn).split(".")[0]).json"
+    ConvertTo-Json $logsJsonObject -depth 20 | Out-File "logMangementDeploymentSpec-$(($sharedInstanceObject.logs.vipFqdn).split(".")[0]).json"
+
+}
+#EndRegion Log Managment
+
+#Region Ops for Networks
+Function New-DayNNetworksLegacyJsonFile
+{
+    Param (
+        [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
+        [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
+        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled
+    )
+
+    If (!$userPromptBypass)
     {
         Do
         {
-            LogMessage -type INFO -message "Fleet Manager FQDN: " -skipnewline
-            $fleetManagerFqdn = Read-Host
-            LogMessage -type INFO -message "Fleet Manager Administrator: " -skipnewline
-            $fleetManagerAdminUser = Read-Host
-            LogMessage -type INFO -message "Fleet Manager Administrator password: " -skipnewline
-            $fleetManagerPassword = Read-Host -AsSecureString
-            $decodedFmPassword = New-DecodedPassword -securePassword $fleetManagerPassword
-            $uri = "https://$fleetManagerFqdn/lcmversion"
-            $fmHeaders = createBasicAuthHeader $fleetManagerAdminUser $decodedFmPassword
-            if ($PSEdition -eq 'Core') {
-                $fmResponse = Invoke-WebRequest -Method GET -Uri $uri -Headers $fmHeaders -SkipCertificateCheck -UseBasicParsing # PS Core has -SkipCertificateCheck implemented, PowerShell 5.x does not
-            } else {
-                $fmResponse = Invoke-WebRequest -Method GET -Uri $uri -Headers $fmHeaders -UseBasicParsing
-            }
-            If (!($fmResponse))
+            LogMessage -Type QUESTION -Message "Do you wish to retrieve locker information from Fleet Manager? (Y/N): " -skipnewline
+            $componentInterrogationResponse = Read-Host    
+        } Until ($componentInterrogationResponse -in "Y","N")
+        $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
+    }
+    else
+    {
+        $fleetManagerFqdn = $sharedInstanceObject.fleetManager.fqdn
+        $fleetManagerAdminUser = $sharedInstanceObject.fleetManager.adminUser
+        $decodedFmPassword = $sharedInstanceObject.fleetManager.adminUserPassword
+    }
+    If ($componentInterrogationEnabled)
+    {
+        If (!$userPromptBypass)
+        {
+            Do
             {
-                LogMessage -type ERROR -message "Failed to connect to successfully read information from $fleetManagerFqdn. Please check details and try again"
-            }
-        } Until ($fmResponse)
+                LogMessage -type INFO -message "Fleet Manager FQDN: " -skipnewline
+                $fleetManagerFqdn = Read-Host
+                LogMessage -type INFO -message "Fleet Manager Administrator: " -skipnewline
+                $fleetManagerAdminUser = Read-Host
+                LogMessage -type INFO -message "Fleet Manager Administrator password: " -skipnewline
+                $fleetManagerPassword = Read-Host -AsSecureString
+                $decodedFmPassword = New-DecodedPassword -securePassword $fleetManagerPassword
+                $uri = "https://$fleetManagerFqdn/lcmversion"
+                $fmHeaders = createBasicAuthHeader $fleetManagerAdminUser $decodedFmPassword
+                if ($PSEdition -eq 'Core') {
+                    $fmResponse = Invoke-WebRequest -Method GET -Uri $uri -Headers $fmHeaders -SkipCertificateCheck -UseBasicParsing # PS Core has -SkipCertificateCheck implemented, PowerShell 5.x does not
+                } else {
+                    $fmResponse = Invoke-WebRequest -Method GET -Uri $uri -Headers $fmHeaders -UseBasicParsing
+                }
+                If (!($fmResponse))
+                {
+                    LogMessage -type ERROR -message "Failed to connect to successfully read information from $fleetManagerFqdn. Please check details and try again"
+                }
+            } Until ($fmResponse)
+        }
     }
 
     
-    If ($interactiveEnabled -eq "Y")
+    If ($componentInterrogationEnabled)
     {
         $vcLockerPasswordEntry = (Get-FleetManagerLockerPassword -fqdn $fleetManagerFqdn -username $fleetManagerAdminUser -password $decodedFmPassword | Where-Object {$_.alias -like "*$($sharedInstanceObject.networks.vCenter)*"})
         $vcLockerPasswordUsername = $vcLockerPasswordEntry.userName
@@ -9014,3 +10584,598 @@ Function New-DayNNetworksJsonFile
     LogMessage -Type INFO -Message "Exporting the Logs Deployment JSON to opsNetworksDeploymentSpec-$(($sharedInstanceObject.networks.nodeAFqdn).split(".")[0]).json"
     ConvertTo-Json $networksJsonObject -depth 20 | Out-File "opsNetworksDeploymentSpec-$(($sharedInstanceObject.networks.nodeAFqdn).split(".")[0]).json"
 }
+
+Function New-DayNNetworksModernJsonFile
+{
+    Param (
+        [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
+        [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
+        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled
+    )
+
+    <# Reference Sample JSON
+    '{
+        "componentSpecs": [
+            {
+            "sddcLcmId": "18b9fe29-3db2-46a6-8d98-c13c163e5501",
+            "componentType": "OPS_NETWORKS",
+            "deploymentType": "OvaComponentSpec",
+            "nodeSpecs": [
+                {
+                "nodeType": "PLATFORM",
+                "version": "flt_net_install_version",
+                "deploymentSpec": {
+                    "fqdn": "flt_net_nodea_ip",
+                    "deploymentOption": "flt_net_ha_mode_chosen",
+                    "password": "flt_net_admin_password",
+                    "ipv4Settings": {
+                    "address": "flt_net_nodea_ip"
+                    }
+                }
+                },
+                {
+                "nodeType": "COLLECTOR",
+                "version": "flt_net_install_version",
+                "deploymentSpec": {
+                    "fqdn": "flt_net_prxy_ip",
+                    "deploymentOption": "small",
+                    "password": "flt_net_admin_password",
+                    "ipv4Settings": {
+                    "address": "flt_net_prxy_ip"
+                    }
+                }
+                }
+            ],
+            "configSpec": {
+                "adminPassword": "flt_net_admin_password"
+            }
+            }
+        ]
+        }'
+    #> 
+
+    If (!$userPromptBypass)
+    {
+        LogMessage -Type QUESTION -Message "Do you wish to retrieve SDDC LCM ID? (Y/N): " -skipnewline            
+        Do
+        {  
+            $componentInterrogationResponse = Read-Host    
+        } Until ($componentInterrogationResponse -in "Y","N")
+        $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
+    }
+
+    If ($componentInterrogationEnabled)
+    { 
+        If (!$userPromptBypass)
+        {
+            Do
+            {
+                LogMessage -type INFO -message "Fleet FQDN: " -skipnewline
+                $fleetFqdn = Read-Host
+                LogMessage -type INFO -message "Fleet Username (eg admin@vsp.local): " -skipnewline
+                $fleetUserName = Read-Host
+                LogMessage -type INFO -message "Fleet Password: " -skipnewline
+                $adminPassword = Read-Host -AsSecureString
+                $fleetPassword = New-DecodedPassword -securePassword $adminPassword
+                $token = New-VSPBearerToken -fleetFqdn $fleetFqdn -fleetUserName $fleetUserName -fleetPassword $fleetPassword
+            } Until ($token)
+            $sddclcmId = Get-SddcLcmId -fleetUserName $fleetUserName -fleetPassword $fleetPassword -fleetFqdn $fleetFqdn
+        }
+        else
+        {
+            $fleetFqdn =  $sharedInstanceObject.vsp.platformFqdn
+            $fleetUserName = 'admin@vsp.local'
+            $fleetPassword = $sharedInstanceObject.vsp.systemUserPassword
+            $sddclcmId = Get-SddcLcmId -fleetUserName $fleetUserName -fleetPassword $fleetPassword -fleetFqdn $fleetFqdn
+        }
+    }
+    else
+    {
+        $sddclcmId = "<-- ENTER SDDC LCM ID HERE -->"
+    }
+
+    $ipv4SettingsPlatformObject = New-Object -type psobject
+    $ipv4SettingsPlatformObject | Add-Member -NotePropertyName 'address' -NotePropertyValue $sharedInstanceObject.networks.nodeAIpAddress
+
+    $deploymentSpecPlatformObject = New-Object -type psobject
+    $deploymentSpecPlatformObject | Add-Member -NotePropertyName 'fqdn' -NotePropertyValue $sharedInstanceObject.networks.nodeAIpAddress
+    $deploymentSpecPlatformObject | Add-Member -NotePropertyName 'deploymentOption' -NotePropertyValue $sharedInstanceObject.networks.deploymentType
+    $deploymentSpecPlatformObject | Add-Member -NotePropertyName 'password' -NotePropertyValue $sharedInstanceObject.networks.systemUserPassword
+    $deploymentSpecPlatformObject | Add-Member -NotePropertyName 'ipv4Settings' -NotePropertyValue $ipv4SettingsPlatformObject
+
+    $ipv4SettingsCollectorObject = New-Object -type psobject
+    $ipv4SettingsCollectorObject | Add-Member -NotePropertyName 'address' -NotePropertyValue $sharedInstanceObject.networks.proxyIpAddress
+
+    $deploymentSpecCollectorObject = New-Object -type psobject
+    $deploymentSpecCollectorObject | Add-Member -NotePropertyName 'fqdn' -NotePropertyValue $sharedInstanceObject.networks.proxyIpAddress
+    $deploymentSpecCollectorObject | Add-Member -NotePropertyName 'deploymentOption' -NotePropertyValue $sharedInstanceObject.networks.deploymentType
+    $deploymentSpecCollectorObject | Add-Member -NotePropertyName 'password' -NotePropertyValue $sharedInstanceObject.networks.systemUserPassword
+    $deploymentSpecCollectorObject | Add-Member -NotePropertyName 'ipv4Settings' -NotePropertyValue $ipv4SettingsCollectorObject
+
+    $nodeSpecsArray = @()
+    $nodeSpecsArray += [pscustomobject]@{
+        'nodeType' = 'PLATFORM'
+        'version' = $sharedInstanceObject.version
+        'deploymentSpec' = $deploymentSpecPlatformObject
+    }
+    $nodeSpecsArray += [pscustomobject]@{
+        'nodeType' = 'COLLECTOR'
+        'version' = $sharedInstanceObject.version
+        'deploymentSpec' = $deploymentSpecCollectorObject
+    }
+
+    $configSpecObject = New-Object -type psobject
+    $configSpecObject | Add-Member -NotePropertyName 'adminPassword' -NotePropertyValue $sharedInstanceObject.networks.systemUserPassword
+
+    $componentSpecObject = New-Object -type psobject
+    $componentSpecObject | Add-Member -NotePropertyName 'sddcLcmId' -NotePropertyValue $sddclcmId
+    $componentSpecObject | Add-Member -NotePropertyName 'componentType' -NotePropertyValue 'OPS_NETWORKS'
+    $componentSpecObject | Add-Member -NotePropertyName 'deploymentType' -NotePropertyValue 'OvaComponentSpec'
+    $componentSpecObject | Add-Member -NotePropertyName 'nodeSpecs' -NotePropertyValue @($nodeSpecsArray)
+    $componentSpecObject | Add-Member -NotePropertyName 'configSpec' -NotePropertyValue $configSpecObject
+
+    $networksJsonObject = New-Object -type psobject
+    $networksJsonObject | Add-Member -NotePropertyName 'componentSpecs' -NotePropertyValue @($componentSpecObject)
+
+    LogMessage -Type INFO -Message "Exporting the Logs Deployment JSON to opsNetworksDeploymentSpec-$(($sharedInstanceObject.networks.nodeAFqdn).split(".")[0]).json"
+    ConvertTo-Json $networksJsonObject -depth 20 | Out-File "opsNetworksDeploymentSpec-$(($sharedInstanceObject.networks.nodeAFqdn).split(".")[0]).json"
+}
+#EndRegion Ops for Networks
+
+#Region RealTimeMetrics
+Function New-DayNRealTimeMetrics
+{
+    Param (
+        [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
+        [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
+        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled
+    )
+
+    <# Reference Sample JSOM
+    '{
+        "componentSpecs": [
+            {
+            "sddcLcmId": "18b9fe29-3db2-46a6-8d98-c13c163e5501",
+            "deploymentType": "VspComponentSpec",
+            "componentType": "OPS_DATA_PLATFORM",
+            "version": "9.1.0.0"
+            }
+        ]
+    }'
+    #>
+
+    If (!$userPromptBypass)
+    {
+        LogMessage -Type QUESTION -Message "Do you wish to retrieve SDDC LCM ID? (Y/N): " -skipnewline            
+        Do
+        {  
+            $componentInterrogationResponse = Read-Host    
+        } Until ($componentInterrogationResponse -in "Y","N")
+        $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
+    }
+
+    If ($componentInterrogationEnabled)
+    { 
+        If (!$userPromptBypass)
+        {
+            Do
+            {
+                LogMessage -type INFO -message "Fleet FQDN: " -skipnewline
+                $fleetFqdn = Read-Host
+                LogMessage -type INFO -message "Fleet Username (eg admin@vsp.local): " -skipnewline
+                $fleetUserName = Read-Host
+                LogMessage -type INFO -message "Fleet Password: " -skipnewline
+                $adminPassword = Read-Host -AsSecureString
+                $fleetPassword = New-DecodedPassword -securePassword $adminPassword
+                $token = New-VSPBearerToken -fleetFqdn $fleetFqdn -fleetUserName $fleetUserName -fleetPassword $fleetPassword
+            } Until ($token)
+            $sddclcmId = Get-SddcLcmId -fleetUserName $fleetUserName -fleetPassword $fleetPassword -fleetFqdn $fleetFqdn
+        }
+        else
+        {
+            $fleetFqdn =  $sharedInstanceObject.vsp.platformFqdn
+            $fleetUserName = 'admin@vsp.local'
+            $fleetPassword = $sharedInstanceObject.vsp.systemUserPassword
+            $sddclcmId = Get-SddcLcmId -fleetUserName $fleetUserName -fleetPassword $fleetPassword -fleetFqdn $fleetFqdn
+        }
+    }
+    else
+    {
+        $sddclcmId = "<-- ENTER SDDC LCM ID HERE -->"
+    }
+
+    $componentSpecObject = New-Object -type psobject
+    $componentSpecObject | Add-Member -NotePropertyName 'sddcLcmId' -NotePropertyValue $sddclcmId
+    $componentSpecObject | Add-Member -NotePropertyName 'deploymentType' -NotePropertyValue 'VspComponentSpec'
+    $componentSpecObject | Add-Member -NotePropertyName 'componentType' -NotePropertyValue 'OPS_DATA_PLATFORM'
+    $componentSpecObject | Add-Member -NotePropertyName 'version' -NotePropertyValue $sharedInstanceObject.version
+
+    $realTimeMetricsJsonObject = New-Object -type psobject
+    $realTimeMetricsJsonObject | Add-Member -NotePropertyName 'componentSpecs' -NotePropertyValue @($componentSpecObject)
+
+    LogMessage -Type INFO -Message "Exporting the Real Time Metrics Deployment JSON to realTimeMetricsDeploymentSpec-$($sharedInstanceObject.domainName).json"
+    ConvertTo-Json $realTimeMetricsJsonObject -depth 20 | Out-File "realTimeMetricsDeploymentSpec-$($sharedInstanceObject.domainName).json"
+
+}
+#EndRegion RealTimeMetrics
+
+#Region Automation
+Function New-DayNAutomationModernJsonFile
+{
+    Param (
+        [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
+        [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
+        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled
+    )
+
+    <# Reference Sample JSON
+    '
+    {
+        "componentSpecs": [
+            {
+            "componentType": "VCFA",
+            "deploymentType": "VspComponentSpec",
+            "sddcLcmId": "18b9fe29-3db2-46a6-8d98-c13c163e5501",
+            "fqdn": "vcf_automation_vip_fqdn",
+            "version": "vcf_automation_version",
+            "configSpec": {
+                "size": "small",
+                "adminSystemPassword": "VMw@re1!VMw@re1!"
+            },
+            "vspClusterSpec": {
+                "deploymentType": "VspClusterSpec",
+                "sddcLcmId": "18b9fe29-3db2-46a6-8d98-c13c163e5501",
+            "platformFqdn": "vcf_automation_auto_sr_fqdn",
+            "systemUserPassword": "vcf_automation_admin_password",
+            "size": "vcf_automation_size_chosen",
+            "ipv4Pool": {
+            "cidr": "vcf_automation_runtime_cidr"
+            }
+        }
+        }
+    ]
+    }
+    '
+    #>
+
+    If (!$userPromptBypass)
+    {
+        LogMessage -Type QUESTION -Message "Do you wish to retrieve SDDC LCM ID? (Y/N): " -skipnewline            
+        Do
+        {  
+            $componentInterrogationResponse = Read-Host    
+        } Until ($componentInterrogationResponse -in "Y","N")
+        $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
+    }
+
+    If ($componentInterrogationEnabled)
+    { 
+        If (!$userPromptBypass)
+        {
+            Do
+            {
+                LogMessage -type INFO -message "Fleet FQDN: " -skipnewline
+                $fleetFqdn = Read-Host
+                LogMessage -type INFO -message "Fleet Username (eg admin@vsp.local): " -skipnewline
+                $fleetUserName = Read-Host
+                LogMessage -type INFO -message "Fleet Password: " -skipnewline
+                $adminPassword = Read-Host -AsSecureString
+                $fleetPassword = New-DecodedPassword -securePassword $adminPassword
+                $token = New-VSPBearerToken -fleetFqdn $fleetFqdn -fleetUserName $fleetUserName -fleetPassword $fleetPassword
+            } Until ($token)
+            $sddclcmId = Get-SddcLcmId -fleetUserName $fleetUserName -fleetPassword $fleetPassword -fleetFqdn $fleetFqdn
+        }
+        else
+        {
+            $fleetFqdn =  $sharedInstanceObject.vsp.platformFqdn
+            $fleetUserName = 'admin@vsp.local'
+            $fleetPassword = $sharedInstanceObject.vsp.systemUserPassword
+            $sddclcmId = Get-SddcLcmId -fleetUserName $fleetUserName -fleetPassword $fleetPassword -fleetFqdn $fleetFqdn
+        }
+    }
+    else
+    {
+        $sddclcmId = "<-- ENTER SDDC LCM ID HERE -->"
+    }
+
+    $ipv4PoolObject = New-Object -type psobject
+    If ($sharedInstanceObject.automation.addressingMode -eq "pool")
+    {
+        $ipRangeObject = New-Object -type psobject
+        $ipRangeObject | Add-Member -NotePropertyName 'startIpAddress' -NotePropertyValue $sharedInstanceObject.automation.startIpAddress
+        $ipRangeObject | Add-Member -NotePropertyName 'endIpAddress' -NotePropertyValue $sharedInstanceObject.automation.endIpAddress
+        $ipv4PoolObject | Add-Member -NotePropertyName 'ipRange' -NotePropertyValue $ipRangeObject
+    }
+    else
+    {
+        $ipv4PoolObject | Add-Member -NotePropertyName 'cidr' -NotePropertyValue $sharedInstanceObject.automation.cidr
+    }
+
+    $vspClusterSpecObject = New-Object -type psobject
+    $vspClusterSpecObject | Add-Member -NotePropertyName 'deploymentType' -NotePropertyValue 'VspClusterSpec'
+    $vspClusterSpecObject | Add-Member -NotePropertyName 'sddcLcmId' -NotePropertyValue $sddclcmId
+    $vspClusterSpecObject | Add-Member -NotePropertyName 'platformFqdn' -NotePropertyValue $sharedInstanceObject.automation.platformFqdn
+    $vspClusterSpecObject | Add-Member -NotePropertyName 'systemUserPassword' -NotePropertyValue $sharedInstanceObject.automation.adminUserPassword
+    $vspClusterSpecObject | Add-Member -NotePropertyName 'size' -NotePropertyValue $sharedInstanceObject.automation.size
+    $vspClusterSpecObject | Add-Member -NotePropertyName 'version' -NotePropertyValue $sharedInstanceObject.version
+    $vspClusterSpecObject | Add-Member -NotePropertyName 'ipv4Pool' -NotePropertyValue $ipv4PoolObject
+
+    $vcdMigratorSizeObject = New-Object -type psobject
+    $vcdMigratorSizeObject | Add-Member -NotePropertyName 'size' -NotePropertyValue $sharedInstanceObject.automation.size
+
+    $vcdMigratorObject = New-Object -type psobject
+    $vcdMigratorObject | Add-Member -NotePropertyName 'deploymentType' -NotePropertyValue 'VspComponentSpec'
+    $vcdMigratorObject | Add-Member -NotePropertyName 'sddcLcmId' -NotePropertyValue $sddclcmId
+    $vcdMigratorObject | Add-Member -NotePropertyName 'componentType' -NotePropertyValue 'VCD_MIGRATOR'
+    $vcdMigratorObject | Add-Member -NotePropertyName 'repository' -NotePropertyValue (New-Object -type psobject)
+    $vcdMigratorObject | Add-Member -NotePropertyName 'componentNamespace' -NotePropertyValue 'vcd-migrator'
+    $vcdMigratorObject | Add-Member -NotePropertyName 'version' -NotePropertyValue $sharedInstanceObject.version
+    $vcdMigratorObject | Add-Member -NotePropertyName 'configSpec' -NotePropertyValue $vcdMigratorSizeObject
+
+    $configSpecObject = New-Object -type psobject
+    $configSpecObject | Add-Member -NotePropertyName 'size' -NotePropertyValue $sharedInstanceObject.automation.size
+    $configSpecObject | Add-Member -NotePropertyName 'adminSystemPassword' -NotePropertyValue $sharedInstanceObject.automation.adminUserPassword
+    $configSpecObject | Add-Member -NotePropertyName 'VCD_MIGRATOR' -NotePropertyValue $vcdMigratorObject
+
+    $componentSpecObject = New-Object -type psobject
+    $componentSpecObject | Add-Member -NotePropertyName 'componentType' -NotePropertyValue 'VCFA'
+    $componentSpecObject | Add-Member -NotePropertyName 'deploymentType' -NotePropertyValue 'VspComponentSpec'
+    $componentSpecObject | Add-Member -NotePropertyName 'sddcLcmId' -NotePropertyValue $sddclcmId
+    $componentSpecObject | Add-Member -NotePropertyName 'fqdn' -NotePropertyValue $sharedInstanceObject.automation.vipFqdn
+    $componentSpecObject | Add-Member -NotePropertyName 'componentNamespace' -NotePropertyValue 'prelude'
+    $componentSpecObject | Add-Member -NotePropertyName 'repository' -NotePropertyValue (New-Object -type psobject)
+    $componentSpecObject | Add-Member -NotePropertyName 'version' -NotePropertyValue $sharedInstanceObject.version
+    $componentSpecObject | Add-Member -NotePropertyName 'configSpec' -NotePropertyValue $configSpecObject
+    $componentSpecObject | Add-Member -NotePropertyName 'vspClusterSpec' -NotePropertyValue $vspClusterSpecObject
+
+    $automationJsonObject = New-Object -type psobject
+    $automationJsonObject | Add-Member -NotePropertyName 'componentSpecs' -NotePropertyValue @($componentSpecObject)
+
+    LogMessage -Type INFO -Message "Exporting the Automation Deployment JSON to automationDeploymentSpec-$(($sharedInstanceObject.automation.vipFqdn).split(".")[0]).json"
+    ConvertTo-Json $automationJsonObject -depth 20 | Out-File "automationDeploymentSpec-$(($sharedInstanceObject.automation.vipFqdn).split(".")[0]).json"
+}
+#EndRegion Automation
+
+#Region Installer
+Function New-DayNCompleteFleet
+{
+    Param (
+        [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
+        [Parameter (Mandatory = $true)] [Object]$managementObject,
+        [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
+        [Parameter (Mandatory = $false)] [switch]$platformTools,
+        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled
+    )
+
+    <# Revised Reference JSON Spec
+    
+    "workflowType": "VCF_COMPLETE",
+        "sddcId": "sfo-m01-vc01",
+        "vcfInstanceName": "San Francisco",
+        "sddcManagerSpec": {
+            "hostname": "sfo-vcf01.sfo.rainpole.io",
+            "sslThumbprint": "4B:E1:25:02:55:B2:31:E6:D9:DF:5D:D9:1D:F7:1D:6D:D9:46:3A:8B:84:89:DF:91:34:9F:67:F3:62:47:46:3B",
+            "useExistingDeployment": true
+        },
+        "vcenterSpec": {
+            "vcenterHostname": "sfo-m01-vc01.sfo.rainpole.io",
+            "sslThumbprint": "ED:F2:6A:DC:1D:8E:74:D2:18:49:E5:EB:5C:26:59:7B:45:9D:9D:15:CB:65:4A:84:40:E0:BA:F5:79:87:DD:28",
+            "adminUserSsoPassword": "VMw@re1!VMw@re1!",
+            "adminUserSsoUsername": "administrator@vsphere.local",
+            "useExistingDeployment": true
+        },
+        "vcfOperationsSpec": {
+            "nodes": [
+            {
+                "hostname": "flt-ops01a.rainpole.io",
+                "type": "master",
+                "rootUserPassword": "VMw@re1!VMw@re1!"
+            }
+            ],
+            "adminUserPassword": "VMw@re1!VMw@re1!",
+            "applianceSize": "medium",
+            "useExistingDeployment": false,
+            "loadBalancerFqdn": null
+        },
+        "vcfOperationsCollectorSpec": {
+            "hostname": "sfo-cp01.sfo.rainpole.io",
+            "rootUserPassword": "VMw@re1!VMw@re1!",
+            "applianceSize": "small",
+            "useExistingDeployment": false
+        },
+        "vcfAutomationSpec": {
+            "hostname": "flt-auto01.rainpole.io",
+            "platformFqdn": "flt-vcfa-sr01.rainpole.io",
+            "adminUserPassword": "VMw@re1!VMw@re1!",
+            "nodePrefix": "flt-auto",
+            "useExistingDeployment": false,
+            "ipPool": [
+            "10.11.99.151",
+            "10.11.99.152",
+            "10.11.99.153",
+            "10.11.99.154",
+            "10.11.99.155"
+            ],
+            "internalClusterCidr": "198.18.0.0/15"
+        },
+        "licenseServerSpec": {
+            "hostname": "flt-lc01.rainpole.io"
+        },
+        "vcfManagementComponentsInfrastructureSpec": {
+            "localRegionNetwork": {
+            "networkName": "sfo-m01-cl01-vds01-pg-vcf-proxy",
+            "subnetMask": "255.255.255.0",
+            "gateway": "10.13.10.1"
+            },
+            "xRegionNetwork": {
+            "networkName": "sfo-m01-cl01-vds01-pg-vcf-mgmt",
+            "subnetMask": "255.255.255.0",
+            "gateway": "10.11.99.1"
+            }
+        }
+    #>
+
+    If (!$userPromptBypass)
+    {
+        LogMessage -Type QUESTION -Message "Do you wish to retrieve fingerprints for SDDC Manager and vCenter? (Y/N): " -skipnewline
+        Do
+        {  
+            $componentInterrogationResponse = Read-Host    
+        } Until ($componentInterrogationResponse -in "Y","N")
+        $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
+    }
+
+    #sddcManagerSpec
+    If ($componentInterrogationEnabled)
+    {
+        $sddcMgrFingerprint = (echo "Q" | openssl.exe s_client -connect "$($managementObject.sddcManager.fqdn):443" -showcerts 2>$null | Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
+    }
+    else
+    {
+        $sddcMgrFingerprint = "<--ENTER-SDDCMGR-FINGERPRINT-HERE-->"
+    }    
+    $sddcManagerSpecObject = New-Object -type psobject
+    $sddcManagerSpecObject | Add-Member -NotePropertyName 'hostname' -NotePropertyValue $managementObject.sddcManager.fqdn
+    $sddcManagerSpecObject | Add-Member -NotePropertyName 'sslThumbprint' -NotePropertyValue $sddcMgrFingerprint
+    $sddcManagerSpecObject | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue 'true'
+
+    #vcenterSpec
+    If ($componentInterrogationEnabled)
+    {
+        $vCenterFingerprint = (echo "Q" | openssl.exe s_client -connect "$($managementObject.vCenterServer.fqdn):443" -showcerts 2>$null | Filter-X509 | openssl.exe x509 -noout -fingerprint -sha256).split("sha256 Fingerprint=")[1]
+    }
+    else
+    {
+        $vCenterFingerprint = "<--ENTER-VCENTER-FINGERPRINT-HERE-->"
+    }    
+    $vCenterSpecObject = New-Object -type psobject
+    $vCenterSpecObject | Add-Member -NotePropertyName 'vcenterHostname' -NotePropertyValue $managementObject.vCenterServer.fqdn
+    $vCenterSpecObject | Add-Member -NotePropertyName 'sslThumbprint' -NotePropertyValue $vCenterFingerprint
+    $vCenterSpecObject | Add-Member -NotePropertyName 'adminUserSsoUsername' -NotePropertyValue $managementObject.vCenterServer.adminUser
+    $vCenterSpecObject | Add-Member -NotePropertyName 'adminUserSsoPassword' -NotePropertyValue $managementObject.vCenterServer.adminPassword    
+    $vCenterSpecObject | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue 'true'
+
+    #vcfOperationsSpec
+    $vcfOpsNodesObject = @()
+    If (($sharedInstanceObject.operations.fleetManagementDeploymentModel -eq "Simple") -or (($platformTools) -and ($sharedInstanceObject.deploymentProfile.fleetManagementDeploymentModel -eq "single")))
+    {
+        $vcfOpsNodesObjectNodeA = [pscustomobject]@{
+            'hostname' = $sharedInstanceObject.operations.nodeAFqdn
+            'type' = 'master'                    
+        }
+        If ($sharedInstanceObject.deploymentProfile.deferredCustomPasswords -eq "Selected")
+        {
+            $vcfOpsNodesObjectNodeA | Add-Member -NotePropertyName 'rootUserPassword' -NotePropertyValue $sharedInstanceObject.operations.rootUserPassword
+        }
+        $vcfOpsNodesObject += $vcfOpsNodesObjectNodeA
+    }
+    elseif (($sharedInstanceObject.operations.fleetManagementDeploymentModel -eq "High Availability (Three-node)") -or (($platformTools) -and ($sharedInstanceObject.deploymentProfile.fleetManagementDeploymentModel -eq "highlyAvailable")))
+    {
+        $vcfOpsNodesObjectNodeA = [pscustomobject]@{
+            'hostname' = $sharedInstanceObject.operations.nodeAFqdn
+            'type' = 'master'                    
+        }
+
+        $vcfOpsNodesObjectNodeB = [pscustomobject]@{
+            'hostname' = $sharedInstanceObject.operations.nodeBFqdn
+            'type' = 'replica'                    
+        }
+        
+        $vcfOpsNodesObjectNodeC = [pscustomobject]@{
+            'hostname' = $sharedInstanceObject.operations.nodeCFqdn
+            'type' = 'data'                    
+        }
+
+        If ($sharedInstanceObject.deploymentProfile.deferredCustomPasswords -eq "Selected")
+        {
+            $vcfOpsNodesObjectNodeA | Add-Member -NotePropertyName 'rootUserPassword' -NotePropertyValue $sharedInstanceObject.operations.rootUserPassword
+            $vcfOpsNodesObjectNodeB | Add-Member -NotePropertyName 'rootUserPassword' -NotePropertyValue $sharedInstanceObject.operations.rootUserPassword
+            $vcfOpsNodesObjectNodeC | Add-Member -NotePropertyName 'rootUserPassword' -NotePropertyValue $sharedInstanceObject.operations.rootUserPassword
+        }
+        $vcfOpsNodesObject += $vcfOpsNodesObjectNodeA
+        $vcfOpsNodesObject += $vcfOpsNodesObjectNodeB
+        $vcfOpsNodesObject += $vcfOpsNodesObjectNodeC
+    }
+  
+    $vcfOperationsSpecObject = New-Object -type psobject
+    $vcfOperationsSpecObject | Add-Member -NotePropertyName 'nodes' -NotePropertyValue @($vcfOpsNodesObject)
+    If (($sharedInstanceObject.deploymentProfile.deferredCustomPasswords -eq "Selected") -or $platformTools)
+    {
+        $vcfOperationsSpecObject | Add-Member -NotePropertyName 'adminUserPassword' -NotePropertyValue $sharedInstanceObject.operations.adminUserPassword
+    }
+    $vcfOperationsSpecObject | Add-Member -NotePropertyName 'applianceSize' -NotePropertyValue $sharedInstanceObject.operations.applianceSize
+    $vcfOperationsSpecObject | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue $false
+    If (($sharedInstanceObject.fleetManagementDeploymentModel -eq "highlyAvailable") -and ($sharedInstanceObject.operations.vipFqdn))
+    {
+        $vcfOperationsSpecObject | Add-Member -NotePropertyName 'loadBalancerFqdn' -NotePropertyValue $sharedInstanceObject.operations.vipFqdn
+    }
+
+    #vcfOperationsCollectorSpec
+    $vcfOperationsCollectorSpecObject = New-Object -type psobject
+    $vcfOperationsCollectorSpecObject | Add-Member -NotePropertyName 'hostname' -NotePropertyValue $sharedInstanceObject.operations.opsCollectorFqdn
+    If (($sharedInstanceObject.deploymentProfile.deferredCustomPasswords -eq "Selected") -or $platformTools)
+    {
+        $vcfOperationsCollectorSpecObject | Add-Member -NotePropertyName 'rootUserPassword' -NotePropertyValue $sharedInstanceObject.operations.opsCollectorRootUserPassword
+    }
+    $vcfOperationsCollectorSpecObject | Add-Member -NotePropertyName 'applianceSize' -NotePropertyValue $sharedInstanceObject.operations.collectorApplianceSize
+    $vcfOperationsCollectorSpecObject | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue $false
+
+    #vcfAutomationSpec
+    $ipPoolArray = @()
+    $ipPoolArray += $sharedInstanceObject.automation.nodeAIpAddress
+    $ipPoolArray += $sharedInstanceObject.automation.nodeBIpAddress
+    $ipPoolArray += $sharedInstanceObject.automation.nodeCIpAddress
+    $ipPoolArray += $sharedInstanceObject.automation.nodeDIpAddress
+    $ipPoolArray += $sharedInstanceObject.automation.nodeEIpAddress
+    $vcfAutomationSpecObject = New-Object -type psobject
+    $vcfAutomationSpecObject | Add-Member -NotePropertyName 'hostname' -NotePropertyValue $sharedInstanceObject.automation.vipFqdn
+    $vcfAutomationSpecObject | Add-Member -NotePropertyName 'platformFqdn' -NotePropertyValue $sharedInstanceObject.automation.platformFqdn
+    If ($sharedInstanceObject.deploymentProfile.deferredCustomPasswords -eq "Selected")
+    {
+        $vcfAutomationSpecObject | Add-Member -NotePropertyName 'adminUserPassword' -NotePropertyValue $sharedInstanceObject.automation.adminUserPassword
+    }
+    $vcfAutomationSpecObject | Add-Member -NotePropertyName 'nodePrefix' -NotePropertyValue $sharedInstanceObject.automation.vcfaNodePrefix
+    $vcfAutomationSpecObject | Add-Member -NotePropertyName 'size' -NotePropertyValue $sharedInstanceObject.automation.size
+    $vcfAutomationSpecObject | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue $false
+    $vcfAutomationSpecObject | Add-Member -NotePropertyName 'ipPool' -NotePropertyValue $ipPoolArray
+    $vcfAutomationSpecObject | Add-Member -NotePropertyName 'internalClusterCidr' -NotePropertyValue $sharedInstanceObject.automation.internalClusterCidr
+
+    #licenseServerSpec
+    $licenseServerSpecObject = New-Object -type psobject
+    $licenseServerSpecObject | Add-Member -NotePropertyName 'hostname' -NotePropertyValue $sharedInstanceObject.licenseServer.fqdn
+
+    #vcfManagementComponentsInfrastructureSpec
+    $localRegionNetworkObject = New-Object -type psobject
+    $localRegionNetworkObject | Add-Member -NotePropertyName 'networkName' -NotePropertyValue $sharedInstanceObject.operations.collectorMgmtPortgroup
+    $localRegionNetworkObject | Add-Member -NotePropertyName 'subnetMask' -NotePropertyValue $sharedInstanceObject.operations.collectorMgmtSubnetMask
+    $localRegionNetworkObject | Add-Member -NotePropertyName 'gateway' -NotePropertyValue $sharedInstanceObject.operations.collectorMgmtGw
+    
+    $xRegionNetworkObject = New-Object -type psobject
+    $xRegionNetworkObject | Add-Member -NotePropertyName 'networkName' -NotePropertyValue $sharedInstanceObject.operations.fltMgmtPortgroup
+    $xRegionNetworkObject | Add-Member -NotePropertyName 'subnetMask' -NotePropertyValue $sharedInstanceObject.operations.fltMgmtSubnetMask
+    $xRegionNetworkObject | Add-Member -NotePropertyName 'gateway' -NotePropertyValue $sharedInstanceObject.operations.fltMgmtGw
+
+    $vcfManagementComponentsInfrastructureSpecObject = New-Object -type psobject
+    If ($sharedInstanceObject.deploymentProfile.opsProxyOnDifferentNetwork -eq "Selected")
+    {
+        $vcfManagementComponentsInfrastructureSpecObject | Add-Member -NotePropertyName 'localRegionNetwork' -NotePropertyValue $localRegionNetworkObject
+    }
+    $vcfManagementComponentsInfrastructureSpecObject | Add-Member -NotePropertyName 'xRegionNetwork' -NotePropertyValue $xRegionNetworkObject
+
+    #Assemble Final Object
+    $completeFleetJsonObject = New-Object -type psobject
+    $completeFleetJsonObject | Add-Member -NotePropertyName 'workflowType' -NotePropertyValue 'VCF_COMPLETE'
+    $completeFleetJsonObject | Add-Member -NotePropertyName 'sddcId' -NotePropertyValue $managementObject.domainName
+    $completeFleetJsonObject | Add-Member -NotePropertyName 'vcfInstanceName' -NotePropertyValue $sharedInstanceObject.vcfInstanceName
+    $completeFleetJsonObject | Add-Member -NotePropertyName 'sddcManagerSpec' -NotePropertyValue $sddcManagerSpecObject
+    $completeFleetJsonObject | Add-Member -NotePropertyName 'vcenterSpec' -NotePropertyValue $vCenterSpecObject
+    $completeFleetJsonObject | Add-Member -NotePropertyName 'vcfOperationsSpec' -NotePropertyValue $vcfOperationsSpecObject
+    $completeFleetJsonObject | Add-Member -NotePropertyName 'vcfOperationsCollectorSpec' -NotePropertyValue $vcfOperationsCollectorSpecObject
+    $completeFleetJsonObject | Add-Member -NotePropertyName 'vcfAutomationSpec' -NotePropertyValue $vcfAutomationSpecObject
+    $completeFleetJsonObject | Add-Member -NotePropertyName 'licenseServerSpec' -NotePropertyValue $licenseServerSpecObject
+    $completeFleetJsonObject | Add-Member -NotePropertyName 'vcfManagementComponentsInfrastructureSpec' -NotePropertyValue $vcfManagementComponentsInfrastructureSpecObject
+
+    LogMessage -Type INFO -Message "Exporting the Complete Fleet Deployment JSON to completeFleetDeploymentSpec-$($managementObject.domainName).json"
+    ConvertTo-Json $completeFleetJsonObject -depth 20 | Out-File "completeFleetDeploymentSpec-$($managementObject.domainName).json"
+}
+#EndRegion Installer    
