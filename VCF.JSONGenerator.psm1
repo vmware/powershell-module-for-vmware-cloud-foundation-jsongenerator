@@ -34,6 +34,28 @@ else
 }
 
 #Region Exported Functions
+<#
+.SYNOPSIS
+    Configures prerequisites for VCF JSON generation.
+
+.DESCRIPTION
+    Installs and configures required PowerShell modules (ImportExcel, VCF.PowerCLI or VMware.PowerCLI)
+    and applies PowerCLI configuration settings necessary for JSON payload generation from VCF
+    Planning & Preparation workbooks. On Windows platforms, validates that OpenSSL is available
+    for interactive SSH fingerprint retrieval.
+
+.EXAMPLE
+    Set-VCFJsonGenerationPrequisites
+
+    Installs required modules and configures PowerCLI settings with default parameters.
+
+.NOTES
+    - Automatically installs ImportExcel if not present.
+    - Installs VCF.PowerCLI if neither VCF.PowerCLI nor VMware.PowerCLI are found.
+    - OpenSSL is optional but recommended on Windows for interactive mode SSH fingerprint retrieval.
+    - PowerCLI configuration is applied in background jobs to optimize performance.
+
+#>
 Function Set-VCFJsonGenerationPrequisites
 {
     LogMessage -type INFO -message "Trusting PSGallery"
@@ -72,6 +94,39 @@ Function Set-VCFJsonGenerationPrequisites
 }
 Export-ModuleMember -function Set-VCFJsonGenerationPrequisites
 
+<#
+.SYNOPSIS
+    Launches the interactive JSON generation workflow for VMware Cloud Foundation deployments.
+
+.DESCRIPTION
+    Presents an interactive menu-driven interface for generating VCF JSON payloads from a populated
+    Planning & Preparation (P&P) workbook. Users can specify which JSON files to generate based on
+    their deployment scenario (new VCF fleet, workload domain, cluster addition, etc.).
+
+    The workflow dynamically enables/disables menu options based on the loaded workbook configuration.
+    Options are available for management domain JSON, workload domain JSON, cluster JSON, Day-N
+    fleet management deployments, and supporting infrastructure configurations.
+
+    When interactive mode is selected, the function retrieves programmatically available identifiers
+    (vCenter IDs, NSX IDs, SDDC Manager IDs, SSH fingerprints) from running infrastructure components.
+    If interactive mode is not selected, JSON files are populated with placeholder text for manual
+    ID insertion before submission to API endpoints.
+
+.EXAMPLE
+    Start-VCFJsonGeneration
+
+    Launches the interactive JSON generation menu from the current directory containing P&P workbooks.
+
+.NOTES
+    - Navigate to the directory containing your P&P workbook before running this command.
+    - Not all P&P workbook configuration options are currently supported; coverage expands over time.
+    - The module does not submit JSON payloads to API endpoints; this must be done separately.
+    - VCF 9.0 and 9.1 P&P workbook versions are supported.
+
+.LINK
+    https://developer.broadcom.com/xapis/provider-infrastructure-apis/latest/
+
+#>
 Function Start-VCFJsonGeneration
 {
     # Common Functions
@@ -5863,7 +5918,18 @@ Function New-ManagementDomainJsonFile
         $managementDomainObject | Add-Member -notepropertyname 'sddcManagerSpec' -notepropertyvalue ($sddcManagerObject | Select-Object -Skip 0)
 
         $outputFileName = If ($targetFilePath) {
-            $targetFilePath
+            $basePath = (Get-Location).Path
+            $resolvedPath = [System.IO.Path]::GetFullPath($targetFilePath, $basePath)
+
+            If (-not $resolvedPath.StartsWith($basePath)) {
+                throw [System.Security.SecurityException]::new("Path traversal detected: target path must be within current directory. Attempted: $targetFilePath")
+            }
+
+            If ($resolvedPath -match '\.{2}[\\/]') {
+                throw [System.Security.SecurityException]::new("Invalid path: path traversal sequences are not permitted. Attempted: $targetFilePath")
+            }
+
+            $resolvedPath
         } else {
             "managementDomainSpec-$($instanceObject.domainName).json"
         }
@@ -6772,7 +6838,18 @@ Function New-WorkloadDomainJsonFile
         $workloadDomainObject[0] | Add-Member -NotePropertyName 'deployWithoutLicenseKeys' -NotePropertyValue "true"
 
         $outputFileName = If ($targetFilePath) {
-            $targetFilePath
+            $basePath = (Get-Location).Path
+            $resolvedPath = [System.IO.Path]::GetFullPath($targetFilePath, $basePath)
+
+            If (-not $resolvedPath.StartsWith($basePath)) {
+                throw [System.Security.SecurityException]::new("Path traversal detected: target path must be within current directory. Attempted: $targetFilePath")
+            }
+
+            If ($resolvedPath -match '\.{2}[\\/]') {
+                throw [System.Security.SecurityException]::new("Invalid path: path traversal sequences are not permitted. Attempted: $targetFilePath")
+            }
+
+            $resolvedPath
         } else {
             "workloadDomainSpec-$($instanceObject.domainName).json"
         }

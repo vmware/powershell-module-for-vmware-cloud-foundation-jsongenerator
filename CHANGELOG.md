@@ -3,6 +3,7 @@
 ## [v9.1.0.1006]
 > Release Date: 2026-xx-xx
  - [Changed] Gatered additional NSX Manager Node details for management domain
+ - [Fixed] Unvalidated File Path Parameter vunerability
 
 ## [v9.1.0.1005]
 > Release Date: 2026-06-30
