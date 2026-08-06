@@ -2543,8 +2543,28 @@ Function New-SharedInstanceObject
                     # 9.1 Day 0 Bringup
                     $firstIpAddress = $pnpWorkbook.Workbook.Names["flt_auto_node_pool_start_ip"].Value
                     $lastIpAddress = $pnpWorkbook.Workbook.Names["flt_auto_node_pool_end_ip"].Value
-                    $firstIpInt = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($firstIpAddress).GetAddressBytes()[3..0], 0)
-                    $lastIpInt  = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($lastIpAddress).GetAddressBytes()[3..0], 0)
+
+                    # Validate IP addresses are provided and in valid format
+                    if ([String]::IsNullOrWhiteSpace($firstIpAddress)) {
+                        throw [System.InvalidOperationException]::new("Fleet automation node pool start IP address is empty or not configured in the Planning & Preparation workbook")
+                    }
+                    if ([String]::IsNullOrWhiteSpace($lastIpAddress)) {
+                        throw [System.InvalidOperationException]::new("Fleet automation node pool end IP address is empty or not configured in the Planning & Preparation workbook")
+                    }
+
+                    # Validate IP address format
+                    try {
+                        $firstIpInt = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($firstIpAddress).GetAddressBytes()[3..0], 0)
+                    } catch {
+                        throw [System.InvalidOperationException]::new("Invalid fleet automation node pool start IP address: '$firstIpAddress'. Verify the Planning & Preparation workbook contains a valid IPv4 address.")
+                    }
+
+                    try {
+                        $lastIpInt  = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($lastIpAddress).GetAddressBytes()[3..0], 0)
+                    } catch {
+                        throw [System.InvalidOperationException]::new("Invalid fleet automation node pool end IP address: '$lastIpAddress'. Verify the Planning & Preparation workbook contains a valid IPv4 address.")
+                    }
+
                     $ipAddressPool = $firstIpInt..$lastIpInt | ForEach-Object {
                         [System.Net.IPAddress]::new([System.BitConverter]::GetBytes([UInt32]$_)[3..0]).ToString()
                     }
@@ -2616,8 +2636,28 @@ Function New-SharedInstanceObject
                     
                     $firstIpAddress = $pnpWorkbook.Workbook.Names["flt_def_auto_node_pool_start_ip"].Value
                     $lastIpAddress = $pnpWorkbook.Workbook.Names["flt_def_auto_node_pool_end_ip"].Value
-                    $firstIpInt = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($firstIpAddress).GetAddressBytes()[3..0], 0)
-                    $lastIpInt  = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($lastIpAddress).GetAddressBytes()[3..0], 0)
+
+                    # Validate IP addresses are provided and in valid format
+                    if ([String]::IsNullOrWhiteSpace($firstIpAddress)) {
+                        throw [System.InvalidOperationException]::new("Fleet automation node pool start IP address is empty or not configured in the Planning & Preparation workbook")
+                    }
+                    if ([String]::IsNullOrWhiteSpace($lastIpAddress)) {
+                        throw [System.InvalidOperationException]::new("Fleet automation node pool end IP address is empty or not configured in the Planning & Preparation workbook")
+                    }
+
+                    # Validate IP address format
+                    try {
+                        $firstIpInt = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($firstIpAddress).GetAddressBytes()[3..0], 0)
+                    } catch {
+                        throw [System.InvalidOperationException]::new("Invalid fleet automation node pool start IP address: '$firstIpAddress'. Verify the Planning & Preparation workbook contains a valid IPv4 address.")
+                    }
+
+                    try {
+                        $lastIpInt  = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($lastIpAddress).GetAddressBytes()[3..0], 0)
+                    } catch {
+                        throw [System.InvalidOperationException]::new("Invalid fleet automation node pool end IP address: '$lastIpAddress'. Verify the Planning & Preparation workbook contains a valid IPv4 address.")
+                    }
+
                     $ipAddressPool = $firstIpInt..$lastIpInt | ForEach-Object {
                         [System.Net.IPAddress]::new([System.BitConverter]::GetBytes([UInt32]$_)[3..0]).ToString()
                     }
