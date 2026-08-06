@@ -1231,6 +1231,54 @@ Function LogMessage
     }
 }
 
+Function Protect-SensitiveData {
+    <#
+    .SYNOPSIS
+        Redacts sensitive information from log messages before output.
+
+    .DESCRIPTION
+        Masks passwords, API tokens, and other sensitive data patterns from
+        PowerShell command lines and error messages to prevent credential
+        exposure in logs.
+
+    .PARAMETER InputText
+        The text to redact.
+
+    .OUTPUTS
+        [String] The input text with sensitive data masked.
+    #>
+    [CmdletBinding()]
+    [OutputType([String])]
+    Param (
+        [Parameter(Mandatory = $true)] [AllowEmptyString()] [String]$InputText
+    )
+
+    if ([String]::IsNullOrEmpty($InputText)) {
+        return $InputText
+    }
+
+    $redacted = $InputText
+
+    # Redact password parameters and values
+    $redacted = $redacted -replace "-password\s+\S+", "-password ***REDACTED***", 'IgnoreCase'
+    $redacted = $redacted -replace 'password\s*[:=]\s*["\x27]\S+', 'password=***REDACTED***', 'IgnoreCase'
+
+    # Redact JSON password fields
+    $redacted = $redacted -replace '("password"\s*:\s*")[^"]+(")', '$1***REDACTED***$2', 'IgnoreCase'
+
+    # Redact API tokens and bearer tokens
+    $redacted = $redacted -replace '(-token\s+)\S+', '$1***REDACTED***', 'IgnoreCase'
+    $redacted = $redacted -replace '(Bearer\s+)\S+', '$1***REDACTED***', 'IgnoreCase'
+    $redacted = $redacted -replace '(Authorization:\s*")[^"]+(")', '$1***REDACTED***$2', 'IgnoreCase'
+
+    # Redact common credential keywords
+    $redacted = $redacted -replace '(-credential\s+)\S+', '$1***REDACTED***', 'IgnoreCase'
+    $redacted = $redacted -replace 'secret\s*[:=]\s*["\x27]\S+', 'secret=***REDACTED***', 'IgnoreCase'
+    $redacted = $redacted -replace 'apikey\s*[:=]\s*["\x27]\S+', 'apikey=***REDACTED***', 'IgnoreCase'
+
+    return $redacted
+}
+
 Function catchWriter
 {
     Param (
@@ -1239,9 +1287,14 @@ Function catchWriter
     $lineNumber = $object.InvocationInfo.ScriptLineNumber
     $lineText = $object.InvocationInfo.Line.trim()
     $errorMessage = $object.Exception.Message
+
+    # Redact sensitive data from command line before logging
+    $redactedLineText = Protect-SensitiveData -InputText $lineText
+    $redactedErrorMessage = Protect-SensitiveData -InputText $errorMessage
+
     LogMessage -Type EXCEPTION -Message "Error at Script Line $lineNumber"
-    LogMessage -Type EXCEPTION -Message "Relevant Command: $lineText"
-    LogMessage -Type EXCEPTION -Message "Error Message: $errorMessage"
+    LogMessage -Type EXCEPTION -Message "Relevant Command: $redactedLineText"
+    LogMessage -Type EXCEPTION -Message "Error Message: $redactedErrorMessage"
 }
 
 Function Get-InstalledSoftware
@@ -1438,7 +1491,13 @@ public static class Placeholder {
     $Global:sddcManager = $fqdn
     $headers = @{"Content-Type" = "application/json" }
     $uri = "https://$sddcManager/v1/tokens" # Set URI for executing an API call to validate authentication
-    $body = '{"username": "' + $username + '","password": "' + $password + '"}'
+
+    # Use object serialization instead of string concatenation to avoid plaintext password in memory
+    $bodyObject = @{
+        username = $username
+        password = $password
+    }
+    $body = $bodyObject | ConvertTo-Json
 
     Try {
         # Checking authentication with SDDC Manager
@@ -1456,6 +1515,10 @@ public static class Placeholder {
         }
     } Catch {
         ResponseException -object $_
+    } Finally {
+        # Clear the body object to reduce time password is in memory
+        $bodyObject = $null
+        $body = $null
     }
 }
 
