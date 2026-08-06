@@ -2845,6 +2845,13 @@ Function New-ManagementInstanceObject
         $nsxtManagerObject | Add-Member -notepropertyname 'nodeAFQDN' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_mgra_fqdn"].Value
         $nsxtManagerObject | Add-Member -notepropertyname 'nodeBFQDN' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_mgrb_fqdn"].Value
         $nsxtManagerObject | Add-Member -notepropertyname 'nodeCFQDN' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_mgrc_fqdn"].Value
+        $nsxtManagerObject | Add-Member -notepropertyname 'nodeAHostname' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_mgra_hostname"].Value
+        $nsxtManagerObject | Add-Member -notepropertyname 'nodeBHostname' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_mgrb_hostname"].Value
+        $nsxtManagerObject | Add-Member -notepropertyname 'nodeCHostname' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_mgrc_hostname"].Value        
+        $nsxtManagerObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_mgra_ip"].Value
+        $nsxtManagerObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_mgrb_ip"].Value
+        $nsxtManagerObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_mgrc_ip"].Value
+
         If ($workbookLayout -eq "9.0")
         {
             $nsxtManagerObject | Add-Member -notepropertyname 'mgrFormfactor' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_nsxt_appliance_size_chosen"].Value
