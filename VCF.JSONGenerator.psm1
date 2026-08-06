@@ -33,6 +33,73 @@ else
     [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 }
 
+#Region Dependency Functions
+Function Test-VCFJsonGeneratorDependencies {
+    <#
+    .SYNOPSIS
+        Validates that all VCF.JSONGenerator prerequisites are installed and available.
+
+    .DESCRIPTION
+        Collects all unmet dependencies before returning, rather than failing fast on the first
+        issue, so a user sees the complete remediation list in one pass. Returns an object
+        indicating whether all hard requirements are satisfied and a list of findings describing
+        any missing dependencies.
+
+        Hard Requirements (must be satisfied to proceed):
+        - PowerShell 7.0 or later
+        - ImportExcel module
+        - Either VMware.PowerCLI or VCF.PowerCLI module
+
+    .OUTPUTS
+        [PSCustomObject] with properties:
+        - IsSatisfied: Boolean indicating whether all hard requirements are met
+        - Findings: String array describing each unmet dependency, empty if all satisfied
+
+    .EXAMPLE
+        $deps = Test-VCFJsonGeneratorDependencies
+        if (-not $deps.IsSatisfied) {
+            $deps.Findings | ForEach-Object { Write-Host $_ -ForegroundColor Red }
+            return
+        }
+    #>
+
+    [CmdletBinding()]
+    [OutputType([PSObject])]
+    Param ()
+
+    $findings = [System.Collections.Generic.List[String]]::new()
+    $hardRequirementsMet = $true
+    $minimumPowerShellVersion = [Version]'7.0'
+
+    # Check PowerShell version
+    if ($PSVersionTable.PSVersion -lt $minimumPowerShellVersion) {
+        $findings.Add("PowerShell $minimumPowerShellVersion or later is required (found $($PSVersionTable.PSVersion)). Install the latest PowerShell release from https://github.com/PowerShell/PowerShell")
+        $hardRequirementsMet = $false
+    }
+
+    # Check ImportExcel
+    $importExcelModule = Get-Module -ListAvailable -Name ImportExcel -ErrorAction SilentlyContinue | Sort-Object -Property Version -Descending | Select-Object -First 1
+    if (-not $importExcelModule) {
+        $findings.Add("ImportExcel module is required and was not found. Install it with: Install-Module -Name ImportExcel -Scope CurrentUser")
+        $hardRequirementsMet = $false
+    }
+
+    # Check PowerCLI (either VMware.PowerCLI or VCF.PowerCLI)
+    $vmwarePowerCli = Get-Module -ListAvailable -Name VMware.PowerCLI -ErrorAction SilentlyContinue | Sort-Object -Property Version -Descending | Select-Object -First 1
+    $vcfPowerCli = Get-Module -ListAvailable -Name VCF.PowerCLI -ErrorAction SilentlyContinue | Sort-Object -Property Version -Descending | Select-Object -First 1
+
+    if (-not $vmwarePowerCli -and -not $vcfPowerCli) {
+        $findings.Add("Either VMware.PowerCLI or VCF.PowerCLI is required. Install one with: Install-Module -Name VCF.PowerCLI -Scope CurrentUser")
+        $hardRequirementsMet = $false
+    }
+
+    return [PSCustomObject]@{
+        IsSatisfied = $hardRequirementsMet
+        Findings    = $findings.ToArray()
+    }
+}
+#EndRegion Dependency Functions
+
 #Region Exported Functions
 <#
 .SYNOPSIS
@@ -129,6 +196,37 @@ Export-ModuleMember -function Set-VCFJsonGenerationPrequisites
 #>
 Function Start-VCFJsonGeneration
 {
+    # Verify all dependencies before proceeding
+    $dependencies = Test-VCFJsonGeneratorDependencies
+    if (-not $dependencies.IsSatisfied) {
+        LogMessage -Type ERROR -Message "VCF.JSONGenerator prerequisites are not satisfied. Please fix the following issues:"
+        foreach ($finding in $dependencies.Findings) {
+            LogMessage -Type ERROR -Message "  - $finding"
+        }
+        return
+    }
+
+    # Ensure required modules are imported into current session
+    Try {
+        $null = Get-Module -Name ImportExcel | Measure-Object
+        if ((Get-Module -Name ImportExcel | Measure-Object).Count -eq 0) {
+            Import-Module ImportExcel -ErrorAction Stop
+        }
+
+        # Import PowerCLI (prefer VCF.PowerCLI if available, fall back to VMware.PowerCLI)
+        if ((Get-Module -Name VCF.PowerCLI | Measure-Object).Count -eq 0) {
+            $vcfPowerCli = Get-Module -ListAvailable -Name VCF.PowerCLI -ErrorAction SilentlyContinue
+            if ($vcfPowerCli) {
+                Import-Module VCF.PowerCLI -ErrorAction Stop
+            } else {
+                Import-Module VMware.PowerCLI -ErrorAction Stop
+            }
+        }
+    } Catch {
+        LogMessage -Type ERROR -Message "Failed to import required modules: $($_.Exception.Message)"
+        return
+    }
+
     # Common Functions
     Function New-JsonGenerationMenu
     {
