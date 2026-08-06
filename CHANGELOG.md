@@ -1,5 +1,9 @@
 # Release History
 
+## [v9.1.0.1006]
+> Release Date: 2026-xx-xx
+ - [Changed] Gatered additional NSX Manager Node details for management domain
+
 ## [v9.1.0.1005]
 > Release Date: 2026-06-30
  - [Fixed] L3 Multi-Rack Workload Domain deployments
