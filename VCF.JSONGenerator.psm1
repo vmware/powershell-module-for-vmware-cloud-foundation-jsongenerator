@@ -4394,7 +4394,7 @@ Function New-ClusterObject
         }
         $clusterObject | Add-Member -notepropertyname 'networkPoolCreationRequired' -notepropertyvalue $networkPoolCreationRequired
         
-        If ($clusterObject.rackinformation.multiRackResult -eq "Excluded")
+        If ($clusterObject.rackinformation.multiRackChosen -eq "N")
         {
             If ($clusterObject.vsphereClusters[0].vsanType -eq "vSAN HCI")
             {
@@ -4416,7 +4416,7 @@ Function New-ClusterObject
                 }                
             }
         }
-        elseIf ($clusterObject.rackinformation.multiRackResult -eq "Included")
+        elseIf ($clusterObject.rackinformation.multiRackChosen -eq "Y")
         {
             If ($clusterObject.vsphereClusters[0].vsanType -eq "vSAN HCI")
             {
