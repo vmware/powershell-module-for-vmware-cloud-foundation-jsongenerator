@@ -3334,13 +3334,18 @@ Function New-ManagementInstanceObject
             If ($workbookLayout -eq "9.0")
             {
                 $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_vpc_ext_ip_blocks"].value
-                $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_vpc_transit_gateway_ip_blocks"].value            
+                $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_vpc_transit_gateway_ip_blocks"].value
+                $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocksName' -NotePropertyValue "External-ip-address-block-$($instanceObject.edgeCluster.externalIpBlocks)"
+                $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocksName' -NotePropertyValue "Private-ip-address-block-$($instanceObject.edgeCluster.privateTgwIpBlocks)"
             }
             else
             {
                 $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_vpc_ext_ip_blocks_cidr"].value
                 $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_vpc_transit_gateway_ip_blocks_cidr"].value
-            } 
+                $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocksName' -NotePropertyValue $pnpWorkbook.Workbook.Names ["mgmt_vpc_ext_ip_blocks_name"].value
+                $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocksName' NotePropertyValue $pnpWorkbook.Workbook.Names ["mgmt_vpc_priv_ip_blocks_name"].value
+            }
+
             If ($pnpWorkbook.Workbook.Names["mgmt_az1_en1_edge_overlay_network_ip_allocation_chosen"].value -eq "Static IP List")
             {
                 $edgeClusterObject | Add-Member -NotePropertyName 'tepMode' -NotePropertyValue 'StaticIpv4List'
@@ -3993,12 +3998,17 @@ Function New-WorkloadInstanceObject
             If ($workbookLayout -eq "9.0")
             {
                 $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_vpc_ext_ip_blocks"].value
-                $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_vpc_transit_gateway_ip_blocks"].value  
+                $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_vpc_transit_gateway_ip_blocks"].value
+                $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocksName' -NotePropertyValue "External-ip-address-block-$($instanceObject.edgeCluster.externalIpBlocks)"
+                $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocksName' -NotePropertyValue "Private-ip-address-block-$($instanceObject.edgeCluster.privateTgwIpBlocks)"
+
             }
             else
             {
                 $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_vpc_ext_ip_blocks_cidr"].value
                 $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_vpc_transit_gateway_ip_blocks_cidr"].value
+                $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocksName' -NotePropertyValue $pnpWorkbook.Workbook.Names ["wld_vpc_ext_ip_blocks_name"].value
+                $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocksName' NotePropertyValue $pnpWorkbook.Workbook.Names ["wld_vpc_priv_ip_blocks_name"].value
             }            
             If ($pnpWorkbook.Workbook.Names["wld_az1_en1_edge_overlay_network_ip_allocation_chosen"].value -eq "Static IP List")
             {
@@ -9482,7 +9492,7 @@ Function New-CentralizedTransitGatewayJsonFile
     $externalIpAddressBlockObject | Add-Member -NotePropertyName 'resource_type' -NotePropertyValue 'IpAddressBlock'
     $externalIpAddressBlockObject | Add-Member -NotePropertyName 'visibility' -NotePropertyValue 'EXTERNAL'
     $externalIpAddressBlockObject | Add-Member -NotePropertyName 'cidr' -NotePropertyValue $instanceObject.edgeCluster.externalIpBlocks
-    $externalIpAddressBlockObject | Add-Member -NotePropertyName 'display_name' -NotePropertyValue "External-ip-address-block-$($instanceObject.edgeCluster.externalIpBlocks)"
+    $externalIpAddressBlockObject | Add-Member -NotePropertyName 'display_name' -NotePropertyValue $instanceObject.edgeCluster.externalIpBlocksName
     $externalIpAddressBlockObject | Add-Member -NotePropertyName 'id' -NotePropertyValue (New-Guid).guid
 
     $externalChildIpAddressBlockObject = New-Object -type psobject
@@ -9493,7 +9503,7 @@ Function New-CentralizedTransitGatewayJsonFile
     $privateIpAddressBlockObject | Add-Member -NotePropertyName 'resource_type' -NotePropertyValue 'IpAddressBlock'
     $privateIpAddressBlockObject | Add-Member -NotePropertyName 'visibility' -NotePropertyValue 'PRIVATE'
     $privateIpAddressBlockObject | Add-Member -NotePropertyName 'cidr' -NotePropertyValue $instanceObject.edgeCluster.privateTgwIpBlocks
-    $privateIpAddressBlockObject | Add-Member -NotePropertyName 'display_name' -NotePropertyValue "Private-ip-address-block-$($instanceObject.edgeCluster.privateTgwIpBlocks)"
+    $privateIpAddressBlockObject | Add-Member -NotePropertyName 'display_name' -NotePropertyValue $instanceObject.edgeCluster.privateTgwIpBlocksName
     $privateIpAddressBlockObject | Add-Member -NotePropertyName 'id' -NotePropertyValue (New-Guid).guid
 
     $privateChildIpAddressBlockObject = New-Object -type psobject
