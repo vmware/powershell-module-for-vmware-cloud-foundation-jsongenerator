@@ -3342,8 +3342,8 @@ Function New-ManagementInstanceObject
             {
                 $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_vpc_ext_ip_blocks_cidr"].value
                 $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_vpc_transit_gateway_ip_blocks_cidr"].value
-                $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocksName' -NotePropertyValue $pnpWorkbook.Workbook.Names ["mgmt_vpc_ext_ip_blocks_name"].value
-                $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocksName' NotePropertyValue $pnpWorkbook.Workbook.Names ["mgmt_vpc_priv_ip_blocks_name"].value
+                $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocksName' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_vpc_ext_ip_blocks_name"].value
+                $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocksName' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_vpc_priv_ip_blocks_name"].value
             }
 
             If ($pnpWorkbook.Workbook.Names["mgmt_az1_en1_edge_overlay_network_ip_allocation_chosen"].value -eq "Static IP List")
@@ -4007,8 +4007,8 @@ Function New-WorkloadInstanceObject
             {
                 $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_vpc_ext_ip_blocks_cidr"].value
                 $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_vpc_transit_gateway_ip_blocks_cidr"].value
-                $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocksName' -NotePropertyValue $pnpWorkbook.Workbook.Names ["wld_vpc_ext_ip_blocks_name"].value
-                $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocksName' NotePropertyValue $pnpWorkbook.Workbook.Names ["wld_vpc_priv_ip_blocks_name"].value
+                $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocksName' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_vpc_ext_ip_blocks_name"].value
+                $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocksName' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_vpc_priv_ip_blocks_name"].value
             }            
             If ($pnpWorkbook.Workbook.Names["wld_az1_en1_edge_overlay_network_ip_allocation_chosen"].value -eq "Static IP List")
             {
