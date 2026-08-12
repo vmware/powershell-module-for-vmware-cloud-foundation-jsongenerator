@@ -3335,8 +3335,8 @@ Function New-ManagementInstanceObject
             {
                 $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_vpc_ext_ip_blocks"].value
                 $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_vpc_transit_gateway_ip_blocks"].value
-                $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocksName' -NotePropertyValue "External-ip-address-block-$($instanceObject.edgeCluster.externalIpBlocks)"
-                $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocksName' -NotePropertyValue "Private-ip-address-block-$($instanceObject.edgeCluster.privateTgwIpBlocks)"
+                $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocksName' -NotePropertyValue "External-ip-address-block-$($edgeClusterObject.externalIpBlocks)"
+                $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocksName' -NotePropertyValue "Private-ip-address-block-$($edgeClusterObject.privateTgwIpBlocks)"
             }
             else
             {
@@ -3999,8 +3999,8 @@ Function New-WorkloadInstanceObject
             {
                 $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_vpc_ext_ip_blocks"].value
                 $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocks' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_vpc_transit_gateway_ip_blocks"].value
-                $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocksName' -NotePropertyValue "External-ip-address-block-$($instanceObject.edgeCluster.externalIpBlocks)"
-                $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocksName' -NotePropertyValue "Private-ip-address-block-$($instanceObject.edgeCluster.privateTgwIpBlocks)"
+                $edgeClusterObject | Add-Member -NotePropertyName 'externalIpBlocksName' -NotePropertyValue "External-ip-address-block-$($edgeClusterObject.externalIpBlocks)"
+                $edgeClusterObject | Add-Member -NotePropertyName 'privateTgwIpBlocksName' -NotePropertyValue "Private-ip-address-block-$($edgeClusterObject.privateTgwIpBlocks)"
 
             }
             else
