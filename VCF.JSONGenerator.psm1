@@ -2023,7 +2023,7 @@ Function New-WorkbookDeploymentProfile
 
     If ($type -eq "workload")
     {
-        If ($pnpWorkbook.Workbook.Names["wld_nsx_ha_mode_chosen"].Value -eq "High-Availbility")
+        If ($pnpWorkbook.Workbook.Names["wld_nsx_ha_mode_chosen"].Value -eq "High-Availability")
         {
             $singleNSXTManager = "N"
         }
