@@ -2,7 +2,9 @@
 
 ## [v9.1.0.1006]
 > Release Date: 2026-xx-xx
- - [Changed] Gatered additional NSX Manager Node details for management domain
+ - [Added] Gathered additional NSX Manager Node details for management domain
+ - [Changed] 9.1 taking external and private ip block names from P&P (instead of being calculated)
+ - [Fixed] Cluster object creation not calcualting cluster type correctly
 
 ## [v9.1.0.1005]
 > Release Date: 2026-06-30
