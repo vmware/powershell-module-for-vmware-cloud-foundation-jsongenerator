@@ -2626,7 +2626,13 @@ Function New-SharedInstanceObject
         {
             $vspObject | Add-Member -notepropertyname 'size' -notepropertyvalue "small"
         }        
-        $vspObject | Add-Member -notepropertyname 'internalClusterCidrIpv4' -notepropertyvalue "198.18.0.0/15"
+         If ($vcfVersion -eq "9.1.1")
+        {
+    $vspObject | Add-Member -notepropertyname 'internalClusterCidrIpv4' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_vcfms_k8s_cluster_cidr_chosen"].Value
+         }
+         else {
+       $vspObject | Add-Member -notepropertyname 'internalClusterCidrIpv4' -notepropertyvalue "198.18.0.0/15"
+         }
         $vspObject | Add-Member -notepropertyname 'startIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_vcfms_node_pool_start_ip"].Value
         $vspObject | Add-Member -notepropertyname 'endIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_vcfms_node_pool_end_ip"].Value
 
@@ -2832,6 +2838,11 @@ Function New-ManagementInstanceObject
             'portGroupNames' = $portGroupNames
             'storageModel' = $pnpWorkbook.Workbook.Names["mgmt_principal_storage_chosen"].Value
             'secondaryStorage' = $pnpWorkbook.Workbook.Names["mgmt_secondary_storage_chosen"].Value
+        }
+        If ($workbookLayout -ne "9.0")
+        {
+            $vsphereClusterArray[0] | Add-Member -notepropertyname 'vsanDIT' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_cl01_vsan_data_in_transit_chosen"].Value
+            $vsphereClusterArray[0] | Add-Member -notepropertyname 'vsanRekey' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_cl01_vsan_dit_rekey_result"].Value
         }
 
         $nsxtManagerObject = New-Object -TypeName psobject
@@ -3580,6 +3591,11 @@ Function New-WorkloadInstanceObject
             'storageModel' = $pnpWorkbook.Workbook.Names["wld_principal_storage_chosen"].Value
             'secondaryStorage' = $pnpWorkbook.Workbook.Names["wld_secondary_storage_chosen"].Value
             'imageName' = $pnpWorkbook.Workbook.Names["wld_cl01_image_name"].Value
+        }
+        If ($workbookLayout -ne "9.0")
+        {
+            $vsphereClusterArray[0] | Add-Member -notepropertyname 'vsanDIT' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_cl01_vsan_dit_chosen"].Value
+            $vsphereClusterArray[0] | Add-Member -notepropertyname 'vsanRekey' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_cl01_vsan_dit_rekey_result"].Value
         }
 
         $nsxtManagerObject = New-Object -TypeName psobject
@@ -4357,6 +4373,11 @@ Function New-ClusterObject
             'secondaryStorage' = $pnpWorkbook.Workbook.Names["cluster_secondary_storage_chosen"].Value
             'vsanType' = $pnpWorkbook.Workbook.Names["cluster_vsan_type"].Value
         }
+          If ($workbookLayout -ne "9.0")
+        {
+            $vsphereClusterArray[0] | Add-Member -notepropertyname 'vsanDIT' -notepropertyvalue $pnpWorkbook.Workbook.Names["cluster_vsan_dit_chosen"].Value
+            $vsphereClusterArray[0] | Add-Member -notepropertyname 'vsanRekey' -notepropertyvalue $pnpWorkbook.Workbook.Names["cluster_vsan_dit_rekey_result"].Value
+        }
 
         $clusterObject = New-Object -type pscustomobject
         $clusterObject | Add-Member -NotePropertyName "domainName" -NotePropertyValue $pnpWorkbook.Workbook.Names["cluster_domain_name"].Value #fix
@@ -4701,6 +4722,20 @@ Function New-ManagementDomainJsonFile
                 $vsanDedup = $true
             }
         }
+        If ($instanceObject.vsphereClusters[0].vsanDIT -eq "Selected")
+        {
+            $DITAenabledobject = [pscustomobject]@{
+                'enable' = $true
+                'rekeyInterval' = $instanceObject.vsphereClusters[0].vsanRekey
+            }
+        }
+        else
+        {
+            $DITAenabledobject = [pscustomobject]@{
+                'enable' = $false
+                'rekeyInterval' = $null
+            }
+        }
         $vsanObject = @()
         $vsanObject += [pscustomobject]@{
             'datastoreName' = $instanceObject.vsphereClusters[0].vsanDatastore
@@ -4709,6 +4744,11 @@ Function New-ManagementDomainJsonFile
         If ($instanceObject.vsphereClusters[0].storageModel -eq "VSAN-OSA") {
             $vsanObject | Add-Member -NotePropertyName 'vsanDedup' -NotePropertyValue $vsanDedup
             $vsanObject | Add-Member -NotePropertyName 'failuresToTolerate' -NotePropertyValue $($instanceObject.vsphereClusters[0].vsanftt -as [INT])
+        }
+        If ($instanceObject.version -notlike "9.0*") {
+            $ditobject = new-object -type pscustomobject
+            $ditobject | Add-Member -NotePropertyName 'dataInTransitConfig' -NotePropertyValue $DITAenabledobject
+            $vsanObject | Add-Member -NotePropertyName 'encryptionConfig' -NotePropertyValue $ditobject
         }
         $datastoreSpecObject = [pscustomobject]@{
             'vsanSpec' = ($vsanObject | Select-Object -Skip 0)
@@ -6682,6 +6722,20 @@ Function New-WorkloadDomainJsonFile
             } 
         }
 
+        If ($instanceObject.vsphereClusters[0].vsanDIT -eq "Selected")
+        {
+            $DITAenabledobject = [pscustomobject]@{
+                'enable' = $true
+                'rekeyInterval' = $instanceObject.vsphereClusters[0].vsanRekey
+            }
+        }
+        else
+        {
+            $DITAenabledobject = [pscustomobject]@{
+                'enable' = $false
+                'rekeyInterval' = $null
+            }
+        }
         $vsanDatastoreObject = @()
         If ($instanceObject.vsphereClusters[0].storageModel -in "VSAN-ESA","vSAN Storage Cluster")
         {
@@ -6696,6 +6750,12 @@ Function New-WorkloadDomainJsonFile
             'failuresToTolerate' = "1"
             'datastoreName'      = $instanceObject.vsphereClusters[0].vsanDatastore
             }
+        }
+        If ($instanceObject.version -notlike "9.0*")
+        {
+            $ditobject = new-object -type pscustomobject
+            $ditobject | Add-Member -NotePropertyName 'dataInTransitConfig' -NotePropertyValue $DITAenabledobject
+            $vsanDatastoreObject | Add-Member -NotePropertyName 'encryptionConfig' -NotePropertyValue $ditobject
         }
         
         $vsanObject = @()
@@ -7053,6 +7113,21 @@ Function New-L2vSphereClusterJsonFile
     }
 
 
+    If ($clusterObject.vsphereClusters[0].vsanDIT -eq "Selected")
+    {
+        $DITAenabledobject = [pscustomobject]@{
+            'enable' = $true
+            'rekeyInterval' = $clusterObject.vsphereClusters[0].vsanRekey
+        }
+    }
+    else
+    {
+        $DITAenabledobject = [pscustomobject]@{
+            'enable' = $false
+            'rekeyInterval' = $null
+        }
+    }
+
     If ($clusterObject.vsphereClusters[0].storageModel -eq "VSAN-ESA")
     {
         $ESAenabledtrueobject = @()
@@ -7129,6 +7204,11 @@ Function New-L2vSphereClusterJsonFile
             'datastoreName'      = $clusterObject.vsphereClusters[0].vsanDatastore
             }
         }
+       If ($clusterObject.version -notlike "9.0*") {
+        $ditobject = new-object -type pscustomobject
+        $ditobject | Add-Member -NotePropertyName 'dataInTransitConfig' -NotePropertyValue $DITAenabledobject
+        $vsanDatastoreObject | Add-Member -NotePropertyName 'encryptionConfig' -NotePropertyValue $ditobject
+       }
     
         $vsanObject = @()
         $vsanObject += [pscustomobject]@{
@@ -7618,6 +7698,21 @@ Function New-L3vSphereClusterJsonFile
     
     }
 
+    If ($clusterObject.vsphereClusters[0].vsanDIT -eq "Selected")
+    {
+        $DITAenabledobject = [pscustomobject]@{
+            'enable' = $true
+            'rekeyInterval' = $clusterObject.vsphereClusters[0].vsanRekey
+        }
+    }
+    else
+    {
+        $DITAenabledobject = [pscustomobject]@{
+            'enable' = $false
+            'rekeyInterval' = $null
+        }
+    }
+
     If ($clusterObject.vsphereClusters[0].storageModel -eq "VSAN-ESA")
     {
         $ESAenabledtrueobject = @()
@@ -7687,13 +7782,18 @@ Function New-L3vSphereClusterJsonFile
             'esaConfig' =  ($ESAenabledtrueobject | Select-Object -Skip 0)
             }
         }
-        elseIf ($instanceObject.vsphereClusters[0].storageModel -eq "VSAN-OSA") 
+        elseIf ($clusterObject.vsphereClusters[0].storageModel -eq "VSAN-OSA") 
         {
             $vsanDatastoreObject += [pscustomobject]@{
             'failuresToTolerate' = "1"
             'datastoreName'      = $clusterObject.vsphereClusters[0].vsanDatastore
             }
         }
+        If ($clusterObject.version -notlike "9.0*") {
+        $ditobject = new-object -type pscustomobject
+        $ditobject | Add-Member -NotePropertyName 'dataInTransitConfig' -NotePropertyValue $DITAenabledobject
+        $vsanDatastoreObject | Add-Member -NotePropertyName 'encryptionConfig' -NotePropertyValue $ditobject
+       }
     
         $vsanObject = @()
         $vsanObject += [pscustomobject]@{
