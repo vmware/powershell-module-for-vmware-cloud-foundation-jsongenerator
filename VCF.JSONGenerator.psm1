@@ -2184,16 +2184,16 @@ Function New-SharedInstanceObject
         
         $vcfVersion = $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
 
-        If (!$workbookLayout)
-        {
-            If ($vcfVersion -like "9.0*")
-            {
-                $workbookLayout = "9.0"
-            }
-            else
-            {
-                $workbookLayout = "9.1"
-            }
+    If (!$workbookLayout) {
+        If ($vcfVersion -like "9.0*") {
+        $workbookLayout = "9.0"
+        }
+        elseif ($vcfVersion -like "9.1.0*" -or $vcfVersion -eq "9.1") {
+        $workbookLayout = "9.1"
+        }
+        else {
+        $workbookLayout = "9.1.1"
+        }
         }
         If ($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value -eq "First Instance")
         {
@@ -2586,9 +2586,7 @@ Function New-SharedInstanceObject
         $vcfNetworksObject | Add-Member -notepropertyname 'timeSyncMode' -notepropertyvalue "ntp"
         $vcfNetworksObject | Add-Member -notepropertyname 'ntpServers' -notepropertyvalue "$($ntpObject.ntpServer1),$($ntpObject.ntpServer2)"
         $vcfNetworksObject | Add-Member -notepropertyname 'diskMode' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_disk_mode_chosen"].Value
-        $vcfNetworksObject | Add-Member -notepropertyname 'nodePortgroup' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_node_portgroup"].Value
-        $vcfNetworksObject | Add-Member -notepropertyname 'nodeGateway' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_node_gateway_ip"].Value
-        $vcfNetworksObject | Add-Member -notepropertyname 'nodeNetmask' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_node_mask"].Value
+
         $vcfNetworksObject | Add-Member -notepropertyname 'systemUserPasswordAlias' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_admin_password_alias"].Value
         $vcfNetworksObject | Add-Member -notepropertyname 'systemUserPassword' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_admin_password"].Value
         $vcfNetworksObject | Add-Member -notepropertyname 'nodeAfqdn' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_nodea_fqdn"].Value
@@ -2599,11 +2597,29 @@ Function New-SharedInstanceObject
         $vcfNetworksObject | Add-Member -notepropertyname 'nodeCSize' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_nodec_size_chosen"].Value
         $vcfNetworksObject | Add-Member -notepropertyname 'proxyFqdn' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_prxy_fqdn"].Value
         $vcfNetworksObject | Add-Member -notepropertyname 'proxySize' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_prxy_size_chosen"].Value
-        $vcfNetworksObject | Add-Member -notepropertyname 'proxyPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_prxy_portgroup"].Value
-        $vcfNetworksObject | Add-Member -notepropertyname 'proxyGateway' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_prxy_gateway_ip"].Value
-        $vcfNetworksObject | Add-Member -notepropertyname 'proxyNetmask' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_prxy_mask"].Value
         $vcfNetworksObject | Add-Member -notepropertyname 'fipsMode' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_fips_mode_chosen"].Value
         $vcfNetworksObject | Add-Member -notepropertyname 'configureAffinity' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_affinty_rule_chosen"].Value
+     If ($workbookLayout -in @("9.0","9.1"))
+        {
+        $vcfNetworksObject | Add-Member -notepropertyname 'nodeGateway' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_node_gateway_ip"].Value
+        $vcfNetworksObject | Add-Member -notepropertyname 'nodeNetmask' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_node_mask"].Value
+        $vcfNetworksObject | Add-Member -notepropertyname 'proxyGateway' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_prxy_gateway_ip"].Value
+        $vcfNetworksObject | Add-Member -notepropertyname 'proxyNetmask' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_prxy_mask"].Value
+        $vcfNetworksObject | Add-Member -notepropertyname 'nodePortgroup' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_nodea_portgroup"].Value
+        $vcfNetworksObject | Add-Member -notepropertyname 'proxyPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_prxy_portgroup"].Value
+        }
+        else {
+        $vcfNetworksNodeNetworkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["flt_net_nodea_gateway_cidr"].Value
+        $vcfNetworksObject | Add-Member -notepropertyname 'nodePortgroup' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_nodea_pg"].Value
+        $vcfNetworksObject | Add-Member -notepropertyname 'nodeNetmask' -notepropertyvalue $vcfNetworksNodeNetworkDetails.netmask
+        $vcfNetworksObject | Add-Member -notepropertyname 'nodeGateway' -notepropertyvalue $vcfNetworksNodeNetworkDetails.gw
+        #Proxy Details
+        $vcfNetworksProxyNetworkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["flt_net_prxy_gateway_cidr"].Value
+        $vcfNetworksObject | Add-Member -notepropertyname 'proxyPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_prxy_pg"].Value
+        $vcfNetworksObject | Add-Member -notepropertyname 'proxyNetmask' -notepropertyvalue $vcfNetworksProxyNetworkDetails.netmask
+        $vcfNetworksObject | Add-Member -notepropertyname 'proxyGateway' -notepropertyvalue $vcfNetworksProxyNetworkDetails.gw
+          <# Action when all if and elseif conditions are false #>
+        }
 
         $vspObject = New-Object -TypeName psobject
         $vspObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_sr_fqdn"].Value
@@ -2635,6 +2651,7 @@ Function New-SharedInstanceObject
         $sharedInstanceObject | Add-Member -notepropertyname 'domainName' -notepropertyvalue $domainName
         $sharedInstanceObject | Add-Member -notepropertyname 'vcfInstanceName' -notepropertyvalue $vcfInstanceName
         $sharedInstanceObject | Add-Member -notepropertyname 'version' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
+        $sharedInstanceObject | Add-Member -notepropertyname 'workbookLayout' -notepropertyvalue $workbookLayout
         $sharedInstanceObject | Add-Member -notepropertyname 'deploymentProfile' -notepropertyvalue $deploymentProfileObject    
         $sharedInstanceObject | Add-Member -notepropertyname 'sddcManager' -notepropertyvalue $sddcManagerObject            
         $sharedInstanceObject | Add-Member -notepropertyname 'dns' -notepropertyvalue $dnsObject
@@ -2681,15 +2698,16 @@ Function New-ManagementInstanceObject
 
         $vcfVersion = $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
 
-        If (!$workbookLayout)
-        {
-            If ($vcfVersion -like "9.0*")
-            {
-                $workbookLayout = "9.0"
+       If (!$workbookLayout)
+       {
+            If ($vcfVersion -like "9.0*") {
+            $workbookLayout = "9.0"
             }
-            else
-            {
-                $workbookLayout = "9.1"
+            elseif ($vcfVersion -like "9.1.0*" -or $vcfVersion -eq "9.1") {
+            $workbookLayout = "9.1"
+            }
+            else {
+            $workbookLayout = "9.1.1"
             }
         }
         If ($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value -eq "First Instance")
@@ -3435,14 +3453,15 @@ Function New-WorkloadInstanceObject
         $vcfVersion = $pnpWorkbook.Workbook.Names["vcf_version_chosen"].Value
 
         If (!$workbookLayout)
-        {
-            If ($vcfVersion -like "9.0*")
-            {
-                $workbookLayout = "9.0"
+       {
+            If ($vcfVersion -like "9.0*") {
+            $workbookLayout = "9.0"
             }
-            else
-            {
-                $workbookLayout = "9.1"
+            elseif ($vcfVersion -like "9.1.0*" -or $vcfVersion -eq "9.1") {
+            $workbookLayout = "9.1"
+            }
+            else {
+            $workbookLayout = "9.1.1"
             }
         }
         If ($pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value -eq "First Instance")
@@ -3733,7 +3752,7 @@ Function New-WorkloadInstanceObject
                 }
             }
     
-            If ($rack -eq "rack1")
+            If ($rack -eq "rack1") 
             {
                 If ($pnpWorkbook.Workbook.Names["wld_secondary_storage_chosen"].Value -ne "Exclude")
                 {
@@ -10598,9 +10617,9 @@ Function New-DayNNetworksModernJsonFile
         [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
         [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
         [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled
-    )
+        )
 
-    <# Reference Sample JSON
+    <# Reference Sample JSON 9.1
     '{
         "componentSpecs": [
             {
@@ -10640,7 +10659,52 @@ Function New-DayNNetworksModernJsonFile
         ]
         }'
     #> 
-
+    <# Reference Sample JSON 9.1.1
+    '{
+        "componentSpecs": [
+            {
+            "sddcLcmId": "18b9fe29-3db2-46a6-8d98-c13c163e5501",
+            "componentType": "OPS_NETWORKS",
+            "deploymentType": "OvaComponentSpec",
+            "nodeSpecs": [
+                {
+                "nodeType": "PLATFORM",
+                "version": "flt_net_install_version",
+                "deploymentSpec": {
+                    "fqdn": "flt_net_nodea_ip",
+                    "deploymentOption": "flt_net_ha_mode_chosen",
+                    "password": "flt_net_admin_password",
+                    "ipv4Settings": {
+                    "address": "flt_net_nodea_ip",
+                    "gateway": "10.11.99.1",
+                    "netmask": "255.255.255.0"
+                      },
+                    "networkName": "flt_net_nodea_pg"
+                }
+                },
+                {
+                "nodeType": "COLLECTOR",
+                "version": "flt_net_install_version",
+                "deploymentSpec": {
+                    "fqdn": "flt_net_prxy_ip",
+                    "deploymentOption": "small",
+                    "password": "flt_net_admin_password",
+                    "ipv4Settings": {
+                    "address": "flt_net_prxy_ip",
+                    "gateway": "10.11.10.1",
+                    "netmask": "255.255.255.0"
+                    },
+                    "networkName": "flt_net_prxy_pg"
+                }
+                }
+            ],
+            "configSpec": {
+                "adminPassword": "flt_net_admin_password"
+            }
+            }
+        ]
+        }'
+    #>
     If (!$userPromptBypass)
     {
         LogMessage -Type QUESTION -Message "Do you wish to retrieve SDDC LCM ID? (Y/N): " -skipnewline            
@@ -10683,22 +10747,36 @@ Function New-DayNNetworksModernJsonFile
 
     $ipv4SettingsPlatformObject = New-Object -type psobject
     $ipv4SettingsPlatformObject | Add-Member -NotePropertyName 'address' -NotePropertyValue $sharedInstanceObject.networks.nodeAIpAddress
-
+   If ($sharedInstanceObject.workbookLayout -notin @("9.0", "9.1"))
+    {
+    $ipv4SettingsPlatformObject | Add-Member -NotePropertyName 'gateway' -NotePropertyValue $sharedInstanceObject.networks.nodeGateway
+    $ipv4SettingsPlatformObject | Add-Member -NotePropertyName 'netmask' -NotePropertyValue $sharedInstanceObject.networks.nodeNetmask
+    }
     $deploymentSpecPlatformObject = New-Object -type psobject
     $deploymentSpecPlatformObject | Add-Member -NotePropertyName 'fqdn' -NotePropertyValue $sharedInstanceObject.networks.nodeAIpAddress
     $deploymentSpecPlatformObject | Add-Member -NotePropertyName 'deploymentOption' -NotePropertyValue $sharedInstanceObject.networks.deploymentType
     $deploymentSpecPlatformObject | Add-Member -NotePropertyName 'password' -NotePropertyValue $sharedInstanceObject.networks.systemUserPassword
     $deploymentSpecPlatformObject | Add-Member -NotePropertyName 'ipv4Settings' -NotePropertyValue $ipv4SettingsPlatformObject
-
+    If ($sharedInstanceObject.workbookLayout -notin @("9.0", "9.1"))
+    {
+    $deploymentSpecPlatformObject | Add-Member -NotePropertyName 'networkName' -NotePropertyValue $sharedInstanceObject.networks.nodePortgroup
+    }
     $ipv4SettingsCollectorObject = New-Object -type psobject
     $ipv4SettingsCollectorObject | Add-Member -NotePropertyName 'address' -NotePropertyValue $sharedInstanceObject.networks.proxyIpAddress
-
+     If ($sharedInstanceObject.workbookLayout -notin @("9.0", "9.1"))
+    {
+    $ipv4SettingsCollectorObject | Add-Member -NotePropertyName 'gateway' -NotePropertyValue $sharedInstanceObject.networks.proxyGateway
+    $ipv4SettingsCollectorObject | Add-Member -NotePropertyName 'netmask' -NotePropertyValue $sharedInstanceObject.networks.proxyNetmask
+    }
     $deploymentSpecCollectorObject = New-Object -type psobject
     $deploymentSpecCollectorObject | Add-Member -NotePropertyName 'fqdn' -NotePropertyValue $sharedInstanceObject.networks.proxyIpAddress
     $deploymentSpecCollectorObject | Add-Member -NotePropertyName 'deploymentOption' -NotePropertyValue $sharedInstanceObject.networks.deploymentType
     $deploymentSpecCollectorObject | Add-Member -NotePropertyName 'password' -NotePropertyValue $sharedInstanceObject.networks.systemUserPassword
     $deploymentSpecCollectorObject | Add-Member -NotePropertyName 'ipv4Settings' -NotePropertyValue $ipv4SettingsCollectorObject
-
+     If ($sharedInstanceObject.workbookLayout -notin @("9.0", "9.1"))
+    {
+    $deploymentSpecCollectorObject | Add-Member -NotePropertyName 'networkName' -NotePropertyValue $sharedInstanceObject.networks.proxyPortgroup
+    }
     $nodeSpecsArray = @()
     $nodeSpecsArray += [pscustomobject]@{
         'nodeType' = 'PLATFORM'
