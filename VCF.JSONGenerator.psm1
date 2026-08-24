@@ -2625,14 +2625,14 @@ Function New-SharedInstanceObject
         else 
         {
             $vspObject | Add-Member -notepropertyname 'size' -notepropertyvalue "small"
-        }        
-         If ($vcfVersion -eq "9.1.1")
+        }
+        If ($workbookLayout -notin @("9.0", "9.1"))
         {
-    $vspObject | Add-Member -notepropertyname 'internalClusterCidrIpv4' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_vcfms_k8s_cluster_cidr_chosen"].Value
-         }
-         else {
-       $vspObject | Add-Member -notepropertyname 'internalClusterCidrIpv4' -notepropertyvalue "198.18.0.0/15"
-         }
+        $vspObject | Add-Member -notepropertyname 'internalClusterCidrIpv4' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_vcfms_k8s_cluster_cidr_chosen"].Value
+        }
+        else {
+        $vspObject | Add-Member -notepropertyname 'internalClusterCidrIpv4' -notepropertyvalue "198.18.0.0/15"
+        }
         $vspObject | Add-Member -notepropertyname 'startIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_vcfms_node_pool_start_ip"].Value
         $vspObject | Add-Member -notepropertyname 'endIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_vcfms_node_pool_end_ip"].Value
 
