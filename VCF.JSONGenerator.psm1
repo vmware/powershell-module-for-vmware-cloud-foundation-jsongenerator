@@ -1808,7 +1808,7 @@ Function Get-PnPInputFileInputs
             {
                 $Global:clusterObject = New-ClusterObject -pnpWorkbook $pnpWorkbook
             }
-            elseIf ($pnpWorkbook.Workbook.Names["vcf_granular_option_chosen"].Value -eq "Create VI Workload Domain")
+            elseIf ($pnpWorkbook.Workbook.Names["vcf_granular_option_chosen"].Value -in "Create Workload Domain", "Create VI Workload Domain")
             {
                 $Global:workloadObject = New-WorkloadInstanceObject -pnpWorkbook $pnpWorkbook
             }
@@ -3110,7 +3110,10 @@ Function New-ManagementInstanceObject
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vcfNetworkPoolName' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)pool_name"].Value
             }
             $az1RackNetworkObject | Add-Member -notepropertyname 'hostIpAddressPoolName' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)host_overlay_network_pool_name"].Value 
+            If ($workbookLayout -eq "9.0")
+            {
             $az1RackNetworkObject | Add-Member -notepropertyname 'hostIpAddressPoolDesc' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)host_overlay_network_pool_description"].Value 
+            }
             $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayAddressing' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_host_overlay_addressing_chosen"].Value
             
             If ($workbookLayout -eq "9.0")
@@ -3225,7 +3228,10 @@ Function New-ManagementInstanceObject
                     $az2RackNetworkObject | Add-Member -notepropertyname 'networkProfileName' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)host_overlay_network_profile_name"].Value
                     $az2RackNetworkObject | Add-Member -notepropertyname 'vcfNetworkPoolName' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)pool_name"].Value
                     $az2RackNetworkObject | Add-Member -notepropertyname 'hostIpAddressPoolName' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)host_overlay_network_pool_name"].Value 
+                    If ($workbookLayout -eq "9.0")
+                    {
                     $az2RackNetworkObject | Add-Member -notepropertyname 'hostIpAddressPoolDesc' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)host_overlay_network_pool_description"].Value 
+                    }
                     $az2RackNetworkObject | Add-Member -notepropertyname 'hostOverlayAddressing' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_host_overlay_addressing_chosen"].Value
                     $az2RackNetworkObject | Add-Member -notepropertyname 'reuseExistingVcfNetworkPool' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)reuse_vcf_networkpool_chosen"].Value
                     $az2RackNetworkObject | Add-Member -NotePropertyName 'reuseExistingStaticIpPool' -NotePropertyValue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az2_$($rackVariableModifier)host_overlay_new_pool_chosen"].Value
@@ -4806,7 +4812,10 @@ Function New-ManagementDomainJsonFile
 
             
             $ipAddressPoolSpec | Add-Member -NotePropertyName 'name' -NotePropertyValue $instanceObject.az1.rack1.network.hostIpAddressPoolName
-            $ipAddressPoolSpec | Add-Member -NotePropertyName 'description' -NotePropertyValue $instanceObject.az1.rack1.network.hostIpAddressPoolDesc
+               If ($workbookLayout -eq "9.0")
+        {
+             $ipAddressPoolSpec | Add-Member -NotePropertyName 'description' -NotePropertyValue $instanceObject.az1.rack1.network.hostIpAddressPoolDesc
+        }
             $ipAddressPoolSpec | Add-Member -NotePropertyName 'subnets' -NotePropertyValue $subnetsArray
             
         }
