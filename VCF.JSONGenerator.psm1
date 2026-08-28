@@ -33,7 +33,96 @@ else
     [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 }
 
+#Region Dependency Functions
+Function Test-VCFJsonGeneratorDependencies {
+    <#
+    .SYNOPSIS
+        Validates that all VCF.JSONGenerator prerequisites are installed and available.
+
+    .DESCRIPTION
+        Collects all unmet dependencies before returning, rather than failing fast on the first
+        issue, so a user sees the complete remediation list in one pass. Returns an object
+        indicating whether all hard requirements are satisfied and a list of findings describing
+        any missing dependencies.
+
+        Hard Requirements (must be satisfied to proceed):
+        - PowerShell 7.0 or later
+        - ImportExcel module
+        - Either VMware.PowerCLI or VCF.PowerCLI module
+
+    .OUTPUTS
+        [PSCustomObject] with properties:
+        - IsSatisfied: Boolean indicating whether all hard requirements are met
+        - Findings: String array describing each unmet dependency, empty if all satisfied
+
+    .EXAMPLE
+        $deps = Test-VCFJsonGeneratorDependencies
+        if (-not $deps.IsSatisfied) {
+            $deps.Findings | ForEach-Object { Write-Host $_ -ForegroundColor Red }
+            return
+        }
+    #>
+
+    [CmdletBinding()]
+    [OutputType([PSObject])]
+    Param ()
+
+    $findings = [System.Collections.Generic.List[String]]::new()
+    $hardRequirementsMet = $true
+    $minimumPowerShellVersion = [Version]'7.0'
+
+    # Check PowerShell version
+    if ($PSVersionTable.PSVersion -lt $minimumPowerShellVersion) {
+        $findings.Add("PowerShell $minimumPowerShellVersion or later is required (found $($PSVersionTable.PSVersion)). Install the latest PowerShell release from https://github.com/PowerShell/PowerShell")
+        $hardRequirementsMet = $false
+    }
+
+    # Check ImportExcel
+    $importExcelModule = Get-Module -ListAvailable -Name ImportExcel -ErrorAction SilentlyContinue | Sort-Object -Property Version -Descending | Select-Object -First 1
+    if (-not $importExcelModule) {
+        $findings.Add("ImportExcel module is required and was not found. Install it with: Install-Module -Name ImportExcel -Scope CurrentUser")
+        $hardRequirementsMet = $false
+    }
+
+    # Check PowerCLI (either VMware.PowerCLI or VCF.PowerCLI)
+    $vmwarePowerCli = Get-Module -ListAvailable -Name VMware.PowerCLI -ErrorAction SilentlyContinue | Sort-Object -Property Version -Descending | Select-Object -First 1
+    $vcfPowerCli = Get-Module -ListAvailable -Name VCF.PowerCLI -ErrorAction SilentlyContinue | Sort-Object -Property Version -Descending | Select-Object -First 1
+
+    if (-not $vmwarePowerCli -and -not $vcfPowerCli) {
+        $findings.Add("Either VMware.PowerCLI or VCF.PowerCLI is required. Install one with: Install-Module -Name VCF.PowerCLI -Scope CurrentUser")
+        $hardRequirementsMet = $false
+    }
+
+    return [PSCustomObject]@{
+        IsSatisfied = $hardRequirementsMet
+        Findings    = $findings.ToArray()
+    }
+}
+#EndRegion Dependency Functions
+
 #Region Exported Functions
+<#
+.SYNOPSIS
+    Configures prerequisites for VCF JSON generation.
+
+.DESCRIPTION
+    Installs and configures required PowerShell modules (ImportExcel, VCF.PowerCLI or VMware.PowerCLI)
+    and applies PowerCLI configuration settings necessary for JSON payload generation from VCF
+    Planning & Preparation workbooks. On Windows platforms, validates that OpenSSL is available
+    for interactive SSH fingerprint retrieval.
+
+.EXAMPLE
+    Set-VCFJsonGenerationPrequisites
+
+    Installs required modules and configures PowerCLI settings with default parameters.
+
+.NOTES
+    - Automatically installs ImportExcel if not present.
+    - Installs VCF.PowerCLI if neither VCF.PowerCLI nor VMware.PowerCLI are found.
+    - OpenSSL is optional but recommended on Windows for interactive mode SSH fingerprint retrieval.
+    - PowerCLI configuration is applied in background jobs to optimize performance.
+
+#>
 Function Set-VCFJsonGenerationPrequisites
 {
     LogMessage -type INFO -message "Trusting PSGallery"
@@ -72,8 +161,72 @@ Function Set-VCFJsonGenerationPrequisites
 }
 Export-ModuleMember -function Set-VCFJsonGenerationPrequisites
 
+<#
+.SYNOPSIS
+    Launches the interactive JSON generation workflow for VMware Cloud Foundation deployments.
+
+.DESCRIPTION
+    Presents an interactive menu-driven interface for generating VCF JSON payloads from a populated
+    Planning & Preparation (P&P) workbook. Users can specify which JSON files to generate based on
+    their deployment scenario (new VCF fleet, workload domain, cluster addition, etc.).
+
+    The workflow dynamically enables/disables menu options based on the loaded workbook configuration.
+    Options are available for management domain JSON, workload domain JSON, cluster JSON, Day-N
+    fleet management deployments, and supporting infrastructure configurations.
+
+    When interactive mode is selected, the function retrieves programmatically available identifiers
+    (vCenter IDs, NSX IDs, SDDC Manager IDs, SSH fingerprints) from running infrastructure components.
+    If interactive mode is not selected, JSON files are populated with placeholder text for manual
+    ID insertion before submission to API endpoints.
+
+.EXAMPLE
+    Start-VCFJsonGeneration
+
+    Launches the interactive JSON generation menu from the current directory containing P&P workbooks.
+
+.NOTES
+    - Navigate to the directory containing your P&P workbook before running this command.
+    - Not all P&P workbook configuration options are currently supported; coverage expands over time.
+    - The module does not submit JSON payloads to API endpoints; this must be done separately.
+    - VCF 9.0 and 9.1 P&P workbook versions are supported.
+
+.LINK
+    https://developer.broadcom.com/xapis/provider-infrastructure-apis/latest/
+
+#>
 Function Start-VCFJsonGeneration
 {
+    # Verify all dependencies before proceeding
+    $dependencies = Test-VCFJsonGeneratorDependencies
+    if (-not $dependencies.IsSatisfied) {
+        LogMessage -Type ERROR -Message "VCF.JSONGenerator prerequisites are not satisfied. Please fix the following issues:"
+        foreach ($finding in $dependencies.Findings) {
+            LogMessage -Type ERROR -Message "  - $finding"
+        }
+        return
+    }
+
+    # Ensure required modules are imported into current session
+    Try {
+        $null = Get-Module -Name ImportExcel | Measure-Object
+        if ((Get-Module -Name ImportExcel | Measure-Object).Count -eq 0) {
+            Import-Module ImportExcel -ErrorAction Stop
+        }
+
+        # Import PowerCLI (prefer VCF.PowerCLI if available, fall back to VMware.PowerCLI)
+        if ((Get-Module -Name VCF.PowerCLI | Measure-Object).Count -eq 0) {
+            $vcfPowerCli = Get-Module -ListAvailable -Name VCF.PowerCLI -ErrorAction SilentlyContinue
+            if ($vcfPowerCli) {
+                Import-Module VCF.PowerCLI -ErrorAction Stop
+            } else {
+                Import-Module VMware.PowerCLI -ErrorAction Stop
+            }
+        }
+    } Catch {
+        LogMessage -Type ERROR -Message "Failed to import required modules: $($_.Exception.Message)"
+        return
+    }
+
     # Common Functions
     Function New-JsonGenerationMenu
     {
@@ -1078,6 +1231,54 @@ Function LogMessage
     }
 }
 
+Function Protect-SensitiveData {
+    <#
+    .SYNOPSIS
+        Redacts sensitive information from log messages before output.
+
+    .DESCRIPTION
+        Masks passwords, API tokens, and other sensitive data patterns from
+        PowerShell command lines and error messages to prevent credential
+        exposure in logs.
+
+    .PARAMETER InputText
+        The text to redact.
+
+    .OUTPUTS
+        [String] The input text with sensitive data masked.
+    #>
+    [CmdletBinding()]
+    [OutputType([String])]
+    Param (
+        [Parameter(Mandatory = $true)] [AllowEmptyString()] [String]$InputText
+    )
+
+    if ([String]::IsNullOrEmpty($InputText)) {
+        return $InputText
+    }
+
+    $redacted = $InputText
+
+    # Redact password parameters and values
+    $redacted = $redacted -replace "-password\s+\S+", "-password ***REDACTED***", 'IgnoreCase'
+    $redacted = $redacted -replace 'password\s*[:=]\s*["\x27]\S+', 'password=***REDACTED***', 'IgnoreCase'
+
+    # Redact JSON password fields
+    $redacted = $redacted -replace '("password"\s*:\s*")[^"]+(")', '$1***REDACTED***$2', 'IgnoreCase'
+
+    # Redact API tokens and bearer tokens
+    $redacted = $redacted -replace '(-token\s+)\S+', '$1***REDACTED***', 'IgnoreCase'
+    $redacted = $redacted -replace '(Bearer\s+)\S+', '$1***REDACTED***', 'IgnoreCase'
+    $redacted = $redacted -replace '(Authorization:\s*")[^"]+(")', '$1***REDACTED***$2', 'IgnoreCase'
+
+    # Redact common credential keywords
+    $redacted = $redacted -replace '(-credential\s+)\S+', '$1***REDACTED***', 'IgnoreCase'
+    $redacted = $redacted -replace 'secret\s*[:=]\s*["\x27]\S+', 'secret=***REDACTED***', 'IgnoreCase'
+    $redacted = $redacted -replace 'apikey\s*[:=]\s*["\x27]\S+', 'apikey=***REDACTED***', 'IgnoreCase'
+
+    return $redacted
+}
+
 Function catchWriter
 {
     Param (
@@ -1086,9 +1287,14 @@ Function catchWriter
     $lineNumber = $object.InvocationInfo.ScriptLineNumber
     $lineText = $object.InvocationInfo.Line.trim()
     $errorMessage = $object.Exception.Message
+
+    # Redact sensitive data from command line before logging
+    $redactedLineText = Protect-SensitiveData -InputText $lineText
+    $redactedErrorMessage = Protect-SensitiveData -InputText $errorMessage
+
     LogMessage -Type EXCEPTION -Message "Error at Script Line $lineNumber"
-    LogMessage -Type EXCEPTION -Message "Relevant Command: $lineText"
-    LogMessage -Type EXCEPTION -Message "Error Message: $errorMessage"
+    LogMessage -Type EXCEPTION -Message "Relevant Command: $redactedLineText"
+    LogMessage -Type EXCEPTION -Message "Error Message: $redactedErrorMessage"
 }
 
 Function Get-InstalledSoftware
@@ -1285,7 +1491,13 @@ public static class Placeholder {
     $Global:sddcManager = $fqdn
     $headers = @{"Content-Type" = "application/json" }
     $uri = "https://$sddcManager/v1/tokens" # Set URI for executing an API call to validate authentication
-    $body = '{"username": "' + $username + '","password": "' + $password + '"}'
+
+    # Use object serialization instead of string concatenation to avoid plaintext password in memory
+    $bodyObject = @{
+        username = $username
+        password = $password
+    }
+    $body = $bodyObject | ConvertTo-Json
 
     Try {
         # Checking authentication with SDDC Manager
@@ -1303,6 +1515,10 @@ public static class Placeholder {
         }
     } Catch {
         ResponseException -object $_
+    } Finally {
+        # Clear the body object to reduce time password is in memory
+        $bodyObject = $null
+        $body = $null
     }
 }
 
@@ -2390,8 +2606,28 @@ Function New-SharedInstanceObject
                     # 9.1 Day 0 Bringup
                     $firstIpAddress = $pnpWorkbook.Workbook.Names["flt_auto_node_pool_start_ip"].Value
                     $lastIpAddress = $pnpWorkbook.Workbook.Names["flt_auto_node_pool_end_ip"].Value
-                    $firstIpInt = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($firstIpAddress).GetAddressBytes()[3..0], 0)
-                    $lastIpInt  = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($lastIpAddress).GetAddressBytes()[3..0], 0)
+
+                    # Validate IP addresses are provided and in valid format
+                    if ([String]::IsNullOrWhiteSpace($firstIpAddress)) {
+                        throw [System.InvalidOperationException]::new("Fleet automation node pool start IP address is empty or not configured in the Planning & Preparation workbook")
+                    }
+                    if ([String]::IsNullOrWhiteSpace($lastIpAddress)) {
+                        throw [System.InvalidOperationException]::new("Fleet automation node pool end IP address is empty or not configured in the Planning & Preparation workbook")
+                    }
+
+                    # Validate IP address format
+                    try {
+                        $firstIpInt = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($firstIpAddress).GetAddressBytes()[3..0], 0)
+                    } catch {
+                        throw [System.InvalidOperationException]::new("Invalid fleet automation node pool start IP address: '$firstIpAddress'. Verify the Planning & Preparation workbook contains a valid IPv4 address.")
+                    }
+
+                    try {
+                        $lastIpInt  = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($lastIpAddress).GetAddressBytes()[3..0], 0)
+                    } catch {
+                        throw [System.InvalidOperationException]::new("Invalid fleet automation node pool end IP address: '$lastIpAddress'. Verify the Planning & Preparation workbook contains a valid IPv4 address.")
+                    }
+
                     $ipAddressPool = $firstIpInt..$lastIpInt | ForEach-Object {
                         [System.Net.IPAddress]::new([System.BitConverter]::GetBytes([UInt32]$_)[3..0]).ToString()
                     }
@@ -2463,8 +2699,28 @@ Function New-SharedInstanceObject
                     
                     $firstIpAddress = $pnpWorkbook.Workbook.Names["flt_def_auto_node_pool_start_ip"].Value
                     $lastIpAddress = $pnpWorkbook.Workbook.Names["flt_def_auto_node_pool_end_ip"].Value
-                    $firstIpInt = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($firstIpAddress).GetAddressBytes()[3..0], 0)
-                    $lastIpInt  = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($lastIpAddress).GetAddressBytes()[3..0], 0)
+
+                    # Validate IP addresses are provided and in valid format
+                    if ([String]::IsNullOrWhiteSpace($firstIpAddress)) {
+                        throw [System.InvalidOperationException]::new("Fleet automation node pool start IP address is empty or not configured in the Planning & Preparation workbook")
+                    }
+                    if ([String]::IsNullOrWhiteSpace($lastIpAddress)) {
+                        throw [System.InvalidOperationException]::new("Fleet automation node pool end IP address is empty or not configured in the Planning & Preparation workbook")
+                    }
+
+                    # Validate IP address format
+                    try {
+                        $firstIpInt = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($firstIpAddress).GetAddressBytes()[3..0], 0)
+                    } catch {
+                        throw [System.InvalidOperationException]::new("Invalid fleet automation node pool start IP address: '$firstIpAddress'. Verify the Planning & Preparation workbook contains a valid IPv4 address.")
+                    }
+
+                    try {
+                        $lastIpInt  = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($lastIpAddress).GetAddressBytes()[3..0], 0)
+                    } catch {
+                        throw [System.InvalidOperationException]::new("Invalid fleet automation node pool end IP address: '$lastIpAddress'. Verify the Planning & Preparation workbook contains a valid IPv4 address.")
+                    }
+
                     $ipAddressPool = $firstIpInt..$lastIpInt | ForEach-Object {
                         [System.Net.IPAddress]::new([System.BitConverter]::GetBytes([UInt32]$_)[3..0]).ToString()
                     }
@@ -5931,7 +6187,18 @@ Function New-ManagementDomainJsonFile
         $managementDomainObject | Add-Member -notepropertyname 'sddcManagerSpec' -notepropertyvalue ($sddcManagerObject | Select-Object -Skip 0)
 
         $outputFileName = If ($targetFilePath) {
-            $targetFilePath
+            $basePath = (Get-Location).Path
+            $resolvedPath = [System.IO.Path]::GetFullPath($targetFilePath, $basePath)
+
+            If (-not $resolvedPath.StartsWith($basePath)) {
+                throw [System.Security.SecurityException]::new("Path traversal detected: target path must be within current directory. Attempted: $targetFilePath")
+            }
+
+            If ($resolvedPath -match '\.{2}[\\/]') {
+                throw [System.Security.SecurityException]::new("Invalid path: path traversal sequences are not permitted. Attempted: $targetFilePath")
+            }
+
+            $resolvedPath
         } else {
             "managementDomainSpec-$($instanceObject.domainName).json"
         }
@@ -6860,7 +7127,18 @@ Function New-WorkloadDomainJsonFile
         $workloadDomainObject[0] | Add-Member -NotePropertyName 'deployWithoutLicenseKeys' -NotePropertyValue "true"
 
         $outputFileName = If ($targetFilePath) {
-            $targetFilePath
+            $basePath = (Get-Location).Path
+            $resolvedPath = [System.IO.Path]::GetFullPath($targetFilePath, $basePath)
+
+            If (-not $resolvedPath.StartsWith($basePath)) {
+                throw [System.Security.SecurityException]::new("Path traversal detected: target path must be within current directory. Attempted: $targetFilePath")
+            }
+
+            If ($resolvedPath -match '\.{2}[\\/]') {
+                throw [System.Security.SecurityException]::new("Invalid path: path traversal sequences are not permitted. Attempted: $targetFilePath")
+            }
+
+            $resolvedPath
         } else {
             "workloadDomainSpec-$($instanceObject.domainName).json"
         }
