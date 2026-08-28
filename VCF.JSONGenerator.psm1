@@ -63,11 +63,7 @@ Function Set-VCFJsonGenerationPrequisites
     Get-Job | Wait-Job | Remove-Job | Out-Null
     Start-Job -ScriptBlock { Set-PowerCLIConfiguration -DisplayDeprecationWarnings $false -Confirm:$false -WarningAction SilentlyContinue -InformationAction SilentlyContinue } *>$null
     Get-Job | Wait-Job | Remove-Job | Out-Null
-    Start-Job -ScriptBlock { Set-PowerCLIConfiguration -InvalidCertificateAction Ignore -Confirm:$False -WarningAction SilentlyContinue -InformationAction SilentlyContinue } *>$null
-    Get-Job | Wait-Job | Remove-Job | Out-Null
     Start-Job -ScriptBlock { Set-PowerCLIConfiguration -DefaultVIServerMode multiple -Confirm:$false -WarningAction SilentlyContinue -InformationAction SilentlyContinue } *>$null
-    Get-Job | Wait-Job | Remove-Job | Out-Null
-    Start-Job -ScriptBlock { Set-PowerCLIConfiguration -WebOperationTimeoutSeconds -1 -Confirm:$false -WarningAction SilentlyContinue -InformationAction SilentlyContinue } *>$null
     Get-Job | Wait-Job | Remove-Job | Out-Null
 }
 Export-ModuleMember -function Set-VCFJsonGenerationPrequisites
@@ -11372,4 +11368,4 @@ Function New-DayNCompleteFleet
     LogMessage -Type INFO -Message "Exporting the Complete Fleet Deployment JSON to completeFleetDeploymentSpec-$($managementObject.domainName).json"
     ConvertTo-Json $completeFleetJsonObject -depth 20 | Out-File "completeFleetDeploymentSpec-$($managementObject.domainName).json"
 }
-#EndRegion Installer    
+#EndRegion Installer
