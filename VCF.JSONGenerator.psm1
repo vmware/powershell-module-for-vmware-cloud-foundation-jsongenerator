@@ -2346,16 +2346,29 @@ Function New-SharedInstanceObject
             #9.1 Automation on its own via Fleet Manager
             $vcfAutomationObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_sr_fqdn"].Value
 
-            If ($pnpWorkbook.Workbook.Names["vcf_automation_node_pool_chosen"].Value -eq "Selected")
+            If ($workbookLayout -eq "9.1" -and $pnpWorkbook.Workbook.Names["vcf_automation_node_pool_chosen"].Value -eq "Selected")
             {
                 $vcfAutomationObject | Add-Member -notepropertyname 'addressingMode' -notepropertyvalue "pool"
                 $vcfAutomationObject | Add-Member -notepropertyname 'startIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_node_pool_start_ip"].Value
                 $vcfAutomationObject | Add-Member -notepropertyname 'endIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_node_pool_end_ip"].Value
             }
+            elseif ($workbookLayout -notin @("9.0", "9.1") -and $pnpWorkbook.Workbook.Names["vcf_automation_pool_type_chosen"].Value -eq "Individual IPs")
+            {
+                $vcfAutomationObject | Add-Member -notepropertyname 'addressingMode' -notepropertyvalue "addresses"
+                $vcfAutomationObject | Add-Member -notepropertyname 'runtimeIpAddresses' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_runtime_ips"].Value
+            }
             else
             {
                 $vcfAutomationObject | Add-Member -notepropertyname 'addressingMode' -notepropertyvalue "cidr"
                 $vcfAutomationObject | Add-Member -notepropertyname 'cidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_runtime_cidr"].Value
+            }
+            If ($workbookLayout -notin @("9.0", "9.1"))
+            {
+                $vcfAutomationObject | Add-Member -notepropertyname 'dpgName'              -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_dpg"].Value
+                $vcfAutomationObject | Add-Member -notepropertyname 'gatewayCidrIpv4'     -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_gateway_cidr"].Value
+                $vcfAutomationObject | Add-Member -notepropertyname 'vCenterFqdn'          -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_vc_fqdn"].Value
+                $vcfAutomationObject | Add-Member -notepropertyname 'vCenterAdminUser'     -notepropertyvalue ("administrator@" + $pnpWorkbook.Workbook.Names["mgmt_sso_domain"].Value)
+                $vcfAutomationObject | Add-Member -notepropertyname 'vCenterAdminPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["administrator_vsphere_local_password"].Value
             }
             $vcfAutomationObject | Add-Member -notepropertyname 'vipFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["vcf_automation_vip_fqdn"].Value
             #$vcfAutomationObject | Add-Member -notepropertyname 'internalClusterCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vra_k8s_cluster_cidr_chosen"].Value
@@ -10999,11 +11012,13 @@ Function New-DayNAutomationModernJsonFile
     Param (
         [Parameter (Mandatory = $true)] [Object]$sharedInstanceObject,
         [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
-        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled
+        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled,
+        [Parameter (Mandatory = $false)] [bool]$vcenterInterrogationEnabled
     )
 
     <# Reference Sample JSON
-    '
+
+    9.1:
     {
         "componentSpecs": [
             {
@@ -11029,7 +11044,71 @@ Function New-DayNAutomationModernJsonFile
         }
     ]
     }
-    '
+
+    9.1.1 Individual IPs mode:
+    {
+      "componentSpecs": [
+        {
+          "componentType": "VCFA",
+          "deploymentType": "VspComponentSpec",
+          "sddcLcmId": "df3828ab-49b9-4917-85fd-dd14017ad43a",
+          "fqdn": "vcf_automation_vip_fqdn",
+          "version": "9.1.1.0",
+          "configSpec": {
+            "size": "small",
+            "adminSystemPassword": "vcf_automation_admin_password"
+          },
+          "vspClusterSpec": {
+            "deploymentType": "VspClusterSpec",
+            "sddcLcmId": "df3828ab-49b9-4917-85fd-dd14017ad43a",
+            "platformFqdn": "vcf_automation_sr_fqdn",
+            "systemUserPassword": "vcf_automation_admin_password",
+            "size": "vcf_automation_size_chosen",
+            "ipv4Pool": {
+              "addresses": [
+                "10.11.99.46",
+                "10.11.99.47",
+                "10.11.99.48",
+                "10.11.99.49",
+                "10.11.99.50"
+              ]
+            },
+            "networkMoId": "dvportgroup-27",
+            "gatewayCidrIpv4": "10.11.99.1/24"
+          }
+        }
+      ]
+    }
+
+    9.1.1 CIDR mode:
+    {
+      "componentSpecs": [
+        {
+          "componentType": "VCFA",
+          "deploymentType": "VspComponentSpec",
+          "sddcLcmId": "df3828ab-49b9-4917-85fd-dd14017ad43a",
+          "fqdn": "vcf_automation_vip_fqdn",
+          "version": "9.1.1.0",
+          "configSpec": {
+            "size": "small",
+            "adminSystemPassword": "vcf_automation_admin_password"
+          },
+          "vspClusterSpec": {
+            "deploymentType": "VspClusterSpec",
+            "sddcLcmId": "df3828ab-49b9-4917-85fd-dd14017ad43a",
+            "platformFqdn": "vcf_automation_sr_fqdn",
+            "systemUserPassword": "vcf_automation_admin_password",
+            "size": "vcf_automation_size_chosen",
+            "ipv4Pool": {
+              "cidr": "10.11.99.48/29",
+              "addresses": []
+            },
+            "networkMoId": "dvportgroup-27",
+            "gatewayCidrIpv4": "10.11.99.1/24"
+          }
+        }
+      ]
+    }
     #>
 
     If (!$userPromptBypass)
@@ -11072,8 +11151,64 @@ Function New-DayNAutomationModernJsonFile
         $sddclcmId = "<-- ENTER SDDC LCM ID HERE -->"
     }
 
+    If ($sharedInstanceObject.workbookLayout -notin @("9.0", "9.1"))
+    {
+        If (!$userPromptBypass)
+        {
+            LogMessage -Type QUESTION -Message "Do you wish to retrieve Network MoId from vCenter? (Y/N): " -skipnewline
+            Do
+            {
+                $vcenterInterrogationResponse = Read-Host
+            } Until ($vcenterInterrogationResponse -in "Y","N")
+            $vcenterInterrogationEnabled = ($vcenterInterrogationResponse -eq "Y")
+        }
+
+        If ($vcenterInterrogationEnabled)
+        {
+            If (!$userPromptBypass)
+            {
+                Do
+                {
+                    LogMessage -type INFO -message "vCenter FQDN: " -skipnewline
+                    $vCenterFqdn = Read-Host
+                    LogMessage -type INFO -message "vCenter Administrator: " -skipnewline
+                    $vCenterAdminUser = Read-Host
+                    LogMessage -type INFO -message "vCenter Administrator password: " -skipnewline
+                    $vCenterPassword = Read-Host -AsSecureString
+                    $decodedVcenterPassword = New-DecodedPassword -securePassword $vCenterPassword
+                    $vCenterConnection = Connect-VIServer -server $vCenterFqdn -user $vCenterAdminUser -password $decodedVcenterPassword -errorAction SilentlyContinue
+                    If (!($vCenterConnection))
+                    {
+                        LogMessage -type ERROR -message "Failed to connect to $vCenterFqdn. Please check details and try again"
+                    }
+                } Until ($vCenterConnection)
+            }
+            else
+            {
+                $vCenterConnection = Connect-VIServer -server $sharedInstanceObject.automation.vCenterFqdn -user $sharedInstanceObject.automation.vCenterAdminUser -password $sharedInstanceObject.automation.vCenterAdminPassword -errorAction SilentlyContinue
+            }
+            $networkMoId = (Get-VDPortGroup -name $sharedInstanceObject.automation.dpgName).key
+        }
+        else
+        {
+            $networkMoId = "<-- ENTER NETWORK MOID HERE -->"
+        }
+    }
+
     $ipv4PoolObject = New-Object -type psobject
-    If ($sharedInstanceObject.automation.addressingMode -eq "pool")
+    If ($sharedInstanceObject.workbookLayout -notin @("9.0", "9.1"))
+    {
+        If ($sharedInstanceObject.automation.addressingMode -eq "addresses")
+        {
+            $ipv4PoolObject | Add-Member -NotePropertyName 'addresses' -NotePropertyValue @($sharedInstanceObject.automation.runtimeIpAddresses -split ",")
+        }
+        else
+        {
+            $ipv4PoolObject | Add-Member -NotePropertyName 'cidr'      -NotePropertyValue $sharedInstanceObject.automation.cidr
+            $ipv4PoolObject | Add-Member -NotePropertyName 'addresses' -NotePropertyValue @()
+        }
+    }
+    elseif ($sharedInstanceObject.automation.addressingMode -eq "pool")
     {
         $ipRangeObject = New-Object -type psobject
         $ipRangeObject | Add-Member -NotePropertyName 'startIpAddress' -NotePropertyValue $sharedInstanceObject.automation.startIpAddress
@@ -11093,6 +11228,11 @@ Function New-DayNAutomationModernJsonFile
     $vspClusterSpecObject | Add-Member -NotePropertyName 'size' -NotePropertyValue $sharedInstanceObject.automation.size
     $vspClusterSpecObject | Add-Member -NotePropertyName 'version' -NotePropertyValue $sharedInstanceObject.version
     $vspClusterSpecObject | Add-Member -NotePropertyName 'ipv4Pool' -NotePropertyValue $ipv4PoolObject
+    If ($sharedInstanceObject.workbookLayout -notin @("9.0", "9.1"))
+    {
+        $vspClusterSpecObject | Add-Member -NotePropertyName 'networkMoId'     -NotePropertyValue $networkMoId
+        $vspClusterSpecObject | Add-Member -NotePropertyName 'gatewayCidrIpv4' -NotePropertyValue $sharedInstanceObject.automation.gatewayCidrIpv4
+    }
 
     $vcdMigratorSizeObject = New-Object -type psobject
     $vcdMigratorSizeObject | Add-Member -NotePropertyName 'size' -NotePropertyValue $sharedInstanceObject.automation.size
