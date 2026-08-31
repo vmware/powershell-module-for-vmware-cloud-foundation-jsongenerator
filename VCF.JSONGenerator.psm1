@@ -33,40 +33,131 @@ else
     [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 }
 
-#Region Exported Functions
-Function Set-VCFJsonGenerationPrequisites
-{
-    LogMessage -type INFO -message "Trusting PSGallery"
-    Set-PSRepository PSGallery -InstallationPolicy Trusted | Out-null       
-    
-    LogMessage -type INFO -message "Confirming presence of ImportExcel PowerShell Module"
-    $importExcelPresent = Get-InstalledModule -name ImportExcel -ErrorAction SilentlyContinue
-    If (!($importExcelPresent)) { Install-Module -name ImportExcel -confirm:$false}
-    LogMessage -type INFO -message "Confirming presence of VMware.PowerCLI or VCF.PowerCLI PowerShell Module"
-    $vmwarePowerCliPresent = Get-InstalledModule -name VMware.PowerCLI -ErrorAction SilentlyContinue
-    $vcfPowerCliPresent = Get-InstalledModule -name VCF.PowerCLI -ErrorAction SilentlyContinue
-    If ((!($vmwarePowerCliPresent)) -and (!($vcfPowerCliPresent))) {Install-Module -name VCF.PowerCLI -confirm:$false}
+# Minimum required module versions — update here when requirements change
+$Script:minImportExcelVersion = [Version]'7.8.0'
+$Script:minPowerCLIVersion    = [Version]'9.1.0'
 
+#Region Exported Functions
+Function Test-VCFJsonGenerationPrequisites
+{
+    $issueFound = $false
+
+    # PSGallery trust
+    LogMessage -type INFO -message "Checking PSGallery trust policy"
+    $psGallery = Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue
+    If ($psGallery.InstallationPolicy -ne 'Trusted')
+    {
+        $issueFound = $true
+        LogMessage -type ERROR -message "PSGallery is not trusted (current: '$($psGallery.InstallationPolicy)')"
+        LogMessage -type NOTE  -message "Remediation: Set-PSRepository PSGallery -InstallationPolicy Trusted"
+    }
+
+    # ImportExcel module
+    LogMessage -type INFO -message "Checking ImportExcel module (minimum version $($Script:minImportExcelVersion))"
+    $importExcel = Get-InstalledModule -Name ImportExcel -ErrorAction SilentlyContinue
+    If (-not $importExcel)
+    {
+        $issueFound = $true
+        LogMessage -type ERROR -message "ImportExcel module is not installed"
+        LogMessage -type NOTE  -message "Remediation: Install-Module ImportExcel -Confirm:`$false"
+    }
+    ElseIf ([Version]$importExcel.Version -lt $Script:minImportExcelVersion)
+    {
+        $issueFound = $true
+        LogMessage -type ERROR -message "ImportExcel version '$($importExcel.Version)' is below the required minimum '$($Script:minImportExcelVersion)'"
+        LogMessage -type NOTE  -message "Remediation: Update-Module ImportExcel -Confirm:`$false"
+    }
+
+    # VCF.PowerCLI or VMware.PowerCLI meta-package (either satisfies the check)
+    LogMessage -type INFO -message "Checking PowerCLI module (minimum version $($Script:minPowerCLIVersion))"
+    $vmwarePowerCLI  = Get-InstalledModule -Name VMware.PowerCLI           -ErrorAction SilentlyContinue
+    $vcfPowerCLI     = Get-InstalledModule -Name VCF.PowerCLI              -ErrorAction SilentlyContinue
+    $vimAutoCore     = Get-InstalledModule -Name VMware.VimAutomation.Core  -ErrorAction SilentlyContinue
+    # $powerCLIMetaPackage — meta-package only; used for pass/fail evaluation
+    $powerCLIMetaPackage = if ($vcfPowerCLI) { $vcfPowerCLI } elseif ($vmwarePowerCLI) { $vmwarePowerCLI } else { $null }
+    # $powerCLIModule — includes sub-module fallback; used only for session auto-import
+    $powerCLIModule  = if ($powerCLIMetaPackage) { $powerCLIMetaPackage } elseif ($vimAutoCore) { $vimAutoCore } else { $null }
+    If (-not $powerCLIMetaPackage)
+    {
+        $issueFound = $true
+        If ($vimAutoCore)
+        {
+            LogMessage -type ERROR -message "VMware.VimAutomation.Core sub-module is installed but no PowerCLI meta-package was found (VCF.PowerCLI or VMware.PowerCLI)"
+        }
+        Else
+        {
+            LogMessage -type ERROR -message "No PowerCLI meta-package detected (checked: VCF.PowerCLI, VMware.PowerCLI)"
+        }
+        LogMessage -type NOTE  -message "Remediation: Install-Module VCF.PowerCLI -Confirm:`$false"
+    }
+    ElseIf ([Version]$powerCLIMetaPackage.Version -lt $Script:minPowerCLIVersion)
+    {
+        $issueFound = $true
+        LogMessage -type ERROR -message "$($powerCLIMetaPackage.Name) version '$($powerCLIMetaPackage.Version)' is below the required minimum '$($Script:minPowerCLIVersion)'"
+        LogMessage -type NOTE  -message "Remediation: Install-Module VCF.PowerCLI -Confirm:`$false"
+    }
+
+    # OpenSSL (Windows only, warning — does not block)
     If ([System.Environment]::OSVersion.Platform -eq 'Win32NT')
     {
-        LogMessage -type INFO -message "Confirming presence of OpenSSL utility"
+        LogMessage -type INFO -message "Checking presence of OpenSSL utility"
         $installedSoftware = Get-InstalledSoftware
-        If (!($installedSoftware -match "OpenSSL"))
+        If (-not ($installedSoftware -match "OpenSSL"))
         {
-           LogMessage -Type WARNING -Message "OpenSSL not detected. This will prevent the retrieval of SSH fingerprints in interactive mode"
-           LogMessage -Type NOTE -Message "To enable interactive mode, please install OpenSSL and ensure its installation path is added to the system PATH variable"
+            LogMessage -type WARNING -message "OpenSSL not detected. SSH fingerprint retrieval in interactive mode will be unavailable"
+            LogMessage -type NOTE    -message "To enable interactive mode, install OpenSSL and add its installation path to the system PATH variable"
         }
     }
 
-    LogMessage -type INFO -message "Setting PowerCLI Configuration appropriately"
-    Start-Job -ScriptBlock { Set-PowerCLIConfiguration -ParticipateInCEIP $false -Confirm:$false -WarningAction SilentlyContinue -InformationAction SilentlyContinue } *>$null
-    Get-Job | Wait-Job | Remove-Job | Out-Null
-    Start-Job -ScriptBlock { Set-PowerCLIConfiguration -DisplayDeprecationWarnings $false -Confirm:$false -WarningAction SilentlyContinue -InformationAction SilentlyContinue } *>$null
-    Get-Job | Wait-Job | Remove-Job | Out-Null
-    Start-Job -ScriptBlock { Set-PowerCLIConfiguration -DefaultVIServerMode multiple -Confirm:$false -WarningAction SilentlyContinue -InformationAction SilentlyContinue } *>$null
-    Get-Job | Wait-Job | Remove-Job | Out-Null
+    # PowerCLI configuration settings — only reachable if PowerCLI is installed
+    If (-not ($vmwarePowerCLI -or $vcfPowerCLI -or $vimAutoCore))
+    {
+        LogMessage -type NOTE -message "Skipping PowerCLI configuration check — PowerCLI module is not installed"
+    }
+    else
+    {
+        # Ensure the PowerCLI cmdlets are available in this session before checking
+        If (-not (Get-Command Get-PowerCLIConfiguration -ErrorAction SilentlyContinue))
+        {
+            LogMessage -type INFO -message "Loading $($powerCLIModule.Name) into current session..."
+            Import-Module $powerCLIModule.Name -Force -ErrorAction SilentlyContinue
+        }
+    LogMessage -type INFO -message "Checking required PowerCLI configuration settings"
+    $activePowerCliConfig = Get-PowerCLIConfiguration -Scope Session -ErrorAction SilentlyContinue
+    $configRules = [ordered]@{
+        'InvalidCertificateAction'   = @{ Expected = 'Ignore';   RemediationCmd = "Set-PowerCLIConfiguration -InvalidCertificateAction Ignore -Confirm:`$false" }
+        'WebOperationTimeoutSeconds' = @{ Expected = -1;         RemediationCmd = "Set-PowerCLIConfiguration -WebOperationTimeoutSeconds -1 -Confirm:`$false" }
+        'ParticipateInCEIP'         = @{ Expected = $false;     RemediationCmd = "Set-PowerCLIConfiguration -ParticipateInCEIP `$false -Confirm:`$false" }
+        'DisplayDeprecationWarnings' = @{ Expected = $false;     RemediationCmd = "Set-PowerCLIConfiguration -DisplayDeprecationWarnings `$false -Confirm:`$false" }
+        'DefaultVIServerMode'        = @{ Expected = 'multiple'; RemediationCmd = "Set-PowerCLIConfiguration -DefaultVIServerMode multiple -Confirm:`$false" }
+    }
+    foreach ($setting in $configRules.Keys)
+    {
+        $actualValue   = $activePowerCliConfig.$setting
+        $expectedValue = $configRules[$setting].Expected
+        $isMismatch    = if ($expectedValue -is [bool]) {
+            [bool]$actualValue -ne $expectedValue
+        } else {
+            "$actualValue".ToLower() -ne "$expectedValue".ToLower()
+        }
+        If ($isMismatch)
+        {
+            $issueFound = $true
+            LogMessage -type ERROR -message "PowerCLI '$setting' effective value is not '$expectedValue' (current: '$actualValue')"
+            LogMessage -type NOTE  -message "Remediation: $($configRules[$setting].RemediationCmd)"
+        }
+    }
+    } # end PowerCLI-installed guard
+
+    If ($issueFound)
+    {
+        LogMessage -type WARNING -message "One or more prerequisites are not correctly configured."
+        LogMessage -type NOTE    -message "Select option 50 from the menu to automatically apply all required settings."
+        return
+    }
+    LogMessage -type INFO -message "All prerequisites are correctly configured"
 }
-Export-ModuleMember -function Set-VCFJsonGenerationPrequisites
+Export-ModuleMember -function Test-VCFJsonGenerationPrequisites
 
 Function Start-VCFJsonGeneration
 {
@@ -75,8 +166,102 @@ Function Start-VCFJsonGeneration
     {
         $disabledColour = "DarkGray"
         $enabledColour = "White"
+        $configRules = [ordered]@{
+            'InvalidCertificateAction'   = @{ Expected = 'Ignore';   RemediationCmd = "Set-PowerCLIConfiguration -InvalidCertificateAction Ignore -Confirm:`$false" }
+            'WebOperationTimeoutSeconds' = @{ Expected = -1;         RemediationCmd = "Set-PowerCLIConfiguration -WebOperationTimeoutSeconds -1 -Confirm:`$false" }
+            'ParticipateInCEIP'         = @{ Expected = $false;     RemediationCmd = "Set-PowerCLIConfiguration -ParticipateInCEIP `$false -Confirm:`$false" }
+            'DisplayDeprecationWarnings' = @{ Expected = $false;     RemediationCmd = "Set-PowerCLIConfiguration -DisplayDeprecationWarnings `$false -Confirm:`$false" }
+            'DefaultVIServerMode'        = @{ Expected = 'multiple'; RemediationCmd = "Set-PowerCLIConfiguration -DefaultVIServerMode multiple -Confirm:`$false" }
+        }
+
+        # One-shot: try each PowerCLI module in priority order until cmdlets become available.
+        # Falls through to the next candidate if the previous import does not expose Get-PowerCLIConfiguration.
+        If (-not (Get-Command Get-PowerCLIConfiguration -ErrorAction SilentlyContinue))
+        {
+            foreach ($autoImportName in @('VCF.PowerCLI', 'VMware.PowerCLI', 'VMware.VimAutomation.Core'))
+            {
+                If (Get-InstalledModule -Name $autoImportName -ErrorAction SilentlyContinue)
+                {
+                    Write-Host " Loading $autoImportName into current session..." -ForegroundColor DarkGray
+                    Import-Module $autoImportName -Force -ErrorAction SilentlyContinue
+                    If (Get-Command Get-PowerCLIConfiguration -ErrorAction SilentlyContinue) { break }
+                }
+            }
+        }
+
         Do {
             Clear-Host
+            $powerCLICmdletsAvailable = [bool](Get-Command Get-PowerCLIConfiguration -ErrorAction SilentlyContinue)
+            $activePowerCliConfig = if ($powerCLICmdletsAvailable) {
+                Get-PowerCLIConfiguration -Scope Session -ErrorAction SilentlyContinue
+            } else { $null }
+            $checkResults         = [ordered]@{}
+            foreach ($setting in $configRules.Keys)
+            {
+                $actualValue   = $activePowerCliConfig.$setting
+                $expectedValue = $configRules[$setting].Expected
+                $isMismatch    = if ($expectedValue -is [bool]) {
+                    [bool]$actualValue -ne $expectedValue
+                } else {
+                    "$actualValue".ToLower() -ne "$expectedValue".ToLower()
+                }
+                $currentStr  = if ($null -ne $actualValue -and "$actualValue".Trim() -ne '') { "$actualValue" } else { '(not set)' }
+                $expectedStr = if ($expectedValue -is [bool]) { "`$$($expectedValue.ToString().ToLower())" } else { "$expectedValue" }
+                $checkResults[$setting] = @{
+                    ExpectedStr    = $expectedStr
+                    CurrentStr     = $currentStr
+                    Pass           = (-not $isMismatch)
+                    RemediationCmd = $configRules[$setting].RemediationCmd
+                }
+            }
+
+            # Module prerequisite checks
+            $psGallery        = Get-PSRepository    -Name PSGallery               -ErrorAction SilentlyContinue
+            $importExcel      = Get-InstalledModule -Name ImportExcel              -ErrorAction SilentlyContinue
+            $vmwarePowerCLI   = Get-InstalledModule -Name VMware.PowerCLI          -ErrorAction SilentlyContinue
+            $vcfPowerCLI      = Get-InstalledModule -Name VCF.PowerCLI             -ErrorAction SilentlyContinue
+            $vimAutoCore      = Get-InstalledModule -Name VMware.VimAutomation.Core -ErrorAction SilentlyContinue
+            # Meta-package only — used for pass/fail; VMware.VimAutomation.Core alone does not satisfy the check
+            $powerCLIMetaPackage = if ($vcfPowerCLI) { $vcfPowerCLI } elseif ($vmwarePowerCLI) { $vmwarePowerCLI } else { $null }
+            # Includes sub-module fallback — used for session loading and config-check guard
+            $powerCLIModule   = if ($powerCLIMetaPackage) { $powerCLIMetaPackage } elseif ($vimAutoCore) { $vimAutoCore } else { $null }
+
+            # Config check is deferred if cmdlets are not loadable but a meta-package is installed;
+            # the PowerCLI module check below will block the menu and trigger the reinstall via option 50
+            $powerCLIConfigured = if (-not $powerCLICmdletsAvailable -and $powerCLIMetaPackage) {
+                $true
+            } else {
+                -not ($checkResults.Values | Where-Object { -not $_.Pass })
+            }
+
+            $moduleCheckResults = [ordered]@{
+                'PSGallery' = @{
+                    ExpectedStr    = 'Trusted'
+                    CurrentStr     = if ($psGallery) { $psGallery.InstallationPolicy } else { '(not found)' }
+                    Pass           = ($psGallery.InstallationPolicy -eq 'Trusted')
+                    RemediationCmd = "Set-PSRepository PSGallery -InstallationPolicy Trusted"
+                }
+                'ImportExcel' = @{
+                    ExpectedStr    = ">= $($Script:minImportExcelVersion)"
+                    CurrentStr     = if ($importExcel) { "$($importExcel.Version)" } else { '(not installed)' }
+                    Pass           = ($importExcel -and [Version]$importExcel.Version -ge $Script:minImportExcelVersion)
+                    RemediationCmd = if (-not $importExcel) { "Install-Module ImportExcel -Confirm:`$false" } else { "Update-Module ImportExcel -Confirm:`$false" }
+                }
+                'PowerCLI' = @{
+                    ExpectedStr    = "VCF.PowerCLI or VMware.PowerCLI >= $($Script:minPowerCLIVersion)"
+                    CurrentStr     = if ($powerCLIMetaPackage) {
+                                         if ($powerCLICmdletsAvailable) { "$($powerCLIMetaPackage.Name) $($powerCLIMetaPackage.Version)" }
+                                         else { "$($powerCLIMetaPackage.Name) $($powerCLIMetaPackage.Version) (cmdlets not available in this session)" }
+                                     } elseif ($vimAutoCore) { "VMware.VimAutomation.Core $($vimAutoCore.Version) (sub-module only)" } else { '(not installed)' }
+                    Pass           = ($powerCLIMetaPackage -and [Version]$powerCLIMetaPackage.Version -ge $Script:minPowerCLIVersion)
+                    RemediationCmd = "Install-Module VCF.PowerCLI -Confirm:`$false"
+                }
+            }
+            $modulesReady        = -not ($moduleCheckResults.Values | Where-Object { -not $_.Pass })
+            # Separate flag: meta-package is installed and version passes, and cmdlets are loadable in this session
+            $powerCLICmdletsLoadable = (-not $powerCLIMetaPackage -or $powerCLICmdletsAvailable)
+            $prerequisitesMet        = $modulesReady -and $powerCLIConfigured -and $powerCLICmdletsLoadable
+
             $headingItem01 = "Load Workbook (Enabled)"
             $menuItem01 = "Choose Planning & Preparation Workbook to use for JSON Generation"
             $menuItem02 = "Transfer contents from older Planning & Preparation Workbook to current version"
@@ -516,6 +701,48 @@ Function Start-VCFJsonGeneration
                 $automationDayNColour = $disabledColour
             }
 
+            # Prerequisites section — evaluated last so it can override all other colours
+            If ($prerequisitesMet)
+            {
+                $headingItem06         = "Prerequisites (All Settings Verified)"
+                $menuItem50            = "Configure Prerequisites (Not required - all settings verified)"
+                $powerCLIMenuColour    = $disabledColour
+                $powerCLIHeadingColour = "Yellow"
+                $standardHeadingColour  = "Yellow"
+                $standardMenuItemColour = "White"
+            }
+            else
+            {
+                $headingItem06         = "Prerequisites (Action Required)"
+                $menuItem50            = "Configure Prerequisites"
+                $powerCLIMenuColour    = $enabledColour
+                $powerCLIHeadingColour = "Red"
+                $standardHeadingColour  = $disabledColour
+                $standardMenuItemColour = $disabledColour
+                $managementMenuItemColour           = $disabledColour
+                $managementMenuNetworkPoolColour     = $disabledColour
+                $managementMenuStretchedClusterColour = $disabledColour
+                $managementMenuEdgeClusterColour     = $disabledColour
+                $workloadMenuItemColour              = $disabledColour
+                $workloadMenuStretchedClusterColour  = $disabledColour
+                $workloadMenuEdgeClusterColour       = $disabledColour
+                $clusterMenuNetworkPoolColour        = $disabledColour
+                $clusterMenuCommissionHostsColour    = $disabledColour
+                $clusterMenuSingleRackHCIColour      = $disabledColour
+                $clusterMenuSingleRackStorageColour  = $disabledColour
+                $clusterMenuSingleRackComputeColour  = $disabledColour
+                $clusterMenuMultiRackHCIColour       = $disabledColour
+                $clusterMenuMultiRackStorageColour   = $disabledColour
+                $clusterMenuMultiRackComputeColour   = $disabledColour
+                $clusterMenuStretchedColour          = $disabledColour
+                $completeFleetDayNColour             = $disabledColour
+                $automationDayNColour                = $disabledColour
+                $logsDayNColour                      = $disabledColour
+                $networksDayNColour                  = $disabledColour
+                $idbDayNColour                       = $disabledColour
+                $realTimeMetricsDayNColour           = $disabledColour
+            }
+
             If ($workbookProfile) 
             {
                 $specificationText = $workbookProfile.deploymentSpecification
@@ -542,25 +769,25 @@ Function Start-VCFJsonGeneration
             Write-Host " | Operation: " -nonewline -ForegroundColor Cyan
             Write-Host "$operationText" -ForegroundColor Green
             
-            Write-Host ""; Write-Host -Object " $headingItem01" -ForegroundColor Yellow
-            Write-Host -Object " 01. $menuItem01" -ForegroundColor White
-            Write-Host -Object " 02. $menuItem02" -ForegroundColor White
-            
-            Write-Host ""; Write-Host -Object " $headingItem02" -ForegroundColor Yellow
+            Write-Host ""; Write-Host -Object " $headingItem01" -ForegroundColor $standardHeadingColour
+            Write-Host -Object " 01. $menuItem01" -ForegroundColor $standardMenuItemColour
+            Write-Host -Object " 02. $menuItem02" -ForegroundColor $standardMenuItemColour
+
+            Write-Host ""; Write-Host -Object " $headingItem02" -ForegroundColor $standardHeadingColour
             Write-Host -Object " 10. $menuItem10" -ForegroundColor $managementMenuItemColour
             Write-Host -Object " 11. $menuItem11" -ForegroundColor $managementMenuNetworkPoolColour
             Write-Host -Object " 12. $menuItem12" -ForegroundColor $managementMenuStretchedClusterColour
             Write-Host -Object " 13. $menuItem13" -ForegroundColor $managementMenuStretchedClusterColour
             Write-Host -Object " 14. $menuItem14" -ForegroundColor $managementMenuEdgeClusterColour
             
-            Write-Host ""; Write-Host -Object " $headingItem03" -ForegroundColor Yellow
+            Write-Host ""; Write-Host -Object " $headingItem03" -ForegroundColor $standardHeadingColour
             Write-Host -Object " 20. $menuItem20" -ForegroundColor $workloadMenuItemColour
             Write-Host -Object " 21. $menuItem21" -ForegroundColor $workloadMenuItemColour
             Write-Host -Object " 22. $menuItem22" -ForegroundColor $workloadMenuItemColour
             Write-Host -Object " 23. $menuItem23" -ForegroundColor $workloadMenuStretchedClusterColour
             Write-Host -Object " 24. $menuItem24" -ForegroundColor $workloadMenuEdgeClusterColour
 
-            Write-Host ""; Write-Host -Object " $headingItem04" -ForegroundColor Yellow
+            Write-Host ""; Write-Host -Object " $headingItem04" -ForegroundColor $standardHeadingColour
             Write-Host -Object " 30. $menuItem30" -ForegroundColor $clusterMenuNetworkPoolColour
             Write-Host -Object " 31. $menuItem31" -ForegroundColor $clusterMenuCommissionHostsColour
             Write-Host -Object " 32. $menuItem32" -ForegroundColor $clusterMenuSingleRackHCIColour
@@ -571,20 +798,53 @@ Function Start-VCFJsonGeneration
             Write-Host -Object " 37. $menuItem37" -ForegroundColor $clusterMenuMultiRackComputeColour
             Write-Host -Object " 38. $menuItem38" -ForegroundColor $clusterMenuStretchedColour
             
-            Write-Host ""; Write-Host -Object " $headingItem05" -ForegroundColor Yellow
+            Write-Host ""; Write-Host -Object " $headingItem05" -ForegroundColor $standardHeadingColour
             Write-Host -Object " 40. $menuItem40" -ForegroundColor $completeFleetDayNColour
             Write-Host -Object " 41. $menuItem41" -ForegroundColor $automationDayNColour
             Write-Host -Object " 42. $menuItem42" -ForegroundColor $logsDayNColour
             Write-Host -Object " 43. $menuItem43" -ForegroundColor $networksDayNColour
             Write-Host -Object " 44. $menuItem44" -ForegroundColor $idbDayNColour
             Write-Host -Object " 45. $menuItem45" -ForegroundColor $realTimeMetricsDayNColour
-            
+
+            Write-Host ""; Write-Host -Object " $headingItem06" -ForegroundColor $powerCLIHeadingColour
+            Write-Host -Object " 50. $menuItem50" -ForegroundColor $powerCLIMenuColour
+            If (-not $prerequisitesMet)
+            {
+                foreach ($entry in $moduleCheckResults.GetEnumerator())
+                {
+                    If (-not $entry.Value.Pass)
+                    {
+                        $entryPadded = ("      " + $entry.Key).PadRight(42)
+                        Write-Host "$entryPadded FAIL  [current: $($entry.Value.CurrentStr) | required: $($entry.Value.ExpectedStr)]" -ForegroundColor Red
+                    }
+                }
+                If (-not $powerCLICmdletsLoadable)
+                {
+                    $entryPadded = ("      PowerCLI Cmdlets").PadRight(42)
+                    Write-Host "$entryPadded FAIL  [installed but not loadable — module dependencies missing]" -ForegroundColor Red
+                }
+                foreach ($entry in $checkResults.GetEnumerator())
+                {
+                    If (-not $entry.Value.Pass)
+                    {
+                        $entryPadded = ("      " + $entry.Key).PadRight(42)
+                        Write-Host "$entryPadded FAIL  [current: $($entry.Value.CurrentStr) | required: $($entry.Value.ExpectedStr)]" -ForegroundColor Red
+                    }
+                }
+            }
+
             Write-Host -Object ''
             $MenuInput = Read-Host -Prompt ' Select Option (or Q to go Quit)'
             $MenuInput = $MenuInput -replace "`t|`n|`r",""
             If ($MenuInput -like "0*") {$MenuInput = ($MenuInput -split("0"),2)[1]}
             Switch ($MenuInput)
             {
+                { ($_ -notin @('50','Q')) -and ($_ -ne '') -and (-not $prerequisitesMet) } {
+                    LogMessage -type WARNING -message "Prerequisites must be configured before the menu is available."
+                    LogMessage -type NOTE    -message "Select option 50 to automatically apply all required prerequisites."
+                    anykey
+                    break
+                }
                 1 {
                     Clear-Host; Write-Host `n " Version $utilityBuild > Load Planning & Preparation Workbook  > $menuItem01" -Foregroundcolor Cyan; Write-Host -Object ''
                     Show-PnPFilesInFolder
@@ -932,6 +1192,313 @@ Function Start-VCFJsonGeneration
                     else
                     {
                         LogMessage -type ERROR -message "Please load a relevant Planning & Preparation Workbook and try again"
+                    }
+                    anykey
+                }
+                50
+                {
+                    Clear-Host; Write-Host `n " Version $utilityBuild > Prerequisites > $menuItem50" -Foregroundcolor Cyan; Write-Host -Object ''
+
+                    Write-Host " Installed PowerShell Modules" -ForegroundColor Cyan
+                    @(
+                        Get-InstalledModule -Name ImportExcel               -ErrorAction SilentlyContinue
+                        Get-InstalledModule -Name VMware.PowerCLI           -ErrorAction SilentlyContinue
+                        Get-InstalledModule -Name VCF.PowerCLI              -ErrorAction SilentlyContinue
+                        Get-InstalledModule -Name VMware.VimAutomation.Core  -ErrorAction SilentlyContinue
+                    ) | Where-Object { $_ } | Format-Table Name, Version -AutoSize
+
+                    Write-Host " Current PowerCLI Configuration" -ForegroundColor Cyan
+                    If ($powerCLICmdletsAvailable)
+                    {
+                        Get-PowerCLIConfiguration -Scope User, AllUsers | Format-Table Scope,DefaultVIServerMode,InvalidCertificateAction,DisplayDeprecationWarnings,WebOperationTimeoutSeconds,ParticipateInCEIP -AutoSize
+                    }
+                    ElseIf ($powerCLIMetaPackage)
+                    {
+                        Write-Host "  (cmdlets not available in this session — see issue details below)" -ForegroundColor DarkGray
+                    }
+                    Else
+                    {
+                        LogMessage -type WARNING -message "PowerCLI is not installed — configuration table unavailable"
+                    }
+
+                    If ($prerequisitesMet)
+                    {
+                        LogMessage -type INFO -message "All prerequisites are correctly configured. No action required."
+                    }
+                    else
+                    {
+                        $moduleIssues = $moduleCheckResults.Values | Where-Object { -not $_.Pass }
+                        $configIssues = $checkResults.Values        | Where-Object { -not $_.Pass }
+
+                        If (-not $powerCLICmdletsLoadable)
+                        {
+                            Write-Host " PowerCLI Cmdlets Not Available" -ForegroundColor Yellow
+                            Write-Host "  $($powerCLIMetaPackage.Name) $($powerCLIMetaPackage.Version) is installed but its cmdlets could not be loaded — module dependencies may be missing." -ForegroundColor Gray
+                            Write-Host ""
+                        }
+
+                        If ($moduleIssues)
+                        {
+                            Write-Host " Module Prerequisites Require Correction" -ForegroundColor Yellow
+                            Write-Host ""
+                            foreach ($entry in $moduleCheckResults.GetEnumerator())
+                            {
+                                If (-not $entry.Value.Pass)
+                                {
+                                    Write-Host "  Module  : $($entry.Key)" -ForegroundColor White
+                                    Write-Host "  Current : $($entry.Value.CurrentStr)" -ForegroundColor Red
+                                    Write-Host "  Required: $($entry.Value.ExpectedStr)" -ForegroundColor Green
+                                    Write-Host "  Command : $($entry.Value.RemediationCmd)" -ForegroundColor Cyan
+                                    Write-Host ""
+                                }
+                            }
+                        }
+
+                        If ($configIssues)
+                        {
+                            If ($powerCLICmdletsAvailable)
+                            {
+                                Write-Host " PowerCLI Settings Requiring Correction" -ForegroundColor Yellow
+                                Write-Host ""
+                                foreach ($entry in $checkResults.GetEnumerator())
+                                {
+                                    If (-not $entry.Value.Pass)
+                                    {
+                                        Write-Host "  Setting : $($entry.Key)" -ForegroundColor White
+                                        Write-Host "  Current : $($entry.Value.CurrentStr)" -ForegroundColor Red
+                                        Write-Host "  Required: $($entry.Value.ExpectedStr)" -ForegroundColor Green
+                                        Write-Host "  Command : $($entry.Value.RemediationCmd)" -ForegroundColor Cyan
+                                        Write-Host ""
+                                    }
+                                }
+                            }
+                            Else
+                            {
+                                Write-Host " PowerCLI Settings" -ForegroundColor Yellow
+                                Write-Host "  Configuration settings will be validated once PowerCLI cmdlets are available." -ForegroundColor Gray
+                                Write-Host ""
+                            }
+                        }
+
+                        If ($moduleIssues -or ($configIssues -and $powerCLICmdletsAvailable) -or -not $powerCLICmdletsLoadable)
+                        {
+                        Write-Host ""
+                        # Track whether this is a config-only fix — if so, the initial Y/N is the
+                        # config gate and Step 3 applies settings directly without a second prompt.
+                        $configOnlyFix   = ($modulesReady -and $powerCLICmdletsLoadable)
+                        $confirm50Prompt = If ($configOnlyFix) {
+                            " Apply all corrective PowerCLI configuration settings now? (Y/N)"
+                        } Else {
+                            " Install and repair required modules now? PowerCLI configuration settings will be confirmed separately. (Y/N)"
+                        }
+                        $confirm50 = Read-Host $confirm50Prompt
+                        If ($confirm50.Trim() -eq 'Y' -or $confirm50.Trim() -eq 'y')
+                        {
+                            Write-Host ""
+                            $applyError = $false
+
+                            # ── Step 1: Repair PowerCLI if cmdlets are not loadable ────────────────
+                            If (-not $powerCLICmdletsLoadable)
+                            {
+                                LogMessage -type INFO -message "Reinstalling VCF.PowerCLI to restore missing module dependencies..."
+                                try
+                                {
+                                    Install-Module VCF.PowerCLI -Confirm:$false -AllowClobber -Force -WarningAction SilentlyContinue | Out-Null
+                                    Import-Module  VCF.PowerCLI -Force -ErrorAction SilentlyContinue
+                                    If (Get-Command Get-PowerCLIConfiguration -ErrorAction SilentlyContinue)
+                                    {
+                                        LogMessage -type NOTE -message "VCF.PowerCLI repaired — cmdlets now available in this session"
+                                    }
+                                    Else
+                                    {
+                                        $applyError = $true
+                                        LogMessage -type WARNING -message "VCF.PowerCLI reinstalled but cmdlets are still not available"
+                                        LogMessage -type NOTE    -message "Close this PowerShell window and start a new session to complete setup"
+                                    }
+                                }
+                                catch
+                                {
+                                    $applyError = $true
+                                    LogMessage -type ERROR -message "Failed to repair VCF.PowerCLI: $_"
+                                }
+                            }
+
+                            # ── Step 2: Apply all module prerequisites ─────────────────────────────
+                            If ($moduleIssues)
+                            {
+                                LogMessage -type INFO -message "Applying required module prerequisites..."
+                                foreach ($entry in $moduleCheckResults.GetEnumerator())
+                                {
+                                    If (-not $entry.Value.Pass)
+                                    {
+                                        LogMessage -type INFO -message "Resolving $($entry.Key)..."
+                                        try
+                                        {
+                                            switch ($entry.Key)
+                                            {
+                                                'PSGallery'   { Set-PSRepository PSGallery -InstallationPolicy Trusted | Out-Null }
+                                                'ImportExcel' {
+                                                    If (-not $importExcel) { Install-Module ImportExcel -Confirm:$false -WarningAction SilentlyContinue | Out-Null }
+                                                    else                   { Update-Module  ImportExcel -Confirm:$false -WarningAction SilentlyContinue | Out-Null }
+                                                }
+                                                'PowerCLI' {
+                                                    Install-Module VCF.PowerCLI -Confirm:$false -AllowClobber -WarningAction SilentlyContinue | Out-Null
+                                                    Import-Module  VCF.PowerCLI -Force -ErrorAction SilentlyContinue
+                                                    If (Get-Command Get-PowerCLIConfiguration -ErrorAction SilentlyContinue)
+                                                    {
+                                                        LogMessage -type NOTE -message "VCF.PowerCLI loaded into session"
+                                                    }
+                                                    Else
+                                                    {
+                                                        LogMessage -type NOTE -message "VCF.PowerCLI installed — close PowerShell and open a new session for cmdlets to become available"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        catch
+                                        {
+                                            $applyError = $true
+                                            LogMessage -type ERROR -message "Failed to resolve '$($entry.Key)': $_"
+                                        }
+                                    }
+                                }
+                            }
+
+                            # ── Step 3: Unified config gate (after all module fixes) ───────────────
+                            # If this was a config-only fix, the initial Y/N already served as consent
+                            # so settings are applied directly. If modules were installed/repaired,
+                            # a separate confirmation is shown so the user can review what changed.
+                            If (Get-Command Get-PowerCLIConfiguration -ErrorAction SilentlyContinue)
+                            {
+                                $activePowerCliConfigRepair = Get-PowerCLIConfiguration -Scope Session -ErrorAction SilentlyContinue
+                                $checkResultsRepair         = [ordered]@{}
+                                foreach ($setting in $configRules.Keys)
+                                {
+                                    $actualValue   = $activePowerCliConfigRepair.$setting
+                                    $expectedValue = $configRules[$setting].Expected
+                                    $isMismatch    = if ($expectedValue -is [bool]) { [bool]$actualValue -ne $expectedValue } else { "$actualValue".ToLower() -ne "$expectedValue".ToLower() }
+                                    If ($isMismatch)
+                                    {
+                                        $currentStr  = if ($null -ne $actualValue -and "$actualValue".Trim() -ne '') { "$actualValue" } else { '(not set)' }
+                                        $expectedStr = if ($expectedValue -is [bool]) { "`$$($expectedValue.ToString().ToLower())" } else { "$expectedValue" }
+                                        $checkResultsRepair[$setting] = @{ CurrentStr = $currentStr; ExpectedStr = $expectedStr }
+                                    }
+                                }
+
+                                If ($checkResultsRepair.Count -gt 0)
+                                {
+                                    Write-Host ""
+                                    Write-Host " PowerCLI Settings Requiring Correction" -ForegroundColor Yellow
+                                    Write-Host ""
+                                    foreach ($entry in $checkResultsRepair.GetEnumerator())
+                                    {
+                                        Write-Host "  Setting : $($entry.Key)" -ForegroundColor White
+                                        Write-Host "  Current : $($entry.Value.CurrentStr)" -ForegroundColor Red
+                                        Write-Host "  Required: $($entry.Value.ExpectedStr)" -ForegroundColor Green
+                                        Write-Host ""
+                                    }
+                                    If ($configOnlyFix)
+                                    {
+                                        $applyConfig = $true  # initial Y/N already confirmed — apply directly
+                                    }
+                                    Else
+                                    {
+                                        $confirmRepairConfig = Read-Host " Apply these PowerCLI configuration settings now? (Y/N)"
+                                        $applyConfig = ($confirmRepairConfig.Trim() -eq 'Y' -or $confirmRepairConfig.Trim() -eq 'y')
+                                    }
+                                    If ($applyConfig)
+                                    {
+                                        foreach ($setting in $checkResultsRepair.Keys)
+                                        {
+                                            LogMessage -type INFO -message "Setting $setting..."
+                                            try
+                                            {
+                                                switch ($setting)
+                                                {
+                                                    'InvalidCertificateAction'   { Set-PowerCLIConfiguration -InvalidCertificateAction Ignore  -Scope User -Confirm:$false -WarningAction SilentlyContinue -InformationAction SilentlyContinue | Out-Null }
+                                                    'WebOperationTimeoutSeconds' { Set-PowerCLIConfiguration -WebOperationTimeoutSeconds -1    -Scope User -Confirm:$false -WarningAction SilentlyContinue -InformationAction SilentlyContinue | Out-Null }
+                                                    'ParticipateInCEIP'         { Set-PowerCLIConfiguration -ParticipateInCEIP $false         -Scope User -Confirm:$false -WarningAction SilentlyContinue -InformationAction SilentlyContinue | Out-Null }
+                                                    'DisplayDeprecationWarnings' { Set-PowerCLIConfiguration -DisplayDeprecationWarnings $false -Scope User -Confirm:$false -WarningAction SilentlyContinue -InformationAction SilentlyContinue | Out-Null }
+                                                    'DefaultVIServerMode'        { Set-PowerCLIConfiguration -DefaultVIServerMode multiple    -Scope User -Confirm:$false -WarningAction SilentlyContinue -InformationAction SilentlyContinue | Out-Null }
+                                                }
+                                            }
+                                            catch
+                                            {
+                                                $applyError = $true
+                                                LogMessage -type ERROR -message "Failed to set '$setting': $_"
+                                            }
+                                        }
+                                    }
+                                }
+                                Else
+                                {
+                                    LogMessage -type INFO -message "PowerCLI configuration settings are already correct"
+                                }
+                            }
+                            ElseIf (-not $applyError)
+                            {
+                                LogMessage -type NOTE -message "PowerCLI cmdlets are not yet available — open a new PowerShell session to complete configuration"
+                            }
+
+                            Write-Host ""
+                            Write-Host " Updated PowerCLI Configuration:" -ForegroundColor Cyan
+                            If (Get-Command Get-PowerCLIConfiguration -ErrorAction SilentlyContinue)
+                            {
+                                Get-PowerCLIConfiguration -Scope User, AllUsers | Format-Table Scope,DefaultVIServerMode,InvalidCertificateAction,DisplayDeprecationWarnings,WebOperationTimeoutSeconds,ParticipateInCEIP -AutoSize
+                            }
+                            else
+                            {
+                                LogMessage -type WARNING -message "PowerCLI cmdlets not yet available in this session — restart PowerShell to complete configuration verification"
+                            }
+
+                            # Re-evaluate after applying to surface any remaining issues
+                            $remainingIssues     = [System.Collections.Generic.List[string]]::new()
+                            $psGalleryPost      = Get-PSRepository    -Name PSGallery               -ErrorAction SilentlyContinue
+                            $importExcelPost    = Get-InstalledModule -Name ImportExcel              -ErrorAction SilentlyContinue
+                            $vcfPowerCLIPost    = Get-InstalledModule -Name VCF.PowerCLI             -ErrorAction SilentlyContinue
+                            $vmwarePowerCLIPost = Get-InstalledModule -Name VMware.PowerCLI          -ErrorAction SilentlyContinue
+                            $vimAutoCorePost    = Get-InstalledModule -Name VMware.VimAutomation.Core -ErrorAction SilentlyContinue
+                            $powerCLIModulePost = if ($vcfPowerCLIPost) { $vcfPowerCLIPost } elseif ($vmwarePowerCLIPost) { $vmwarePowerCLIPost } elseif ($vimAutoCorePost) { $vimAutoCorePost } else { $null }
+
+                            If (-not $psGalleryPost -or $psGalleryPost.InstallationPolicy -ne 'Trusted')
+                                { $remainingIssues.Add("PSGallery InstallationPolicy is not 'Trusted'") }
+                            If (-not $importExcelPost -or [Version]$importExcelPost.Version -lt $Script:minImportExcelVersion)
+                                { $remainingIssues.Add("ImportExcel $(if ($importExcelPost) { "version $($importExcelPost.Version) is below minimum $Script:minImportExcelVersion" } else { 'is not installed' })") }
+                            If (-not $powerCLIModulePost -or [Version]$powerCLIModulePost.Version -lt $Script:minPowerCLIVersion)
+                                { $remainingIssues.Add("PowerCLI module $(if ($powerCLIModulePost) { "version $($powerCLIModulePost.Version) is below minimum $Script:minPowerCLIVersion" } else { 'is not installed' })") }
+
+                            If (Get-Command Get-PowerCLIConfiguration -ErrorAction SilentlyContinue)
+                            {
+                                $activePowerCliConfigPost = Get-PowerCLIConfiguration -Scope Session -ErrorAction SilentlyContinue
+                                foreach ($setting in $configRules.Keys)
+                                {
+                                    $actualValuePost   = $activePowerCliConfigPost.$setting
+                                    $expectedValuePost = $configRules[$setting].Expected
+                                    $isMismatchPost    = if ($expectedValuePost -is [bool]) { [bool]$actualValuePost -ne $expectedValuePost } else { "$actualValuePost".ToLower() -ne "$expectedValuePost".ToLower() }
+                                    If ($isMismatchPost) { $remainingIssues.Add("PowerCLI '$setting' is '$actualValuePost' (required: '$expectedValuePost')") }
+                                }
+                            }
+
+                            If ($applyError)
+                            {
+                                LogMessage -type ERROR -message "One or more prerequisites could not be applied. Check permissions and try again."
+                            }
+                            ElseIf ($remainingIssues.Count -gt 0)
+                            {
+                                LogMessage -type WARNING -message "Settings applied — the following items still require attention:"
+                                foreach ($issue in $remainingIssues) { LogMessage -type NOTE -message $issue }
+                                LogMessage -type NOTE -message "Select option 50 from the menu to apply the remaining settings"
+                            }
+                            Else
+                            {
+                                LogMessage -type INFO -message "All prerequisites applied successfully. Returning to menu."
+                            }
+                        }
+                        else
+                        {
+                            LogMessage -type ADVISORY -message "No changes applied. Returning to menu."
+                        }
+                        }
                     }
                     anykey
                 }
