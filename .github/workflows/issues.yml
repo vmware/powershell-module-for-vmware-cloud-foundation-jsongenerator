@@ -1,22 +1,18 @@
----
-name: Issue Labels
-
+name: Label issues
 on:
   issues:
     types:
-    - opened
-
+      - reopened
+      - opened
 jobs:
-  label-issues:
+  label_issues:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
       issues: write
     steps:
-      - name: Apply Labels
-        uses: github/issue-labeler@c1b0f9f52a63158c4adc09425e858e87b32e9685 # v3.4
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          configuration-path: .github/labeler-issues.yml
-          enable-versioned-regex: 0
-          include-title: 1
+      - run: gh issue edit "$NUMBER" --add-label "$LABELS"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.issue.number }}
+          LABELS: triage
