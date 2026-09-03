@@ -33,47 +33,85 @@ else
     [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
 }
 
-#Region Exported Functions
-Function Set-VCFJsonGenerationPrequisites
-{
-    LogMessage -type INFO -message "Trusting PSGallery"
-    Set-PSRepository PSGallery -InstallationPolicy Trusted | Out-null       
-    
-    LogMessage -type INFO -message "Confirming presence of ImportExcel PowerShell Module"
-    $importExcelPresent = Get-InstalledModule -name ImportExcel -ErrorAction SilentlyContinue
-    If (!($importExcelPresent)) { Install-Module -name ImportExcel -confirm:$false}
-    LogMessage -type INFO -message "Confirming presence of VMware.PowerCLI or VCF.PowerCLI PowerShell Module"
-    $vmwarePowerCliPresent = Get-InstalledModule -name VMware.PowerCLI -ErrorAction SilentlyContinue
-    $vcfPowerCliPresent = Get-InstalledModule -name VCF.PowerCLI -ErrorAction SilentlyContinue
-    If ((!($vmwarePowerCliPresent)) -and (!($vcfPowerCliPresent))) {Install-Module -name VCF.PowerCLI -confirm:$false}
+#Region Internal Helper Functions (not exported)
 
-    If ([System.Environment]::OSVersion.Platform -eq 'Win32NT')
+# Checks the prerequisites the generator actually depends on, without mutating global
+# PowerCLI configuration or auto-installing anything. Reports every unmet prerequisite
+# at once and returns $false so the caller can bail before doing any real work.
+Function Test-VCFJsonGeneratorPrerequisite
+{
+    $allPrerequisitesMet = $true
+
+    If ($PSVersionTable.PSVersion.Major -lt 7)
     {
-        LogMessage -type INFO -message "Confirming presence of OpenSSL utility"
-        $installedSoftware = Get-InstalledSoftware
-        If (!($installedSoftware -match "OpenSSL"))
-        {
-           LogMessage -Type WARNING -Message "OpenSSL not detected. This will prevent the retrieval of SSH fingerprints in interactive mode"
-           LogMessage -Type NOTE -Message "To enable interactive mode, please install OpenSSL and ensure its installation path is added to the system PATH variable"
-        }
+        LogMessage -type ERROR -message "PowerShell 7.0 or later is required. Detected version: $($PSVersionTable.PSVersion). Download the latest release from https://github.com/PowerShell/PowerShell/releases"
+        $allPrerequisitesMet = $false
     }
 
-    LogMessage -type INFO -message "Setting PowerCLI Configuration appropriately"
-    Start-Job -ScriptBlock { Set-PowerCLIConfiguration -ParticipateInCEIP $false -Confirm:$false -WarningAction SilentlyContinue -InformationAction SilentlyContinue } *>$null
-    Get-Job | Wait-Job | Remove-Job | Out-Null
-    Start-Job -ScriptBlock { Set-PowerCLIConfiguration -DisplayDeprecationWarnings $false -Confirm:$false -WarningAction SilentlyContinue -InformationAction SilentlyContinue } *>$null
-    Get-Job | Wait-Job | Remove-Job | Out-Null
-    Start-Job -ScriptBlock { Set-PowerCLIConfiguration -InvalidCertificateAction Ignore -Confirm:$False -WarningAction SilentlyContinue -InformationAction SilentlyContinue } *>$null
-    Get-Job | Wait-Job | Remove-Job | Out-Null
-    Start-Job -ScriptBlock { Set-PowerCLIConfiguration -DefaultVIServerMode multiple -Confirm:$false -WarningAction SilentlyContinue -InformationAction SilentlyContinue } *>$null
-    Get-Job | Wait-Job | Remove-Job | Out-Null
-    Start-Job -ScriptBlock { Set-PowerCLIConfiguration -WebOperationTimeoutSeconds -1 -Confirm:$false -WarningAction SilentlyContinue -InformationAction SilentlyContinue } *>$null
-    Get-Job | Wait-Job | Remove-Job | Out-Null
-}
-Export-ModuleMember -function Set-VCFJsonGenerationPrequisites
+    $importExcelPresent = Get-Module -ListAvailable -Name ImportExcel
+    If (!($importExcelPresent))
+    {
+        LogMessage -type ERROR -message "The ImportExcel PowerShell module is required but was not found. Install it with: Install-Module -Name ImportExcel -Scope CurrentUser"
+        $allPrerequisitesMet = $false
+    }
 
+    $vmwarePowerCliPresent = Get-Module -ListAvailable -Name VMware.PowerCLI
+    $vcfPowerCliPresent = Get-Module -ListAvailable -Name VCF.PowerCLI
+    If ((!($vmwarePowerCliPresent)) -and (!($vcfPowerCliPresent)))
+    {
+        LogMessage -type ERROR -message "VCF.PowerCLI (or VMware.PowerCLI) is required but was not found. Install it with: Install-Module -Name VCF.PowerCLI -Scope CurrentUser"
+        $allPrerequisitesMet = $false
+    }
+
+    $opensslCommandName = If ($IsWindows) { "openssl.exe" } else { "openssl" }
+    $opensslPresent = Get-Command -Name $opensslCommandName -ErrorAction SilentlyContinue
+    If (!($opensslPresent))
+    {
+        LogMessage -type WARNING -message "OpenSSL was not found on the PATH. This will prevent retrieval of SSL/SSH fingerprints in interactive mode. Install OpenSSL and ensure its installation path is added to the system PATH variable"
+    }
+
+    Return $allPrerequisitesMet
+}
+
+# Wraps Connect-VIServer with a friendly, specific message when the failure is due to
+# an untrusted certificate. We deliberately do not suggest -InvalidCertificateAction
+# Ignore; the fix is to trust the vCenter certificate, not to stop validating it.
+Function Connect-VCFJsonGeneratorVCenter
+{
+    Param (
+        [Parameter(Mandatory = $true)] [String]$Server,
+        [Parameter(Mandatory = $true)] [String]$User,
+        [Parameter(Mandatory = $true)] [String]$Password
+    )
+
+    Try
+    {
+        Return Connect-VIServer -server $Server -user $User -password $Password -errorAction Stop
+    }
+    Catch
+    {
+        If ($_.Exception.Message -match 'SSL connection could not be established|invalid.*certificate|certificate.*invalid')
+        {
+            LogMessage -type ERROR -message "Failed to connect to $Server because its certificate is not trusted. Install a CA-signed certificate on $Server, or import its certificate into your trusted store, then try again."
+        }
+        else
+        {
+            LogMessage -type ERROR -message "Failed to connect to $Server`: $($_.Exception.Message)"
+        }
+        Return $null
+    }
+}
+#EndRegion Internal Helper Functions
+
+#Region Exported Functions
 Function Start-VCFJsonGeneration
 {
+    If (!(Test-VCFJsonGeneratorPrerequisite))
+    {
+        LogMessage -type ERROR -message "One or more prerequisites were not met. Resolve the items above and run Start-VCFJsonGeneration again."
+        Return
+    }
+
     # Common Functions
     Function New-JsonGenerationMenu
     {
@@ -7031,7 +7069,7 @@ Function New-L2vSphereClusterJsonFile
                     LogMessage -type INFO -message "vCenter Administrator password: " -skipnewline
                     $vCenterPassword = Read-Host -AsSecureString
                     $decodedVcenterPassword = New-DecodedPassword -securePassword $vCenterPassword
-                    $vCenterConnection = Connect-VIServer -server $vCenterFQDN -user $vCenterAdminUser -password $decodedvCenterPassword -errorAction SilentlyContinue
+                    $vCenterConnection = Connect-VCFJsonGeneratorVCenter -Server $vCenterFQDN -User $vCenterAdminUser -Password $decodedvCenterPassword
                     If (!($vCenterConnection))
                     {
                         LogMessage -type ERROR -message "Failed to connect to successfully read information from $vCenterFqdn. Please check details and try again"
@@ -7044,7 +7082,7 @@ Function New-L2vSphereClusterJsonFile
             New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
             If ($clusterObject.determinedClusterConfig -eq "Single-Rack Compute Only")
             {
-                $vCenterConnection = Connect-VIServer -server $vCenterFqdn -user $vCenterAdminUser -password $decodedVcenterPassword -errorAction SilentlyContinue
+                $vCenterConnection = Connect-VCFJsonGeneratorVCenter -Server $vCenterFqdn -User $vCenterAdminUser -Password $decodedVcenterPassword
             }
         }
     }
@@ -7613,7 +7651,7 @@ Function New-L3vSphereClusterJsonFile
                     LogMessage -type INFO -message "vCenter Administrator password: " -skipnewline
                     $vCenterPassword = Read-Host -AsSecureString
                     $decodedVcenterPassword = New-DecodedPassword -securePassword $vCenterPassword
-                    $vCenterConnection = Connect-VIServer -server $vCenterFQDN -user $vCenterAdminUser -password $decodedvCenterPassword -errorAction SilentlyContinue
+                    $vCenterConnection = Connect-VCFJsonGeneratorVCenter -Server $vCenterFQDN -User $vCenterAdminUser -Password $decodedvCenterPassword
                     If (!($vCenterConnection))
                     {
                         LogMessage -type ERROR -message "Failed to connect to successfully read information from $vCenterFqdn. Please check details and try again"
@@ -7626,7 +7664,7 @@ Function New-L3vSphereClusterJsonFile
             New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
             If ($clusterObject.determinedClusterConfig -eq "Multi-Rack Compute Only")
             {
-                $vCenterConnection = Connect-VIServer -server $vCenterFqdn -user $vCenterAdminUser -password $decodedVcenterPassword -errorAction SilentlyContinue
+                $vCenterConnection = Connect-VCFJsonGeneratorVCenter -Server $vCenterFqdn -User $vCenterAdminUser -Password $decodedVcenterPassword
             }
         }
     }
@@ -8472,7 +8510,7 @@ Function New-SingleOperationStretchedComputeClusterJsonFile
                 LogMessage -type INFO -message "vCenter Administrator password: " -skipnewline
                 $vCenterPassword = Read-Host -AsSecureString
                 $decodedVcenterPassword = New-DecodedPassword -securePassword $vCenterPassword
-                $vCenterConnection = Connect-VIServer -server $vCenterFQDN -user $vCenterAdminUser -password $decodedvCenterPassword -errorAction SilentlyContinue
+                $vCenterConnection = Connect-VCFJsonGeneratorVCenter -Server $vCenterFQDN -User $vCenterAdminUser -Password $decodedvCenterPassword
                 If (!($vCenterConnection))
                 {
                     LogMessage -type ERROR -message "Failed to connect to successfully read information from $vCenterFqdn. Please check details and try again"
@@ -8482,7 +8520,7 @@ Function New-SingleOperationStretchedComputeClusterJsonFile
         else
         {
             New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
-            $vCenterConnection = Connect-VIServer -server $vCenterFqdn -user $vCenterAdminUser -password $decodedVcenterPassword -errorAction SilentlyContinue
+            $vCenterConnection = Connect-VCFJsonGeneratorVCenter -Server $vCenterFqdn -User $vCenterAdminUser -Password $decodedVcenterPassword
         }
     }
     
@@ -9106,7 +9144,7 @@ Function New-CentralizedTransitGatewayJsonFile
                 LogMessage -type INFO -message "vCenter Administrator password: " -skipnewline
                 $vCenterPassword = Read-Host -AsSecureString
                 $decodedVcenterPassword = New-DecodedPassword -securePassword $vCenterPassword
-                $vCenterConnection = Connect-VIServer -server $vCenterFQDN -user $vCenterAdminUser -password $decodedvCenterPassword -errorAction SilentlyContinue
+                $vCenterConnection = Connect-VCFJsonGeneratorVCenter -Server $vCenterFQDN -User $vCenterAdminUser -Password $decodedvCenterPassword
                 If (!($vCenterConnection))
                 {
                     LogMessage -type ERROR -message "Failed to connect to successfully read information from $vCenterFqdn. Please check details and try again"
