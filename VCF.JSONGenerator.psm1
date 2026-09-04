@@ -3621,6 +3621,16 @@ Function New-WorkloadInstanceObject
         {
             $vsphereClusterArray[0] | Add-Member -notepropertyname 'vsanDIT' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_cl01_vsan_dit_chosen"].Value
             $vsphereClusterArray[0] | Add-Member -notepropertyname 'vsanRekey' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_cl01_vsan_dit_rekey_result"].Value
+
+            $supervisorSpecObject = New-Object -TypeName psobject
+            $supervisorSpecObject | Add-Member -notepropertyname 'name'              -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_cl01_supervisor_name"].Value
+            $supervisorSpecObject | Add-Member -notepropertyname 'serviceCidr'       -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_cl01_supervisor_service_cidr"].Value
+            $supervisorSpecObject | Add-Member -notepropertyname 'zoneName'          -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_cl01_cluster_zn_name"].Value
+            $supervisorSpecObject | Add-Member -notepropertyname 'controlPlaneRange' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_cl01_supervisor_control_plane_ip_range"].Value
+            $supervisorSpecObject | Add-Member -notepropertyname 'dns'               -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_cl01_supervisor_dns"].Value
+            $supervisorSpecObject | Add-Member -notepropertyname 'ntp'               -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_cl01_supervisor_ntp"].Value
+            $supervisorSpecObject | Add-Member -notepropertyname 'privateTgwCidr'    -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_cl01_supervisor_private_transit_gateway_cidr"].Value
+            $vsphereClusterArray[0] | Add-Member -notepropertyname 'supervisorSpec'  -notepropertyvalue $supervisorSpecObject
         }
 
         $nsxtManagerObject = New-Object -TypeName psobject
@@ -3685,6 +3695,7 @@ Function New-WorkloadInstanceObject
             #VMs
             $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_mgmt_vm_vlan"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_mgmt_vm_gateway_ip"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmGatewayCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_mgmt_vm_gateway_cidr"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_mgmt_vm_mtu"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_mgmt_vm_cidr"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'mgmtVmNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_mgmt_vm_network"].Value
@@ -3799,7 +3810,7 @@ Function New-WorkloadInstanceObject
                     }
                 }
                 
-                $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_dtgw_vlan"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_cl01_supervisor_ext_ip_block_vlan"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_dtgw_mtu"].Value
                 If ($workbookLayout -eq "9.0")
                 {
@@ -3810,9 +3821,10 @@ Function New-WorkloadInstanceObject
                 }
                 else 
                 {
-                    If ($pnpWorkbook.Workbook.Names["wld_vns_chosen"].value -eq "Distributed Connectivity")
+
+                    If ($pnpWorkbook.Workbook.Names["wld_centralized_connectivity_chosen"].value -eq "Distributed Connectivity")
                     {
-                        $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az1_dtgw_gateway_cidr"].Value
+                        $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_cl01_supervisor_ext_ip_block_gateway_cidr"].Value
                         $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwGw' -notepropertyvalue $networkDetails.gw
                         $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwCidr' -notepropertyvalue $networkDetails.cidr
                         $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwNetwork' -notepropertyvalue $networkDetails.network
@@ -4074,6 +4086,20 @@ Function New-WorkloadInstanceObject
         $workloadInstanceObject | Add-Member -notepropertyname 'sso' -notepropertyvalue $ssoObject
         $workloadInstanceObject | Add-Member -notepropertyname 'vsphereClusters' -notepropertyvalue $vsphereClusterArray
         $workloadInstanceObject | Add-Member -notepropertyname 'nsxtManager' -notepropertyvalue $nsxtManagerObject
+
+        If ($workbookLayout -ne "9.0")
+        {
+            $vnaObject = New-Object -TypeName psobject
+            $vnaObject | Add-Member -notepropertyname 'nodeAFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_vnaa_fqdn"].Value
+            $vnaObject | Add-Member -notepropertyname 'nodeBFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_vnab_fqdn"].Value
+            $workloadInstanceObject | Add-Member -notepropertyname 'nsxVpcType'                   -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_nsx_vpc_type_chosen"].Value
+            $workloadInstanceObject | Add-Member -notepropertyname 'centralizedConnectivityChosen' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_centralized_connectivity_chosen"].Value
+            $workloadInstanceObject | Add-Member -notepropertyname 'iaasChosen'                   -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_iaas_chosen"].Value
+            $vpcExtIpBlockNetDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_cl01_supervisor_ext_ip_block_gateway_cidr"].Value
+            $workloadInstanceObject | Add-Member -notepropertyname 'vpcExtIpBlockCidr'            -notepropertyvalue $vpcExtIpBlockNetDetails.cidr
+            $workloadInstanceObject | Add-Member -notepropertyname 'vpcExtIpBlockGatewayCidr'     -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_cl01_supervisor_ext_ip_block_gateway_cidr"].Value
+            $workloadInstanceObject | Add-Member -notepropertyname 'vna'                          -notepropertyvalue $vnaObject
+        }
 
         If ($pnpWorkbook.Workbook.Names["wld_bgp_chosen"].value -eq "Centralized Connectivity")
         {
@@ -6004,6 +6030,11 @@ Function New-WorkloadDomainJsonFile
         If (!$selectedNSXManagerWorkloadObject) {$selectedNSXManagerWorkloadObject = $instanceObject}
         If (!$singleNSXTManager) { $singleNSXTManager = $selectedNSXManagerWorkloadObject.deploymentProfile.singleNSXTManager }
 
+        $nsxVpcType   = $instanceObject.nsxVpcType
+        $connectivity = $null
+        If ($nsxVpcType -ne "VLAN backed VPC") { $connectivity = $instanceObject.centralizedConnectivityChosen }
+        $iaasChosen   = $instanceObject.iaasChosen
+
         $nsxtNode1Object = @()
         $nsxtNode1Object += [pscustomobject]@{
             'ipAddress'  = $selectedNSXManagerWorkloadObject.nsxtManager.nodeAIpAddress
@@ -6046,6 +6077,26 @@ Function New-WorkloadDomainJsonFile
             'vip'                     = $selectedNSXManagerWorkloadObject.nsxtManager.ipAddress
             'vipFqdn'                 = $selectedNSXManagerWorkloadObject.nsxtManager.fqdn
             'nsxManagerAdminPassword' = $selectedNSXManagerWorkloadObject.nsxtManager.adminPassword
+        }
+        If (($connectivity -eq "Distributed Connectivity") -or ($nsxVpcType -eq "VLAN backed VPC" -and $iaasChosen -eq "Include" -and $instanceObject.version -notlike "9.0*"))
+        {
+            $nsxtObject[0] | Add-Member -NotePropertyName 'vpcSpec' -NotePropertyValue (
+                [pscustomobject]@{
+                    'dtgwSpec' = [pscustomobject]@{
+                        'vlan'                  = [string][INT]$instanceObject.az1.rack1.network.dtgwVlanID
+                        'gatewayCidr'           = $instanceObject.vpcExtIpBlockGatewayCidr
+                        'externalIpBlockCidr'   = $instanceObject.vpcExtIpBlockCidr
+                        'privateTgwIpBlockCidr' = "172.31.0.0/16"
+                    }
+                }
+            )
+            $nsxtObject[0] | Add-Member -NotePropertyName 'vnaSpec' -NotePropertyValue (
+                [pscustomobject]@{
+                    'vnaNodesSpec'             = @($instanceObject.vna.nodeAFqdn, $instanceObject.vna.nodeBFqdn)
+                    'vnaManagementGatewayCidr' = $instanceObject.az1.rack1.network.mgmtVmGatewayCidr
+                    'vnaManagementVlanId'      = [string][INT]$instanceObject.az1.rack1.network.mgmtVmVlanID
+                }
+            )
         }
 
         $vmnicObject = @()
@@ -6687,34 +6738,52 @@ Function New-WorkloadDomainJsonFile
         }
 
         $uplinkProfilesArray = @()
-        Foreach ($rack in $rackArray)
+        If ($nsxVpcType -ne "VLAN backed VPC")
         {
-            If ((($instanceObject.rackInformation.dedicatedEdgeClusters -eq $true ) -AND ($rack -ne $instanceObject.rackInformation.edgeRackFirst) -AND ($rack -ne $instanceObject.rackInformation.edgeRackSecond)) -OR ($instanceObject.rackInformation.dedicatedEdgeClusters -eq $false))
+            Foreach ($rack in $rackArray)
             {
-                $uplinkProfile = New-Object -type PSObject
-                $uplinkProfile | Add-Member -NotePropertyName 'name' -NotePropertyValue $instanceObject.az1.$($rack).network.uplinkProfileName
-                $uplinkProfile | Add-Member -NotePropertyName 'transportVlan' -NotePropertyValue $([INT]($instanceObject.az1.$($rack).network.hostOverlayVlanID))
-                $uplinkProfile | Add-Member -NotePropertyName 'teamings' -NotePropertyValue $teamingsArray
-                $uplinkProfilesArray += $uplinkProfile
+                If ((($instanceObject.rackInformation.dedicatedEdgeClusters -eq $true ) -AND ($rack -ne $instanceObject.rackInformation.edgeRackFirst) -AND ($rack -ne $instanceObject.rackInformation.edgeRackSecond)) -OR ($instanceObject.rackInformation.dedicatedEdgeClusters -eq $false))
+                {
+                    $uplinkProfile = New-Object -type PSObject
+                    $uplinkProfile | Add-Member -NotePropertyName 'name' -NotePropertyValue $instanceObject.az1.$($rack).network.uplinkProfileName
+                    $uplinkProfile | Add-Member -NotePropertyName 'transportVlan' -NotePropertyValue $([INT]($instanceObject.az1.$($rack).network.hostOverlayVlanID))
+                    $uplinkProfile | Add-Member -NotePropertyName 'teamings' -NotePropertyValue $teamingsArray
+                    $uplinkProfilesArray += $uplinkProfile
+                }
             }
         }
 
         $nsxTClusterObject = @()
-        $nsxTClusterObject += [pscustomobject]@{
-            'ipAddressPoolsSpec' = $ipAddressPoolsSpecArray
-            'uplinkProfiles' = $uplinkProfilesArray
+        $nsxClusterObject  = @()
+        If ($nsxVpcType -eq "VLAN backed VPC")
+        {
+            $nsxTClusterObject += [pscustomobject]@{
+                'overlayVtepSpec' = [pscustomobject]@{ 'vtepType' = 'NO_IP' }
+            }
+            $nsxClusterObject += [pscustomobject]@{
+                'nsxTClusterSpec' = ($nsxTClusterObject | Select-Object -Skip 0)
+            }
+            $networkObject = @()
+            $networkObject += [pscustomobject]@{
+                'vdsSpecs'       = $vdsSpecObject
+                'nsxClusterSpec' = ($nsxClusterObject | Select-Object -Skip 0)
+            }
         }
-
-        $nsxClusterObject = @()
-        $nsxClusterObject += [pscustomobject]@{
-            'nsxTClusterSpec' = ($nsxTClusterObject | Select-Object -Skip 0)
-        }
-
-        $networkObject = @()
-        $networkObject += [pscustomobject]@{
-            'vdsSpecs'       = $vdsSpecObject
-            'networkProfiles' = @($networkProfilesArray | Select-Object)
-            'nsxClusterSpec' = ($nsxClusterObject | Select-Object -Skip 0)
+        else
+        {
+            $nsxTClusterObject += [pscustomobject]@{
+                'ipAddressPoolsSpec' = $ipAddressPoolsSpecArray
+                'uplinkProfiles'     = $uplinkProfilesArray
+            }
+            $nsxClusterObject += [pscustomobject]@{
+                'nsxTClusterSpec' = ($nsxTClusterObject | Select-Object -Skip 0)
+            }
+            $networkObject = @()
+            $networkObject += [pscustomobject]@{
+                'vdsSpecs'        = $vdsSpecObject
+                'networkProfiles' = @($networkProfilesArray | Select-Object)
+                'nsxClusterSpec'  = ($nsxClusterObject | Select-Object -Skip 0)
+            }
         }
 
         If ($instanceObject.vsphereClusters[0].storageModel -eq "VSAN-ESA")
@@ -6811,6 +6880,47 @@ Function New-WorkloadDomainJsonFile
                 $clusterImageId = "<--ENTER-SDDC-PERSONALITY-NAME-HERE-->"
             }
             $clusterObject[0] | Add-Member -NotePropertyName 'clusterImageId' -NotePropertyValue $clusterImageId
+        }
+        If ($iaasChosen -eq "Include" -and $instanceObject.version -notlike "9.0*")
+        {
+            $svcCidr  = $instanceObject.vsphereClusters[0].supervisorSpec.serviceCidr.Split("/")
+            $cpRange  = $instanceObject.vsphereClusters[0].supervisorSpec.controlPlaneRange.Split("-")
+            $dnsArray = @($instanceObject.vsphereClusters[0].supervisorSpec.dns.Split(",").Trim())
+            $ntpArray = @($instanceObject.vsphereClusters[0].supervisorSpec.ntp.Split(",").Trim())
+            $mgmtNet  = Get-NetworkDetailsFromGateway -gatewayCidr $instanceObject.az1.rack1.network.mgmtVmGatewayCidr
+
+            $vpcNetworkObject = @()
+            $vpcNetworkObject += [pscustomobject]@{
+                'dnsServers' = $dnsArray
+                'ntpServers' = $ntpArray
+            }
+            If ($nsxVpcType -ne "VLAN backed VPC" -and $connectivity -eq "Distributed Connectivity")
+            {
+                $privCidr = $instanceObject.vsphereClusters[0].supervisorSpec.privateTgwCidr.Split("/")
+                $vpcNetworkObject[0] | Add-Member -NotePropertyName 'privateCidr' -NotePropertyValue (
+                    [pscustomobject]@{ 'address' = $privCidr[0]; 'prefix' = [INT]$privCidr[1] }
+                )
+            }
+            $supervisorActivationObject = @()
+            $supervisorActivationObject += [pscustomobject]@{
+                'supervisorName' = $instanceObject.vsphereClusters[0].supervisorSpec.name
+                'serviceCidr'    = [pscustomobject]@{ 'address' = $svcCidr[0]; 'prefix' = [INT]$svcCidr[1] }
+                'zoneName'       = $instanceObject.vsphereClusters[0].supervisorSpec.zoneName
+                'managementNetwork' = [pscustomobject]@{
+                    'details' = [pscustomobject]@{
+                        'vlanId'  = [string][INT]$instanceObject.az1.rack1.network.mgmtVmVlanID
+                        'gateway' = $mgmtNet.gw
+                        'netMask' = $mgmtNet.netmask
+                        'vdsName' = $instanceObject.vsphereClusters[0].vds[0].vdsName
+                    }
+                    'controlPlaneIpRange' = [pscustomobject]@{
+                        'startIpAddress' = $cpRange[0]
+                        'endIpAddress'   = $cpRange[1]
+                    }
+                }
+                'vpcNetwork' = ($vpcNetworkObject | Select-Object -Skip 0)
+            }
+            $clusterObject[0] | Add-Member -NotePropertyName 'supervisorActivationSpec' -NotePropertyValue ($supervisorActivationObject | Select-Object -Skip 0)
         }
 
         $computeObject = @()
