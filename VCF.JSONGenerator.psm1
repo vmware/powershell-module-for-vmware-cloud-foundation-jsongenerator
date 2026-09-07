@@ -125,6 +125,16 @@ Function Start-VCFJsonGeneration
                     $menuItem14 = "Centralized Transit Gateway (Disabled: Centralized Transit Gateway not required)"
                     $managementMenuEdgeClusterColour = $disabledColour
                 }
+                If ($workbookProfile.mgmtAviLbDeployment -eq "Include")
+                {
+                    $menuItem15 = "AVI Load Balancer (Management Domain)"
+                    $managementMenuAviLbColour = $enabledColour
+                }
+                else
+                {
+                    $menuItem15 = "AVI Load Balancer (Management Domain) (Disabled: Not applicable based on loaded workbook)"
+                    $managementMenuAviLbColour = $disabledColour
+                }
             }
             else
             {
@@ -138,6 +148,8 @@ Function Start-VCFJsonGeneration
                 $managementMenuStretchedClusterColour = $disabledColour
                 $menuItem14 = "Centralized Transit Gateway"
                 $managementMenuEdgeClusterColour = $disabledColour
+                $menuItem15 = "AVI Load Balancer (Management Domain)"
+                $managementMenuAviLbColour = $disabledColour
             }
 
             If ($workloadObject)
@@ -182,6 +194,16 @@ Function Start-VCFJsonGeneration
                        $menuItem24 = "Centralized Transit Gateway"
                        $workloadMenuEdgeClusterColour = $disabledColour
                 }
+                If ($workbookProfile.wldAviLbDeployment -eq "Include")
+                {
+                    $menuItem25 = "AVI Load Balancer (Workload Domain)"
+                    $workloadMenuAviLbColour = $enabledColour
+                }
+                else
+                {
+                    $menuItem25 = "AVI Load Balancer (Workload Domain) (Disabled: Not applicable based on loaded workbook)"
+                    $workloadMenuAviLbColour = $disabledColour
+                }
             }
             else
             {
@@ -194,6 +216,8 @@ Function Start-VCFJsonGeneration
                 $menuItem22 = "Workload Domain JSON for use in SDDC Manager"
                 $menuItem23 = "Stretch Initial Cluster"
                 $menuItem24 = "Centralized Transit Gateway"
+                $menuItem25 = "AVI Load Balancer (Workload Domain)"
+                $workloadMenuAviLbColour = $disabledColour
             }
             
             If ($clusterObject)
@@ -556,6 +580,7 @@ Function Start-VCFJsonGeneration
             Write-Host -Object " 12. $menuItem12" -ForegroundColor $managementMenuStretchedClusterColour
             Write-Host -Object " 13. $menuItem13" -ForegroundColor $managementMenuStretchedClusterColour
             Write-Host -Object " 14. $menuItem14" -ForegroundColor $managementMenuEdgeClusterColour
+            Write-Host -Object " 15. $menuItem15" -ForegroundColor $managementMenuAviLbColour
             
             Write-Host ""; Write-Host -Object " $headingItem03" -ForegroundColor Yellow
             Write-Host -Object " 20. $menuItem20" -ForegroundColor $workloadMenuItemColour
@@ -563,6 +588,7 @@ Function Start-VCFJsonGeneration
             Write-Host -Object " 22. $menuItem22" -ForegroundColor $workloadMenuItemColour
             Write-Host -Object " 23. $menuItem23" -ForegroundColor $workloadMenuStretchedClusterColour
             Write-Host -Object " 24. $menuItem24" -ForegroundColor $workloadMenuEdgeClusterColour
+            Write-Host -Object " 25. $menuItem25" -ForegroundColor $workloadMenuAviLbColour
 
             Write-Host ""; Write-Host -Object " $headingItem04" -ForegroundColor Yellow
             Write-Host -Object " 30. $menuItem30" -ForegroundColor $clusterMenuNetworkPoolColour
@@ -665,6 +691,19 @@ Function Start-VCFJsonGeneration
                     }
                     anykey
                 }
+                15
+                {
+                    Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem15" -Foregroundcolor Cyan; Write-Host -Object ''
+                    If ($managementObject -and ($workbookProfile.mgmtAviLbDeployment -eq "Include"))
+                    {
+                        New-AviLbJsonFile -instanceObject $managementObject
+                    }
+                    else
+                    {
+                        LogMessage -type ERROR -message "Please load a relevant Planning & Preparation Workbook and try again"
+                    }
+                    anykey
+                }
                 20 {
                     Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem20" -Foregroundcolor Cyan; Write-Host -Object ''
                     If ($workloadObject)
@@ -720,6 +759,19 @@ Function Start-VCFJsonGeneration
                     If ($workloadObject.edgecluster)
                     {
                         New-CentralizedTransitGatewayJsonFile -instanceObject $workloadObject
+                    }
+                    else
+                    {
+                        LogMessage -type ERROR -message "Please load a relevant Planning & Preparation Workbook and try again"
+                    }
+                    anykey
+                }
+                25
+                {
+                    Clear-Host; Write-Host `n " Version $utilityBuild > VCF JSON File Generation > $menuItem25" -Foregroundcolor Cyan; Write-Host -Object ''
+                    If ($workloadObject -and ($workbookProfile.wldAviLbDeployment -eq "Include"))
+                    {
+                        New-AviLbJsonFile -instanceObject $workloadObject
                     }
                     else
                     {
@@ -1611,6 +1663,47 @@ Function Get-VCFWorkloadDomainDetails {
         ResponseException -object $_
     }
 }
+
+Function Get-VCFBundleDetails {
+    Param (
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$version,
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$componentType
+    )
+    Try {
+        New-VCFBearerAuthHeader
+        $uri = "https://$sddcManager/v1/bundles"
+        $response = Invoke-RestMethod -Method GET -Uri $uri -Headers $headers
+        If ($version -and $componentType) {
+            $response.elements | Where-Object { $_.version -like "$version*" -and $_.components.type -contains $componentType }
+        } elseIf ($componentType) {
+            $response.elements | Where-Object { $_.components.type -contains $componentType }
+        } elseIf ($version) {
+            $response.elements | Where-Object { $_.version -like "$version*" }
+        } else {
+            $response.elements
+        }
+    } Catch {
+        ResponseException -object $_
+    }
+}
+
+Function Get-VCFNsxClusterByDomain {
+    Param (
+        [Parameter (Mandatory = $false)] [ValidateNotNullOrEmpty()] [String]$domainName
+    )
+    Try {
+        New-VCFBearerAuthHeader
+        $uri = "https://$sddcManager/v1/domains"
+        $response = Invoke-RestMethod -Method GET -Uri $uri -Headers $headers
+        If ($domainName) {
+            ($response.elements | Where-Object { $_.name -eq $domainName }).nsxTCluster
+        } else {
+            $response.elements
+        }
+    } Catch {
+        ResponseException -object $_
+    }
+}
 #EndRegion Supporting SDDC Manager Functions
 
 #Region Supporting NSX Functions
@@ -1770,6 +1863,8 @@ Function Get-PnPInputFileInputs
         $Global:workbookProfile | Add-Member -NotePropertyName 'instance' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_domain_chosen"].Value
         $Global:workbookProfile | Add-Member -NotePropertyName 'chosenWorkbook' -NotePropertyValue $chosenWorkBook
         $Global:workbookProfile | Add-Member -NotePropertyName 'clusterResult' -NotePropertyValue $pnpWorkbook.Workbook.Names["cluster_result"].Value
+        $Global:workbookProfile | Add-Member -NotePropertyName 'mgmtAviLbDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_avi_loadbalancer_chosen"].Value
+        $Global:workbookProfile | Add-Member -NotePropertyName 'wldAviLbDeployment' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_avi_loadbalancer_chosen"].Value
         If ($pnpWorkbook.Workbook.Names["vcf_granular_option_chosen"].Value -eq "Deploy a new VCF fleet")
         {
             #Q1
@@ -3439,6 +3534,22 @@ Function New-ManagementInstanceObject
         }
         $managementInstanceObject | Add-Member -notepropertyname 'networkPoolCreationRequired' -notepropertyvalue $networkPoolCreationRequired
 
+        # AVI Load Balancer
+        If ($pnpWorkbook.Workbook.Names["mgmt_avi_loadbalancer_chosen"].Value -eq "Include")
+        {
+            $aviLbObject = New-Object -TypeName psobject
+            $aviLbObject | Add-Member -notepropertyname 'formFactor' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_avilb_cluster_formfactor_chosen"].Value
+            $aviLbObject | Add-Member -notepropertyname 'haMode' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_avilb_ha_chosen"].Value
+            $aviLbObject | Add-Member -notepropertyname 'version' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_avilb_cluster_version"].Value
+            $aviLbObject | Add-Member -notepropertyname 'rootPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_avilb_root_password"].Value
+            $aviLbObject | Add-Member -notepropertyname 'mgraIp' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_avilb_mgra_ip"].Value
+            $aviLbObject | Add-Member -notepropertyname 'mgrbIp' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_avilb_mgrb_ip"].Value
+            $aviLbObject | Add-Member -notepropertyname 'mgrcIp' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_avilb_mgrc_ip"].Value
+            $aviLbObject | Add-Member -notepropertyname 'fqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_avilb_fqdn"].Value
+            $aviLbObject | Add-Member -notepropertyname 'clusterName' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_avilb_cluster_name"].Value
+            $aviLbObject | Add-Member -notepropertyname 'vcfopsAdminPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_avilb_vcfops_password"].Value
+            $managementInstanceObject | Add-Member -notepropertyname 'aviLb' -notepropertyvalue $aviLbObject
+        }
 
         Return $managementInstanceObject
     }
@@ -4103,6 +4214,23 @@ Function New-WorkloadInstanceObject
             }            
         }
         $workloadInstanceObject | Add-Member -notepropertyname 'networkPoolCreationRequired' -notepropertyvalue $networkPoolCreationRequired
+
+        # AVI Load Balancer
+        If ($pnpWorkbook.Workbook.Names["wld_avi_loadbalancer_chosen"].Value -eq "Include")
+        {
+            $aviLbObject = New-Object -TypeName psobject
+            $aviLbObject | Add-Member -notepropertyname 'formFactor' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_avilb_cluster_formfactor_chosen"].Value
+            $aviLbObject | Add-Member -notepropertyname 'haMode' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_avilb_ha_chosen"].Value
+            $aviLbObject | Add-Member -notepropertyname 'version' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_avilb_cluster_version"].Value
+            $aviLbObject | Add-Member -notepropertyname 'rootPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_avilb_root_password"].Value
+            $aviLbObject | Add-Member -notepropertyname 'mgraIp' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_avilb_mgra_ip"].Value
+            $aviLbObject | Add-Member -notepropertyname 'mgrbIp' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_avilb_mgrb_ip"].Value
+            $aviLbObject | Add-Member -notepropertyname 'mgrcIp' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_avilb_mgrc_ip"].Value
+            $aviLbObject | Add-Member -notepropertyname 'fqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_avilb_fqdn"].Value
+            $aviLbObject | Add-Member -notepropertyname 'clusterName' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_avilb_cluster_name"].Value
+            $aviLbObject | Add-Member -notepropertyname 'vcfopsAdminPassword' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_avilb_vcfops_password"].Value
+            $workloadInstanceObject | Add-Member -notepropertyname 'aviLb' -notepropertyvalue $aviLbObject
+        }
 
         Return $workloadInstanceObject
     }
@@ -11372,4 +11500,112 @@ Function New-DayNCompleteFleet
     LogMessage -Type INFO -Message "Exporting the Complete Fleet Deployment JSON to completeFleetDeploymentSpec-$($managementObject.domainName).json"
     ConvertTo-Json $completeFleetJsonObject -depth 20 | Out-File "completeFleetDeploymentSpec-$($managementObject.domainName).json"
 }
-#EndRegion Installer    
+#EndRegion Installer
+
+#Region AVI Load Balancer
+Function New-AviLbJsonFile
+{
+    Param (
+        [Parameter (Mandatory = $true)] [Object]$instanceObject,
+        [Parameter (Mandatory = $false)] [switch]$userPromptBypass,
+        [Parameter (Mandatory = $false)] [bool]$componentInterrogationEnabled
+    )
+
+    If (!$userPromptBypass)
+    {
+        Do
+        {
+            LogMessage -Type QUESTION -Message "Do you wish to retrieve Bundle ID and NSX Cluster ID from SDDC Manager? (Y/N): " -skipnewline
+            $componentInterrogationResponse = Read-Host
+        } Until ($componentInterrogationResponse -in "Y","N")
+        $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
+    }
+
+    If ($componentInterrogationEnabled)
+    {
+        If (!$userPromptBypass)
+        {
+            Do
+            {
+                LogMessage -type INFO -message "SDDC Manager FQDN: " -skipnewline
+                $sddcMgrFqdn = Read-Host
+                LogMessage -type INFO -message "SDDC Manager Administrator: " -skipnewline
+                $sddcMgrUser = Read-Host
+                LogMessage -type INFO -message "SDDC Manager Administrator password: " -skipnewline
+                $adminPassword = Read-Host -AsSecureString
+                $decodedPassword = New-DecodedPassword -securePassword $adminPassword
+                New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
+                If (!($accessToken))
+                {
+                    LogMessage -type ERROR -message "Failed to authenticate to SDDC Manager $sddcMgrFqdn. Please check details and try again"
+                }
+            } Until ($accessToken)
+        }
+        else
+        {
+            $sddcMgrFqdn = $instanceObject.sddcManager.fqdn
+            $sddcMgrUser = $instanceObject.sddcManager.adminUser
+            $decodedPassword = $instanceObject.sddcManager.adminPassword
+            New-VCFToken -fqdn $sddcMgrFqdn -username $sddcMgrUser -password $decodedPassword *>$null
+        }
+
+        # Retrieve bundleId by matching version and NSX_ALB component type (first 6 chars, e.g. 32.1.3)
+        $aviLbVersionPrefix = $instanceObject.aviLb.version.Substring(0, [Math]::Min(6, $instanceObject.aviLb.version.Length))
+        LogMessage -type INFO -message "Retrieving AVI Load Balancer Bundle ID from SDDC Manager for version $aviLbVersionPrefix"
+        $aviBundle = Get-VCFBundleDetails -version $aviLbVersionPrefix -componentType "NSX_ALB"
+        If ($aviBundle)
+        {
+            $bundleId = $aviBundle.id
+            LogMessage -type INFO -message "AVI Load Balancer Bundle ID: $bundleId - Found"
+        }
+        else
+        {
+            LogMessage -type WARNING -message "No ALB bundle matched version '$($instanceObject.aviLb.version)'. Falling back to placeholder."
+            $bundleId = '<-- ENTER BUNDLE ID FOR AVI VERSION ' + $instanceObject.aviLb.version + ' HERE -->'
+        }
+
+        # Retrieve NSX Cluster ID for this domain
+        LogMessage -type INFO -message "Retrieving NSX Cluster ID from SDDC Manager for domain $($instanceObject.domainName)"
+        $nsxCluster = Get-VCFNsxClusterByDomain -domainName $instanceObject.domainName
+        If ($nsxCluster)
+        {
+            $nsxClusterId = $nsxCluster.id
+            LogMessage -type INFO -message "NSX Cluster ID for domain $($instanceObject.domainName): $nsxClusterId - Found"
+        }
+        else
+        {
+            LogMessage -type WARNING -message "No NSX cluster found for domain '$($instanceObject.domainName)'. Falling back to placeholder."
+            $nsxClusterId = '<-- ENTER NSX CLUSTER ID FOR DOMAIN ' + $instanceObject.domainName + ' HERE -->'
+        }
+    }
+    else
+    {
+        $bundleId = '<-- ENTER BUNDLE ID FOR AVI VERSION ' + $instanceObject.aviLb.version + ' HERE -->'
+        $nsxClusterId = '<-- ENTER NSX CLUSTER ID FOR DOMAIN ' + $instanceObject.domainName + ' HERE -->'
+    }
+
+    # Build nodes array - HA mode determines how many nodes are included
+    $nodesArray = @()
+    $nodesArray += [pscustomobject]@{ 'ipAddress' = $instanceObject.aviLb.mgraIp }
+    If ($instanceObject.aviLb.haMode -eq "High-Availability")
+    {
+        $nodesArray += [pscustomobject]@{ 'ipAddress' = $instanceObject.aviLb.mgrbIp }
+        $nodesArray += [pscustomobject]@{ 'ipAddress' = $instanceObject.aviLb.mgrcIp }
+    }
+
+    # Assemble the JSON spec
+    $aviLbJsonObject = New-Object -type psobject
+    $aviLbJsonObject | Add-Member -NotePropertyName 'clusterName' -NotePropertyValue $instanceObject.aviLb.clusterName
+    $aviLbJsonObject | Add-Member -NotePropertyName 'formFactor' -NotePropertyValue ($instanceObject.aviLb.formFactor).ToUpper()
+    $aviLbJsonObject | Add-Member -NotePropertyName 'adminPassword' -NotePropertyValue $instanceObject.aviLb.rootPassword
+    $aviLbJsonObject | Add-Member -NotePropertyName 'clusterFqdn' -NotePropertyValue $instanceObject.aviLb.fqdn
+    $aviLbJsonObject | Add-Member -NotePropertyName 'bundleId' -NotePropertyValue $bundleId
+    $aviLbJsonObject | Add-Member -NotePropertyName 'nodes' -NotePropertyValue $nodesArray
+    $aviLbJsonObject | Add-Member -NotePropertyName 'nsxIds' -NotePropertyValue @($nsxClusterId)
+    $aviLbJsonObject | Add-Member -NotePropertyName 'vcfopsAdminPassword' -NotePropertyValue $instanceObject.aviLb.vcfopsAdminPassword
+
+    $outputFileName = "aviLbDeploymentSpec-$(($instanceObject.aviLb.clusterName)).json"
+    LogMessage -Type INFO -Message "Exporting AVI Load Balancer Deployment JSON to $outputFileName"
+    ConvertTo-Json $aviLbJsonObject -depth 10 | Out-File $outputFileName
+}
+#EndRegion AVI Load Balancer
