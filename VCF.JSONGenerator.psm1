@@ -93,6 +93,7 @@ Function Connect-VCFJsonGeneratorVCenter
         If ($_.Exception.Message -match 'SSL connection could not be established|invalid.*certificate|certificate.*invalid')
         {
             LogMessage -type ERROR -message "Failed to connect to $Server because its certificate is not trusted. Install a CA-signed certificate on $Server, or import its certificate into your trusted store, then try again."
+            Throw [System.Security.Authentication.AuthenticationException]::new("Untrusted certificate on $Server")
         }
         else
         {
@@ -7069,7 +7070,14 @@ Function New-L2vSphereClusterJsonFile
                     LogMessage -type INFO -message "vCenter Administrator password: " -skipnewline
                     $vCenterPassword = Read-Host -AsSecureString
                     $decodedVcenterPassword = New-DecodedPassword -securePassword $vCenterPassword
-                    $vCenterConnection = Connect-VCFJsonGeneratorVCenter -Server $vCenterFQDN -User $vCenterAdminUser -Password $decodedvCenterPassword
+                    Try
+                    {
+                        $vCenterConnection = Connect-VCFJsonGeneratorVCenter -Server $vCenterFQDN -User $vCenterAdminUser -Password $decodedvCenterPassword
+                    }
+                    Catch [System.Security.Authentication.AuthenticationException]
+                    {
+                        Return
+                    }
                     If (!($vCenterConnection))
                     {
                         LogMessage -type ERROR -message "Failed to connect to successfully read information from $vCenterFqdn. Please check details and try again"
@@ -7651,7 +7659,14 @@ Function New-L3vSphereClusterJsonFile
                     LogMessage -type INFO -message "vCenter Administrator password: " -skipnewline
                     $vCenterPassword = Read-Host -AsSecureString
                     $decodedVcenterPassword = New-DecodedPassword -securePassword $vCenterPassword
-                    $vCenterConnection = Connect-VCFJsonGeneratorVCenter -Server $vCenterFQDN -User $vCenterAdminUser -Password $decodedvCenterPassword
+                    Try
+                    {
+                        $vCenterConnection = Connect-VCFJsonGeneratorVCenter -Server $vCenterFQDN -User $vCenterAdminUser -Password $decodedvCenterPassword
+                    }
+                    Catch [System.Security.Authentication.AuthenticationException]
+                    {
+                        Return
+                    }
                     If (!($vCenterConnection))
                     {
                         LogMessage -type ERROR -message "Failed to connect to successfully read information from $vCenterFqdn. Please check details and try again"
@@ -8510,7 +8525,14 @@ Function New-SingleOperationStretchedComputeClusterJsonFile
                 LogMessage -type INFO -message "vCenter Administrator password: " -skipnewline
                 $vCenterPassword = Read-Host -AsSecureString
                 $decodedVcenterPassword = New-DecodedPassword -securePassword $vCenterPassword
-                $vCenterConnection = Connect-VCFJsonGeneratorVCenter -Server $vCenterFQDN -User $vCenterAdminUser -Password $decodedvCenterPassword
+                Try
+                {
+                    $vCenterConnection = Connect-VCFJsonGeneratorVCenter -Server $vCenterFQDN -User $vCenterAdminUser -Password $decodedvCenterPassword
+                }
+                Catch [System.Security.Authentication.AuthenticationException]
+                {
+                    Return
+                }
                 If (!($vCenterConnection))
                 {
                     LogMessage -type ERROR -message "Failed to connect to successfully read information from $vCenterFqdn. Please check details and try again"
@@ -9144,7 +9166,14 @@ Function New-CentralizedTransitGatewayJsonFile
                 LogMessage -type INFO -message "vCenter Administrator password: " -skipnewline
                 $vCenterPassword = Read-Host -AsSecureString
                 $decodedVcenterPassword = New-DecodedPassword -securePassword $vCenterPassword
-                $vCenterConnection = Connect-VCFJsonGeneratorVCenter -Server $vCenterFQDN -User $vCenterAdminUser -Password $decodedvCenterPassword
+                Try
+                {
+                    $vCenterConnection = Connect-VCFJsonGeneratorVCenter -Server $vCenterFQDN -User $vCenterAdminUser -Password $decodedvCenterPassword
+                }
+                Catch [System.Security.Authentication.AuthenticationException]
+                {
+                    Return
+                }
                 If (!($vCenterConnection))
                 {
                     LogMessage -type ERROR -message "Failed to connect to successfully read information from $vCenterFqdn. Please check details and try again"
