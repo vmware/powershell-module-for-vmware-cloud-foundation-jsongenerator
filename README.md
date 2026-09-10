@@ -13,7 +13,9 @@ additional documentation, I greatly value feedback and contributions from our co
 
 Name            | Role         | GitHub                                                          |
 ----------------|--------------|-----------------------------------------------------------------|
-Ken Gould       | Creator      | [:fontawesome-brands-github:](https://github.com/feardamhan)    |
+Ken Gould       | Creator      | [:fontawesome-brands-github:](https://github.com/feardamhan)    
+Cliff Cahill    | Contributor  | [cliffcahill](https://github.com/cliffcahill)
+Nathan Thaler   | Creator      | [nathanthaler](https://github.com/nathanthaler)
 
 ## Overview
 
