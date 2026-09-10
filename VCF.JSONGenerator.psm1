@@ -3929,10 +3929,10 @@ Function New-WorkloadInstanceObject
                     }
                 }
                 
-                $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_cl01_supervisor_ext_ip_block_vlan"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_dtgw_mtu"].Value
                 If ($workbookLayout -eq "9.0")
                 {
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_dtgw_vlan"].Value
                     $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_dtgw_gateway_ip"].Value
                     $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_dtgw_cidr"].Value
                     $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_dtgw_network"].Value
@@ -3940,7 +3940,7 @@ Function New-WorkloadInstanceObject
                 }
                 else 
                 {
-
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'dtgwVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_cl01_supervisor_ext_ip_block_vlan"].Value
                     If ($pnpWorkbook.Workbook.Names["wld_centralized_connectivity_chosen"].value -eq "Distributed Connectivity")
                     {
                         $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_cl01_supervisor_ext_ip_block_gateway_cidr"].Value
