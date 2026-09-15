@@ -1,8 +1,13 @@
 # Release History
 
-## [v9.1.0.1006]
-> Release Date: 2026-xx-xx
- - [Changed] Gatered additional NSX Manager Node details for management domain
+## [v9.1.0.1007]
+> Release Date: 2026-09-15
+ - [Added] vSAN Data-in-Transit encryption for MGMT,WLD,Cluster
+ - [Added] Allow VCFMS/VCFA Internal Cluster CIDR Customisation 
+ - [Added] AVI Controllers Deployment
+ - [Added] New WLD with VLAN Back VPC with and without supervisor
+ - [Added] New WLD with Full stack ( Distributed Connectivity)  VPC with and without supervisor
+ - [Changed] Gathered additional NSX Manager Node details for management domain
 
 ## [v9.1.0.1005]
 > Release Date: 2026-06-30
