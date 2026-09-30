@@ -10773,7 +10773,7 @@ Function New-DayNLogsModernJsonFile
         }
         else
         {
-            $fleetFqdn =  $sharedInstanceObject.vsp.platformFqdn
+            $fleetFqdn =  $sharedInstanceObject.vsp.fleetFqdn
             $fleetUserName = 'admin@vsp.local'
             $fleetPassword = $sharedInstanceObject.vsp.systemUserPassword
             $sddclcmId = Get-SddcLcmId -fleetUserName $fleetUserName -fleetPassword $fleetPassword -fleetFqdn $fleetFqdn
@@ -11156,7 +11156,7 @@ Function New-DayNNetworksModernJsonFile
         }
         else
         {
-            $fleetFqdn =  $sharedInstanceObject.vsp.platformFqdn
+            $fleetFqdn =  $sharedInstanceObject.vsp.fleetFqdn
             $fleetUserName = 'admin@vsp.local'
             $fleetPassword = $sharedInstanceObject.vsp.systemUserPassword
             $sddclcmId = Get-SddcLcmId -fleetUserName $fleetUserName -fleetPassword $fleetPassword -fleetFqdn $fleetFqdn
@@ -11280,7 +11280,7 @@ Function New-DayNRealTimeMetrics
         }
         else
         {
-            $fleetFqdn =  $sharedInstanceObject.vsp.platformFqdn
+            $fleetFqdn =  $sharedInstanceObject.vsp.fleetFqdn
             $fleetUserName = 'admin@vsp.local'
             $fleetPassword = $sharedInstanceObject.vsp.systemUserPassword
             $sddclcmId = Get-SddcLcmId -fleetUserName $fleetUserName -fleetPassword $fleetPassword -fleetFqdn $fleetFqdn
@@ -11374,7 +11374,7 @@ Function New-DayNAutomationModernJsonFile
         }
         else
         {
-            $fleetFqdn =  $sharedInstanceObject.vsp.platformFqdn
+            $fleetFqdn =  $sharedInstanceObject.vsp.fleetFqdn
             $fleetUserName = 'admin@vsp.local'
             $fleetPassword = $sharedInstanceObject.vsp.systemUserPassword
             $sddclcmId = Get-SddcLcmId -fleetUserName $fleetUserName -fleetPassword $fleetPassword -fleetFqdn $fleetFqdn
