@@ -3495,6 +3495,11 @@ Function New-ManagementInstanceObject
             $edgeClusterObject | Add-Member -NotePropertyName 'edgeTrunk02PortgroupName' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_cl01_az1_uplink02_pg"].value
             $edgeClusterObject | Add-Member -NotePropertyName 'placementType' -NotePropertyValue "PolicyVsphereDeploymentConfig"
             $edgeClusterObject | Add-Member -NotePropertyName 'edgeNodeTunnelEndpointVlan' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_az1_edge_overlay_vlan"].value
+            $edgeClusterObject | Add-Member -notepropertyname 'edgeNodeTunnelEndpointGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_edge_overlay_gateway_ip"].Value
+            $edgeClusterObject | Add-Member -notepropertyname 'edgeNodeTunnelEndpointNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_edge_overlay_network"].Value
+            $edgeClusterObject | Add-Member -notepropertyname 'edgeNodeTunnelEndpointCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_edge_overlay_cidr"].Value
+            $edgeClusterObject | Add-Member -notepropertyname 'edgeNodeTunnelEndpointNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_edge_overlay_mask"].Value
+            $edgeClusterObject | Add-Member -notepropertyname 'edgeNodeTunnelEndpointMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_ec_mtu"].Value
             $edgeClusterObject | Add-Member -NotePropertyName 'uplink01VlanId' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_az1_uplink01_vlan"].value
             $edgeClusterObject | Add-Member -NotePropertyName 'uplink01Mtu' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_az1_uplink01_mtu"].value
             $edgeClusterObject | Add-Member -NotePropertyName 'uplink01PrefixLength' -NotePropertyValue ($pnpWorkbook.Workbook.Names["mgmt_az1_en1_uplink01_interface_cidr"].value).split("/",2)[1]
@@ -3505,7 +3510,6 @@ Function New-ManagementInstanceObject
             $edgeClusterObject | Add-Member -NotePropertyName 'uplink02PrefixLength' -NotePropertyValue ($pnpWorkbook.Workbook.Names["mgmt_az1_en1_uplink02_interface_cidr"].value).split("/",2)[1]
             $edgeClusterObject | Add-Member -notepropertyname 'uplink02Gw' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_uplink02_gateway_ip"].Value
             $edgeClusterObject | Add-Member -notepropertyname 'uplink02Netmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["mgmt_az1_uplink02_mask"].Value
-
             $edgeClusterObject | Add-Member -NotePropertyName 'localServicesID' -NotePropertyValue "ac4b6e79-e7ce-4458-9bdb-40d8c964b1d8"
             $edgeClusterObject | Add-Member -NotePropertyName 't0DisplayName' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_tier0_name"].value
             $edgeClusterObject | Add-Member -NotePropertyName 'localAsnNumber' -NotePropertyValue $pnpWorkbook.Workbook.Names["mgmt_en_asn"].value
@@ -4193,6 +4197,11 @@ Function New-WorkloadInstanceObject
             $edgeClusterObject | Add-Member -NotePropertyName 'edgeTrunk02PortgroupName' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_cl01_az1_uplink02_pg"].value
             $edgeClusterObject | Add-Member -NotePropertyName 'placementType' -NotePropertyValue "PolicyVsphereDeploymentConfig"
             $edgeClusterObject | Add-Member -NotePropertyName 'edgeNodeTunnelEndpointVlan' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_az1_edge_overlay_vlan"].value
+            $edgeClusterObject | Add-Member -notepropertyname 'edgeNodeTunnelEndpointGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_edge_overlay_gateway_ip"].Value
+            $edgeClusterObject | Add-Member -notepropertyname 'edgeNodeTunnelEndpointNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_edge_overlay_network"].Value
+            $edgeClusterObject | Add-Member -notepropertyname 'edgeNodeTunnelEndpointCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_edge_overlay_cidr"].Value
+            $edgeClusterObject | Add-Member -notepropertyname 'edgeNodeTunnelEndpointNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_edge_overlay_mask"].Value
+            $edgeClusterObject | Add-Member -notepropertyname 'edgeNodeTunnelEndpointMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_ec_mtu"].Value
             $edgeClusterObject | Add-Member -NotePropertyName 'uplink01VlanId' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_az1_uplink01_vlan"].value
             $edgeClusterObject | Add-Member -NotePropertyName 'uplink01Mtu' -NotePropertyValue $pnpWorkbook.Workbook.Names["wld_az1_uplink01_mtu"].value
             $edgeClusterObject | Add-Member -notepropertyname 'uplink01Gw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_uplink01_gateway_ip"].Value
