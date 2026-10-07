@@ -2531,8 +2531,8 @@ Function New-SharedInstanceObject
                     $lastIpAddress = $pnpWorkbook.Workbook.Names["flt_auto_node_pool_end_ip"].Value
                     $firstIpInt = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($firstIpAddress).GetAddressBytes()[3..0], 0)
                     $lastIpInt  = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($lastIpAddress).GetAddressBytes()[3..0], 0)
-                    $ipAddressPool = $firstIpInt..$lastIpInt | ForEach-Object {
-                        [System.Net.IPAddress]::new([System.BitConverter]::GetBytes([UInt32]$_)[3..0]).ToString()
+                    $ipAddressPool = for ([uint32]$ipIndex = $firstIpInt; $ipIndex -le $lastIpInt; $ipIndex++) {
+                        [System.Net.IPAddress]::new([byte[]]([System.BitConverter]::GetBytes($ipIndex)[3..0])).ToString()
                     }
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $ipAddressPool[0]
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $ipAddressPool[1]
@@ -2607,8 +2607,8 @@ Function New-SharedInstanceObject
                     $lastIpAddress = $pnpWorkbook.Workbook.Names["flt_def_auto_node_pool_end_ip"].Value
                     $firstIpInt = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($firstIpAddress).GetAddressBytes()[3..0], 0)
                     $lastIpInt  = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($lastIpAddress).GetAddressBytes()[3..0], 0)
-                    $ipAddressPool = $firstIpInt..$lastIpInt | ForEach-Object {
-                        [System.Net.IPAddress]::new([System.BitConverter]::GetBytes([UInt32]$_)[3..0]).ToString()
+                    $ipAddressPool = for ([uint32]$ipIndex = $firstIpInt; $ipIndex -le $lastIpInt; $ipIndex++) {
+                        [System.Net.IPAddress]::new([byte[]]([System.BitConverter]::GetBytes($ipIndex)[3..0])).ToString()
                     }
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $ipAddressPool[0]
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $ipAddressPool[1]
