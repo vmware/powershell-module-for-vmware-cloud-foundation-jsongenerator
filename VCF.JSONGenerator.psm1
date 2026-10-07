@@ -3907,49 +3907,47 @@ Function New-WorkloadInstanceObject
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vmotionNetmask' -notepropertyvalue $networkDetails.netmask
             }
             
-            If ($pnpWorkbook.Workbook.Names["wld_secondary_storage_chosen"].Value -eq "vSAN Storage Client Network")
+            If (($pnpWorkbook.Workbook.Names["wld_secondary_storage_chosen"].Value -eq "vSAN Storage Client Network") -and ($rack -eq "rack1"))
             {
-                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_vlan"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_mtu"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_pool_start_ip"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_pool_end_ip"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanStorageClusterVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_vlan"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanStorageClusterMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_mtu"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanStorageClusterPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_pool_start_ip"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanStorageClusterPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_pool_end_ip"].Value
                 If ($workbookLayout -eq "9.0")
                 {
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_gateway_ip"].Value
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_cidr"].Value
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_network"].Value
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_mask"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanStorageClusterGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_gateway_ip"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanStorageClusterCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_cidr"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanStorageClusterNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_network"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanStorageClusterNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_mask"].Value
                 }
                 else
                 {
                     $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)storage_cluster_gateway_cidr"].Value
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $networkDetails.gw
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $networkDetails.cidr
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $networkDetails.network
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $networkDetails.netmask
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanStorageClusterGw' -notepropertyvalue $networkDetails.gw
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanStorageClusterCidr' -notepropertyvalue $networkDetails.cidr
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanStorageClusterNetwork' -notepropertyvalue $networkDetails.network
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanStorageClusterNetmask' -notepropertyvalue $networkDetails.netmask
                 }
+            }
+
+            $az1RackNetworkObject | Add-Member -notepropertyname 'vsanVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_vlan"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'vsanMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_mtu"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'vsanPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_pool_start_ip"].Value
+            $az1RackNetworkObject | Add-Member -notepropertyname 'vsanPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_pool_end_ip"].Value
+            If ($workbookLayout -eq "9.0")
+            {
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_gateway_ip"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_cidr"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_network"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_mask"].Value
             }
             else
             {
-                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_vlan"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_mtu"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_pool_start_ip"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_pool_end_ip"].Value
-                If ($workbookLayout -eq "9.0")
-                {
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_gateway_ip"].Value
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_cidr"].Value
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_network"].Value
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_mask"].Value
-                }
-                else
-                {
-                    $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_gateway_cidr"].Value
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $networkDetails.gw
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $networkDetails.cidr
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $networkDetails.network
-                    $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $networkDetails.netmask
-                }
+                $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az1_$($rackVariableModifier)principal_storage_gateway_cidr"].Value
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $networkDetails.gw
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $networkDetails.cidr
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $networkDetails.network
+                $az1RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $networkDetails.netmask
             }
     
             If ($rack -eq "rack1") 
@@ -4061,25 +4059,45 @@ Function New-WorkloadInstanceObject
                     
                     If ($pnpWorkbook.Workbook.Names["wld_secondary_storage_chosen"].Value -eq "vSAN Storage Client Network")
                     {
-                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_vlan"].Value
-                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_mtu"].Value
-                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_pool_start_ip"].Value
-                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_pool_end_ip"].Value
-                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_gateway_ip"].Value
-                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_cidr"].Value
-                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_network"].Value
-                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_mask"].Value               
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanStorageClusterVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_vlan"].Value
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanStorageClusterMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_mtu"].Value
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanStorageClusterPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_pool_start_ip"].Value
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanStorageClusterPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_pool_end_ip"].Value
+                        If ($workbookLayout -eq "9.0")
+                        {
+                            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanStorageClusterGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_gateway_ip"].Value
+                            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanStorageClusterCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_cidr"].Value
+                            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanStorageClusterNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_network"].Value
+                            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanStorageClusterNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_mask"].Value
+                        }
+                        else
+                        {
+                            $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)storage_cluster_gateway_cidr"].Value
+                            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanStorageClusterGw' -notepropertyvalue $networkDetails.gw
+                            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanStorageClusterCidr' -notepropertyvalue $networkDetails.cidr
+                            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanStorageClusterNetwork' -notepropertyvalue $networkDetails.network
+                            $az2RackNetworkObject | Add-Member -notepropertyname 'vsanStorageClusterNetmask' -notepropertyvalue $networkDetails.netmask
+                        }
                     }
-                    else 
+
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'vsanVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_vlan"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'vsanMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_mtu"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'vsanPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_pool_start_ip"].Value
+                    $az2RackNetworkObject | Add-Member -notepropertyname 'vsanPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_pool_end_ip"].Value
+                    If ($workbookLayout -eq "9.0")
                     {
-                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_vlan"].Value
-                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_mtu"].Value
-                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_pool_start_ip"].Value
-                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_pool_end_ip"].Value
                         $az2RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_gateway_ip"].Value
                         $az2RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_cidr"].Value
                         $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_network"].Value
-                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_mask"].Value        
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_mask"].Value
+                    }
+                    else
+                    {
+                        $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)principal_storage_gateway_cidr"].Value
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanGw' -notepropertyvalue $networkDetails.gw
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanCidr' -notepropertyvalue $networkDetails.cidr
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetwork' -notepropertyvalue $networkDetails.network
+                        $az2RackNetworkObject | Add-Member -notepropertyname 'vsanNetmask' -notepropertyvalue $networkDetails.netmask
                     }
                     
                     $az2RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["wld_az2_$($rackVariableModifier)secondary_storage_vlan"].Value
@@ -4476,8 +4494,7 @@ Function New-ClusterObject
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vsanMtu' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)principal_storage_mtu"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vsanPoolStartIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)principal_storage_pool_start_ip"].Value
                 $az1RackNetworkObject | Add-Member -notepropertyname 'vsanPoolEndIP' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)principal_storage_pool_end_ip"].Value
-            }
-            
+            }      
             
             $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageVlanID' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)secondary_storage_vlan"].Value
             $az1RackNetworkObject | Add-Member -notepropertyname 'secondaryStorageGw' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)secondary_storage_gateway_ip"].Value
@@ -7194,32 +7211,14 @@ Function New-NetworkPoolJsonFile
             {
                 If ($instanceObject.$($az).$($rack).network.reuseExistingVcfNetworkPool -in "Exclude","Create a new VCF Network Pool")
                 {
+                    $networkObject = @()
+
+                    $vmotionMtu = $instanceObject.$($az).$($rack).network.vmotionMtu -as [string]                    
                     $vmotionIpPoolObject = @()
                     $vmotionIpPoolObject += [pscustomobject]@{
                         'start' = $instanceObject.$($az).$($rack).network.vmotionPoolStartIP
                         'end'   = $instanceObject.$($az).$($rack).network.vmotionPoolEndIP
-                    }
-            
-                    $vsanIpPoolObject = @()
-                    $vsanIpPoolObject += [pscustomobject]@{
-                        'start' = $instanceObject.$($az).$($rack).network.vsanPoolStartIP
-                        'end'   = $instanceObject.$($az).$($rack).network.vsanPoolEndIP
-                    }
-                    
-                    If (($instanceObject.vsphereClusters[0].storageModel -eq "vSAN Storage Cluster") -and ($instanceObject.vsphereClusters[0].secondaryStorage -eq "vSAN Storage Client Network"))
-                    {
-                        $secondaryStorageIpPoolObject = @()
-                        $secondaryStorageIpPoolObject += [pscustomobject]@{
-                            'start' = $instanceObject.$($az).$($rack).network.secondaryStoragePoolStartIp
-                            'end'   = $instanceObject.$($az).$($rack).network.secondaryStoragePoolEndIp
-                        }
-                    }
-            
-                    $vmotionMtu = $instanceObject.$($az).$($rack).network.vmotionMtu -as [string]
-                    $vsanMtu = $instanceObject.$($az).$($rack).network.vsanMtu -as [string]
-                    $secondaryStorageMtu = $instanceObject.$($az).$($rack).network.secondaryStorageMtu -as [string]
-            
-                    $networkObject = @()
+                    }       
                     $networkObject += [pscustomobject]@{
                         'type'    = "VMOTION"
                         'vlanId'  = $instanceObject.$($az).$($rack).network.vmotionVlanID -as [string]
@@ -7229,18 +7228,52 @@ Function New-NetworkPoolJsonFile
                         'gateway' = $instanceObject.$($az).$($rack).network.vmotionGw
                         'ipPools'   = $vmotionIpPoolObject
                     }
-                    $networkObject += [pscustomobject]@{
-                        'type'    = "VSAN"
-                        'vlanId'  = $instanceObject.$($az).$($rack).network.vsanVlanID -as [string]
-                        'mtu'     = $vsanMtu
-                        'subnet'  = $instanceObject.$($az).$($rack).network.vsanNetwork
-                        'mask'    = $instanceObject.$($az).$($rack).network.vsanNetmask
-                        'gateway' = $instanceObject.$($az).$($rack).network.vsanGw
-                        'ipPools'   = $vsanIpPoolObject
-                    }
 
+                    If ($instanceObject.vsphereClusters[0].storageModel -eq "vSAN Storage Cluster")
+                    {
+                        $vsanStorageClusterMtu = $instanceObject.$($az).$($rack).network.vsanStorageClusterMtu -as [string]
+                        $vsanStorageClusterIpPoolObject = @()
+                        $vsanStorageClusterIpPoolObject += [pscustomobject]@{
+                            'start' = $instanceObject.$($az).$($rack).network.vsanStorageClusterPoolStartIP
+                            'end'   = $instanceObject.$($az).$($rack).network.vsanStorageClusterPoolEndIP
+                        }
+                        $networkObject += [pscustomobject]@{
+                            'type'    = "VSAN"
+                            'vlanId'  = $instanceObject.$($az).$($rack).network.vsanStorageClusterVlanID -as [string]
+                            'mtu'     = $vsanStorageClusterMtu
+                            'subnet'  = $instanceObject.$($az).$($rack).network.vsanStorageClusterNetwork
+                            'mask'    = $instanceObject.$($az).$($rack).network.vsanStorageClusterNetmask
+                            'gateway' = $instanceObject.$($az).$($rack).network.vsanStorageClusterGw
+                            'ipPools'   = $vsanStorageClusterIpPoolObject
+                        }
+                    }
+                    else 
+                    {
+                        $vsanMtu = $instanceObject.$($az).$($rack).network.vsanMtu -as [string]
+                        $vsanIpPoolObject = @()
+                        $vsanIpPoolObject += [pscustomobject]@{
+                            'start' = $instanceObject.$($az).$($rack).network.vsanPoolStartIP
+                            'end'   = $instanceObject.$($az).$($rack).network.vsanPoolEndIP
+                        }
+                        $networkObject += [pscustomobject]@{
+                            'type'    = "VSAN"
+                            'vlanId'  = $instanceObject.$($az).$($rack).network.vsanVlanID -as [string]
+                            'mtu'     = $vsanMtu
+                            'subnet'  = $instanceObject.$($az).$($rack).network.vsanNetwork
+                            'mask'    = $instanceObject.$($az).$($rack).network.vsanNetmask
+                            'gateway' = $instanceObject.$($az).$($rack).network.vsanGw
+                            'ipPools'   = $vsanIpPoolObject
+                        }
+                    }
+                    
                     If (($instanceObject.vsphereClusters[0].storageModel -eq "vSAN Storage Cluster") -and ($instanceObject.vsphereClusters[0].secondaryStorage -eq "vSAN Storage Client Network"))
                     {
+                        $secondaryStorageMtu = $instanceObject.$($az).$($rack).network.secondaryStorageMtu -as [string]
+                        $secondaryStorageIpPoolObject = @()
+                        $secondaryStorageIpPoolObject += [pscustomobject]@{
+                            'start' = $instanceObject.$($az).$($rack).network.secondaryStoragePoolStartIp
+                            'end'   = $instanceObject.$($az).$($rack).network.secondaryStoragePoolEndIp
+                        }   
                         $networkObject += [pscustomobject]@{
                             'type'    = "VSAN_EXTERNAL"
                             'vlanId'  = $instanceObject.$($az).$($rack).network.secondaryStorageVlanID
