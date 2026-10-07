@@ -6561,7 +6561,7 @@ Function New-WorkloadDomainJsonFile
             }
             else 
             {
-                < $operationMode = "ENS"
+                $operationMode = "ENS"
             }
         }
 
@@ -7611,7 +7611,7 @@ Function New-L2vSphereClusterJsonFile
         }
         else 
         {
-            < $operationMode = "ENS"
+            $operationMode = "ENS"
         }
     }
     $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
@@ -8203,7 +8203,7 @@ Function New-L3vSphereClusterJsonFile
         }
         else 
         {
-            < $operationMode = "ENS"
+            $operationMode = "ENS"
         }
     }
     $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
@@ -9061,7 +9061,7 @@ Function New-SingleOperationStretchedComputeClusterJsonFile
         }
         else 
         {
-            < $operationMode = "ENS"
+            $operationMode = "ENS"
         }
     }
     $nsxtSwitchConfigObject | Add-Member -NotePropertyName 'hostSwitchOperationalMode' -NotePropertyValue $operationMode
