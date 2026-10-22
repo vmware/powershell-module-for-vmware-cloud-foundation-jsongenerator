@@ -10254,8 +10254,8 @@ Function New-DayNOpsAndAutomationJsonFile
         'gateway' = $sharedInstanceObject.operations.fltMgmtGw
     }
     
-    $vcfMangementComponentsInfrastructureSpecObject = @()
-    $vcfMangementComponentsInfrastructureSpecObject += [pscustomobject]@{
+    $vcfManagementComponentsInfrastructureSpecObject = @()
+    $vcfManagementComponentsInfrastructureSpecObject += [pscustomobject]@{
         'localRegionNetwork' = ($localRegionNetworkObject | Select-Object -Skip 0)
         'xRegionNetwork' = ($xRegionNetworkObject | Select-Object -Skip 0)
     }
@@ -10265,7 +10265,7 @@ Function New-DayNOpsAndAutomationJsonFile
     $dayNOpsAndAutomationSpecObject | Add-Member -notepropertyname 'vcfOperationsSpec' -notepropertyvalue ($vcfOperationsSpecObject | Select-Object -Skip 0)
     $dayNOpsAndAutomationSpecObject | Add-Member -notepropertyname 'vcfOperationsCollectorSpec' -notepropertyvalue ($vcfOperationsCloudProxySpecObject | Select-Object -Skip 0)
     $dayNOpsAndAutomationSpecObject | Add-Member -notepropertyname 'vcfAutomationSpec' -notepropertyvalue ($vcfAutomationSpecObject | Select-Object -Skip 0)
-    $dayNOpsAndAutomationSpecObject | Add-Member -notepropertyname 'vcfMangementComponentsInfrastructureSpec' -notepropertyvalue ($vcfMangementComponentsInfrastructureSpecObject | Select-Object -Skip 0)
+    $dayNOpsAndAutomationSpecObject | Add-Member -notepropertyname 'vcfManagementComponentsInfrastructureSpec' -notepropertyvalue ($vcfManagementComponentsInfrastructureSpecObject | Select-Object -Skip 0)
     LogMessage -Type INFO -Message "Exporting the VCF Operations and Automation Post Bringup JSON to opsAutomation-dayNDeploymentSpec.json"
     ConvertTo-Json $dayNOpsAndAutomationSpecObject -depth 12 | Out-File -Encoding UTF8 -FilePath "opsAutomation-dayNDeploymentSpec.json"
 }
@@ -10853,8 +10853,8 @@ Function New-DayNLogsModernJsonFile
     $logsJsonObject = New-Object -type psobject
     $logsJsonObject | Add-Member -NotePropertyName 'componentSpecs' -NotePropertyValue @($componentSpecsArray)
 
-    LogMessage -Type INFO -Message "Exporting the Logs Management Deployment JSON to logMangementDeploymentSpec-$(($sharedInstanceObject.logs.vipFqdn).split(".")[0]).json"
-    ConvertTo-Json $logsJsonObject -depth 20 | Out-File "logMangementDeploymentSpec-$(($sharedInstanceObject.logs.vipFqdn).split(".")[0]).json"
+    LogMessage -Type INFO -Message "Exporting the Logs Management Deployment JSON to logManagementDeploymentSpec-$(($sharedInstanceObject.logs.vipFqdn).split(".")[0]).json"
+    ConvertTo-Json $logsJsonObject -depth 20 | Out-File "logManagementDeploymentSpec-$(($sharedInstanceObject.logs.vipFqdn).split(".")[0]).json"
 
 }
 #EndRegion Log Managment
