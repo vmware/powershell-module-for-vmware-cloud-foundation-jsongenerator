@@ -10396,7 +10396,7 @@ Function New-DayNIdbJsonFile
     else
     {
         $fleetManagerFqdn = $sharedInstanceObject.fleetManager.fqdn
-        $fleetManagerAdminUser = $sharedInstanceObject.fleetManager.adminUser
+        $fleetManagerAdminUser = 'admin@local'
         $decodedFmPassword = $sharedInstanceObject.fleetManager.adminUserPassword
     }
     If ($componentInterrogationEnabled)
@@ -10552,7 +10552,7 @@ Function New-DayNLogsLegacyJsonFile
     else
     {
         $fleetManagerFqdn = $sharedInstanceObject.fleetManager.fqdn
-        $fleetManagerAdminUser = $sharedInstanceObject.fleetManager.adminUser
+        $fleetManagerAdminUser = 'admin@local'
         $decodedFmPassword = $sharedInstanceObject.fleetManager.adminUserPassword
     }
     If ($componentInterrogationEnabled)
@@ -10880,7 +10880,7 @@ Function New-DayNNetworksLegacyJsonFile
     else
     {
         $fleetManagerFqdn = $sharedInstanceObject.fleetManager.fqdn
-        $fleetManagerAdminUser = $sharedInstanceObject.fleetManager.adminUser
+        $fleetManagerAdminUser = 'admin@local'
         $decodedFmPassword = $sharedInstanceObject.fleetManager.adminUserPassword
     }
     If ($componentInterrogationEnabled)
