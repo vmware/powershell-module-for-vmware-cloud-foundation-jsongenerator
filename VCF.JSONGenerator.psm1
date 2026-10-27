@@ -2658,7 +2658,7 @@ Function New-SharedInstanceObject
         $vcfIdbObject | Add-Member -notepropertyname 'cluster' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_vidb_cluster"].Value
         $vcfIdbObject | Add-Member -notepropertyname 'folder' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_vidb_folder"].Value
         $vcfIdbObject | Add-Member -notepropertyname 'resourcePool' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_vidb_resource_pool"].Value
-        $vcfIdbObject | Add-Member -notepropertyname 'portgroup' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_vidb_port_group"].Value
+        $vcfIdbObject | Add-Member -notepropertyname 'portgroup' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_vidb_pg"].Value
         $vcfIdbObject | Add-Member -notepropertyname 'datastore' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_vidb_datastore"].Value
         $vcfIdbObject | Add-Member -notepropertyname 'domainName' -notepropertyvalue $pnpWorkbook.Workbook.names["parent_dns_zone"].Value
         $vcfIdbObject | Add-Member -notepropertyname 'searchPath' -notepropertyvalue $pnpWorkbook.Workbook.names["parent_dns_zone"].Value
