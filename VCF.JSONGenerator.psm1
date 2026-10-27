@@ -2747,7 +2747,7 @@ Function New-SharedInstanceObject
         $vcfNetworksObject | Add-Member -notepropertyname 'nodeNetmask' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_node_mask"].Value
         $vcfNetworksObject | Add-Member -notepropertyname 'proxyGateway' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_prxy_gateway_ip"].Value
         $vcfNetworksObject | Add-Member -notepropertyname 'proxyNetmask' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_prxy_mask"].Value
-        $vcfNetworksObject | Add-Member -notepropertyname 'nodePortgroup' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_nodea_portgroup"].Value
+        $vcfNetworksObject | Add-Member -notepropertyname 'nodePortgroup' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_node_portgroup"].Value
         $vcfNetworksObject | Add-Member -notepropertyname 'proxyPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_prxy_portgroup"].Value
         }
         else {
