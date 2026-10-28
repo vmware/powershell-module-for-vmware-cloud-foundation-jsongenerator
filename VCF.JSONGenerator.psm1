@@ -11030,7 +11030,7 @@ Function New-DayNNetworksLegacyJsonFile
     $productCollectorObject = New-Object -type psobject
     $productCollectorObject | Add-Member -NotePropertyName 'type' -NotePropertyValue 'vrni-collector'
     $productCollectorObject | Add-Member -NotePropertyName 'properties' -NotePropertyValue $productsNodesCollectorPropertiesObject
-    $productCollectorArray += $productCollectorObject
+    $productNodesArray += $productCollectorObject
 
     $productsPropertiesObject = New-Object -type psobject
     $productsPropertiesObject | Add-Member -NotePropertyName 'authenticationType' -NotePropertyValue ''
