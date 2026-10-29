@@ -11236,7 +11236,7 @@ Function New-DayNNetworksModernJsonFile
     }
     $ipv4SettingsCollectorObject = New-Object -type psobject
     $ipv4SettingsCollectorObject | Add-Member -NotePropertyName 'address' -NotePropertyValue $sharedInstanceObject.networks.proxyIpAddress
-     If ($sharedInstanceObject.workbookLayout -notin @("9.0", "9.1"))
+    If ($sharedInstanceObject.workbookLayout -notin @("9.0", "9.1"))
     {
     $ipv4SettingsCollectorObject | Add-Member -NotePropertyName 'gateway' -NotePropertyValue $sharedInstanceObject.networks.proxyGateway
     $ipv4SettingsCollectorObject | Add-Member -NotePropertyName 'netmask' -NotePropertyValue $sharedInstanceObject.networks.proxyNetmask
