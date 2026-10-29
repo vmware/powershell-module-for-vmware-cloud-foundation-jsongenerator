@@ -4837,6 +4837,18 @@ Function New-ManagementDomainJsonFile
             } Until ($componentInterrogationResponse -in "Y","N")
             $componentInterrogationEnabled = ($componentInterrogationResponse -eq "Y")
         }
+
+        #Operations Collector Size (9.0 only, defaults to small)
+        $upgradeCollectorSize = $false
+        If (!$userPromptBypass -and ($instanceObject.version -like "9.0*") -and ($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and (($instanceObject.instance -eq "InstanceA") -or (($instanceObject.instance -eq "InstanceB") -and ($joinFleet -eq "Y"))))
+        {
+            Do
+            {
+                LogMessage -Type QUESTION -Message "Do you wish to upgrade the size of the VCF Operations collector from small to standard? (Y/N): " -skipnewline
+                $upgradeCollectorResponse = (Read-Host) -replace "`t|`n|`r", ""
+            } Until ($upgradeCollectorResponse -in "Y","N")
+            $upgradeCollectorSize = ($upgradeCollectorResponse -eq "Y")
+        }
         #EndRegion Parameter Resolution
 
 
@@ -5234,6 +5246,11 @@ Function New-ManagementDomainJsonFile
         If ($instanceObject.version -notlike "9.0.*")
         {
             $vcfOperationsCloudProxySpecObject | Add-Member -NotePropertyName 'applianceSize' -NotePropertyValue $sharedInstanceObject.operations.collectorApplianceSize
+        }
+        else
+        {
+            $collectorSize = If ($upgradeCollectorSize) {'standard'} else {'small'}
+            $vcfOperationsCloudProxySpecObject | Add-Member -NotePropertyName 'applianceSize' -NotePropertyValue $collectorSize
         }
 
         #vcfAutomationSpecObject
