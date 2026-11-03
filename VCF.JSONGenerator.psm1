@@ -2369,7 +2369,7 @@ Function New-SharedInstanceObject
         
         #Ops Object
         $vcfOperationsObject = New-Object -TypeName psobject
-        If ($pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value -eq "Unselected")
+        If (($pnpWorkbook.Workbook.Names["mgmt_domain_ops_automation_later_chosen"].Value -eq "Unselected") -OR ($instance -eq "InstanceB"))
         {
             $vcfOperationsObject | Add-Member -notepropertyname 'vipAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_virtual_ip"].Value
             $vcfOperationsObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $pnpWorkbook.Workbook.Names["xreg_vrops_nodea_ip"].Value
@@ -4796,28 +4796,28 @@ Function New-ManagementDomainJsonFile
         }
 
         #Skip Automation
-        If ($instanceObject.instance -eq "instanceA")
+        If ($platformTools)
         {
-            If ($platformTools)
+            If (!($skipAutomation))
             {
-                If (!($skipAutomation))
+                Do
                 {
-                    Do
+                    If ($instance -eq "InstanceA")
                     {
                         LogMessage -Type QUESTION -Message "Do you wish to skip the deployment of VCF Automation? (Y/N): " -skipnewline
-                        $skipAutomation = Read-Host
-                    } Until ($skipAutomation -in "Y","N")
-                    $skipAutomation = $skipAutomation -replace "`t|`n|`r", "" 
-                }
-            }
-            else
-            {
-                $skipAutomation = $instanceObject.deploymentProfile.skipAutomation
+                    }
+                    else
+                    {
+                        LogMessage -Type QUESTION -Message "Do you wish to connect this instance to VCF Automation? (Y/N): " -skipnewline
+                    }                    
+                    $skipAutomation = Read-Host
+                } Until ($skipAutomation -in "Y","N")
+                $skipAutomation = $skipAutomation -replace "`t|`n|`r", "" 
             }
         }
         else
         {
-            $skipAutomation = "Y"
+            $skipAutomation = $instanceObject.deploymentProfile.skipAutomation
         }
 
         #Determine if component interaction is required
@@ -6159,7 +6159,27 @@ Function New-ManagementDomainJsonFile
         If (($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and (($instanceObject.instance -eq "InstanceA") -OR (($instanceObject.instance -eq "InstanceB") -AND ($joinFleet -eq "Y")))){$managementDomainObject | Add-Member -notepropertyname 'vcfOperationsSpec' -notepropertyvalue ($vcfOperationsSpecObject | Select-Object -Skip 0)}
         If (($instanceObject.version -like "9.0.*") -and ($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and (($instanceObject.instance -eq "InstanceA") -OR (($instanceObject.instance -eq "InstanceB") -AND ($joinFleet -eq "Y")))) {$managementDomainObject | Add-Member -notepropertyname 'vcfOperationsFleetManagementSpec' -notepropertyvalue ($vcfOperationsManagementSpecObject | Select-Object -Skip 0)}
         If (($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and (($instanceObject.instance -eq "InstanceA") -OR (($instanceObject.instance -eq "InstanceB") -AND ($joinFleet -eq "Y")))) {$managementDomainObject | Add-Member -notepropertyname 'vcfOperationsCollectorSpec' -notepropertyvalue ($vcfOperationsCloudProxySpecObject | Select-Object -Skip 0)}
-        If ((($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and ($instanceObject.instance -eq "InstanceA") -AND ($skipAutomation -ne 'Y')) -or (($instanceObject.instance -eq "InstanceB") -and ($joinFleet -eq "Y") -AND ($skipAutomation -ne 'Y'))) {$managementDomainObject | Add-Member -notepropertyname 'vcfAutomationSpec' -notepropertyvalue ($vcfAutomationSpecObject | Select-Object -Skip 0)}
+        If ((($instanceObject.deploymentProfile.fleetManagementTiming -ne "later") -and ($instanceObject.instance -eq "InstanceA") -AND ($skipAutomation -eq 'N')) -or (($instanceObject.instance -eq "InstanceB") -and ($joinFleet -eq "Y") -AND ($skipAutomation -eq 'N')))
+        {
+            If ($instanceObject.instance -eq "InstanceB")
+            {
+                If ($sharedInstanceObject.automation.vipFqdn -eq "Value Missing")
+                {
+                    Do
+                    {
+                        LogMessage -Type QUESTION -Message "No VCF Automation FQDN was provided. Was this intentional (i.e. you do not wish to connect this instance to VCF Automation)? (Y/N): " -skipnewline
+                        $vcfaIntenionallyBlank = Read-Host
+                    } Until ($vcfaIntenionallyBlank -in "Y","N")
+                    If ($vcfaIntenionallyBlank -eq "N")
+                    {
+                        LogMessage -Type ERROR -Message "No VCF Automation FQDN was provided. Please add the FQDN to your Planning & Preparation Workbook and retry"
+                        Break
+                    }
+                }
+            }
+            $managementDomainObject | Add-Member -notepropertyname 'vcfAutomationSpec' -notepropertyvalue ($vcfAutomationSpecObject | Select-Object -Skip 0) 
+        }
+        
         If ($instanceObject.version -notlike "9.0.*")
         {            
             $managementDomainObject | Add-Member -notepropertyname 'vspClusterSpec' -notepropertyvalue $vspClusterSpecObject
