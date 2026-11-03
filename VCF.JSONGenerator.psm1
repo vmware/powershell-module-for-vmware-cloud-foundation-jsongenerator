@@ -4808,7 +4808,7 @@ Function New-ManagementDomainJsonFile
                     }
                     else
                     {
-                        LogMessage -Type QUESTION -Message "Do you wish to connect this instance to VCF Automation? (Y/N): " -skipnewline
+                        LogMessage -Type QUESTION -Message "Do you wish to skip the connection of this instance to VCF Automation? (Y/N): " -skipnewline
                     }                    
                     $skipAutomation = Read-Host
                 } Until ($skipAutomation -in "Y","N")
