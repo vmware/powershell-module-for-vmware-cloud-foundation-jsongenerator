@@ -4802,7 +4802,7 @@ Function New-ManagementDomainJsonFile
             {
                 Do
                 {
-                    If ($instance -eq "InstanceA")
+                    If ($instanceObject.instance -eq "InstanceA")
                     {
                         LogMessage -Type QUESTION -Message "Do you wish to skip the deployment of VCF Automation? (Y/N): " -skipnewline
                     }
