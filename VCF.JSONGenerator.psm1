@@ -5292,9 +5292,7 @@ Function New-ManagementDomainJsonFile
         }
         
         $vcfAutomationSpecObject = [pscustomobject]@{
-            'hostname' = $sharedInstanceObject.automation.vipFqdn   
-            'nodePrefix' = $sharedInstanceObject.automation.vcfaNodePrefix
-            
+            'hostname' = $sharedInstanceObject.automation.vipFqdn            
         }
         
         If ($instanceObject.version -notlike "9.0.*" -and $sharedInstanceObject.automation.platformFqdn) {
@@ -5307,6 +5305,7 @@ Function New-ManagementDomainJsonFile
 
         If ($joinFleet -eq "N")
         {
+            $vcfAutomationSpecObject | Add-Member -NotePropertyName 'nodePrefix' -NotePropertyValue $sharedInstanceObject.automation.vcfaNodePrefix
             $vcfAutomationSpecObject | Add-Member -NotePropertyName 'useExistingDeployment' -NotePropertyValue $false
             $vcfAutomationSpecObject | Add-Member -NotePropertyName 'ipPool' -NotePropertyValue $ipPoolObject
             $vcfAutomationSpecObject | Add-Member -NotePropertyName 'internalClusterCidr' -NotePropertyValue $sharedInstanceObject.automation.internalClusterCidr
