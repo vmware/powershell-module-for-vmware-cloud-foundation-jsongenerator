@@ -2536,12 +2536,12 @@ Function New-SharedInstanceObject
                         $ipAddressPool = for ([uint32]$ipIndex = $firstIpInt; $ipIndex -le $lastIpInt; $ipIndex++) {
                             [System.Net.IPAddress]::new([byte[]]([System.BitConverter]::GetBytes($ipIndex)[3..0])).ToString()
                         }
+                        $vcfAutomationObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $ipAddressPool[0]
+                        $vcfAutomationObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $ipAddressPool[1]
+                        $vcfAutomationObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $ipAddressPool[2]
+                        $vcfAutomationObject | Add-Member -notepropertyname 'nodeDIpAddress' -notepropertyvalue $ipAddressPool[3]
+                        $vcfAutomationObject | Add-Member -notepropertyname 'nodeEIpAddress' -notepropertyvalue $ipAddressPool[4]
                     }                    
-                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $ipAddressPool[0]
-                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $ipAddressPool[1]
-                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $ipAddressPool[2]
-                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeDIpAddress' -notepropertyvalue $ipAddressPool[3]
-                    $vcfAutomationObject | Add-Member -notepropertyname 'nodeEIpAddress' -notepropertyvalue $ipAddressPool[4]
                     If ($platformTools)
                     {
                         If ($deploymentProfileObject.fleetManagementDeploymentModel -eq "highlyAvailable")
