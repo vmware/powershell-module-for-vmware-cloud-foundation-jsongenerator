@@ -2527,13 +2527,16 @@ Function New-SharedInstanceObject
                 else
                 {
                     # 9.1 Day 0 Bringup
-                    $firstIpAddress = $pnpWorkbook.Workbook.Names["flt_auto_node_pool_start_ip"].Value
-                    $lastIpAddress = $pnpWorkbook.Workbook.Names["flt_auto_node_pool_end_ip"].Value
-                    $firstIpInt = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($firstIpAddress).GetAddressBytes()[3..0], 0)
-                    $lastIpInt  = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($lastIpAddress).GetAddressBytes()[3..0], 0)
-                    $ipAddressPool = for ([uint32]$ipIndex = $firstIpInt; $ipIndex -le $lastIpInt; $ipIndex++) {
-                        [System.Net.IPAddress]::new([byte[]]([System.BitConverter]::GetBytes($ipIndex)[3..0])).ToString()
-                    }
+                    If ($instance -eq "instanceA")
+                    {
+                        $firstIpAddress = $pnpWorkbook.Workbook.Names["flt_auto_node_pool_start_ip"].Value
+                        $lastIpAddress = $pnpWorkbook.Workbook.Names["flt_auto_node_pool_end_ip"].Value
+                        $firstIpInt = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($firstIpAddress).GetAddressBytes()[3..0], 0)
+                        $lastIpInt  = [System.BitConverter]::ToUInt32([System.Net.IPAddress]::Parse($lastIpAddress).GetAddressBytes()[3..0], 0)
+                        $ipAddressPool = for ([uint32]$ipIndex = $firstIpInt; $ipIndex -le $lastIpInt; $ipIndex++) {
+                            [System.Net.IPAddress]::new([byte[]]([System.BitConverter]::GetBytes($ipIndex)[3..0])).ToString()
+                        }
+                    }                    
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeAIpAddress' -notepropertyvalue $ipAddressPool[0]
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeBIpAddress' -notepropertyvalue $ipAddressPool[1]
                     $vcfAutomationObject | Add-Member -notepropertyname 'nodeCIpAddress' -notepropertyvalue $ipAddressPool[2]
@@ -2741,27 +2744,31 @@ Function New-SharedInstanceObject
         $vcfNetworksObject | Add-Member -notepropertyname 'proxySize' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_prxy_size_chosen"].Value
         $vcfNetworksObject | Add-Member -notepropertyname 'fipsMode' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_fips_mode_chosen"].Value
         $vcfNetworksObject | Add-Member -notepropertyname 'configureAffinity' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_affinty_rule_chosen"].Value
-     If ($workbookLayout -in @("9.0","9.1"))
-        {
-        $vcfNetworksObject | Add-Member -notepropertyname 'nodeGateway' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_node_gateway_ip"].Value
-        $vcfNetworksObject | Add-Member -notepropertyname 'nodeNetmask' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_node_mask"].Value
-        $vcfNetworksObject | Add-Member -notepropertyname 'proxyGateway' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_prxy_gateway_ip"].Value
-        $vcfNetworksObject | Add-Member -notepropertyname 'proxyNetmask' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_prxy_mask"].Value
-        $vcfNetworksObject | Add-Member -notepropertyname 'nodePortgroup' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_node_portgroup"].Value
-        $vcfNetworksObject | Add-Member -notepropertyname 'proxyPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_prxy_portgroup"].Value
-        }
-        else {
-        $vcfNetworksNodeNetworkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["flt_net_nodea_gateway_cidr"].Value
-        $vcfNetworksObject | Add-Member -notepropertyname 'nodePortgroup' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_nodea_pg"].Value
-        $vcfNetworksObject | Add-Member -notepropertyname 'nodeNetmask' -notepropertyvalue $vcfNetworksNodeNetworkDetails.netmask
-        $vcfNetworksObject | Add-Member -notepropertyname 'nodeGateway' -notepropertyvalue $vcfNetworksNodeNetworkDetails.gw
-        #Proxy Details
-        $vcfNetworksProxyNetworkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["flt_net_prxy_gateway_cidr"].Value
-        $vcfNetworksObject | Add-Member -notepropertyname 'proxyPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_prxy_pg"].Value
-        $vcfNetworksObject | Add-Member -notepropertyname 'proxyNetmask' -notepropertyvalue $vcfNetworksProxyNetworkDetails.netmask
-        $vcfNetworksObject | Add-Member -notepropertyname 'proxyGateway' -notepropertyvalue $vcfNetworksProxyNetworkDetails.gw
-          <# Action when all if and elseif conditions are false #>
-        }
+        If ($workbookLayout -in @("9.0","9.1"))
+            {
+            $vcfNetworksObject | Add-Member -notepropertyname 'nodeGateway' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_node_gateway_ip"].Value
+            $vcfNetworksObject | Add-Member -notepropertyname 'nodeNetmask' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_node_mask"].Value
+            $vcfNetworksObject | Add-Member -notepropertyname 'proxyGateway' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_prxy_gateway_ip"].Value
+            $vcfNetworksObject | Add-Member -notepropertyname 'proxyNetmask' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_prxy_mask"].Value
+            $vcfNetworksObject | Add-Member -notepropertyname 'nodePortgroup' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_node_portgroup"].Value
+            $vcfNetworksObject | Add-Member -notepropertyname 'proxyPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_prxy_portgroup"].Value
+            }
+            else 
+            {
+                If ($pnpWorkbook.Workbook.names["flt_net_chosen"].Value -eq "Selected")
+                {
+                    $vcfNetworksNodeNetworkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["flt_net_nodea_gateway_cidr"].Value
+                    $vcfNetworksObject | Add-Member -notepropertyname 'nodePortgroup' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_nodea_pg"].Value
+                    $vcfNetworksObject | Add-Member -notepropertyname 'nodeNetmask' -notepropertyvalue $vcfNetworksNodeNetworkDetails.netmask
+                    $vcfNetworksObject | Add-Member -notepropertyname 'nodeGateway' -notepropertyvalue $vcfNetworksNodeNetworkDetails.gw
+
+                    #Proxy Details
+                    $vcfNetworksProxyNetworkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["flt_net_prxy_gateway_cidr"].Value
+                    $vcfNetworksObject | Add-Member -notepropertyname 'proxyPortgroup' -notepropertyvalue $pnpWorkbook.Workbook.names["flt_net_prxy_pg"].Value
+                    $vcfNetworksObject | Add-Member -notepropertyname 'proxyNetmask' -notepropertyvalue $vcfNetworksProxyNetworkDetails.netmask
+                    $vcfNetworksObject | Add-Member -notepropertyname 'proxyGateway' -notepropertyvalue $vcfNetworksProxyNetworkDetails.gw
+                }
+            }
 
         $vspObject = New-Object -TypeName psobject
         $vspObject | Add-Member -notepropertyname 'platformFqdn' -notepropertyvalue $pnpWorkbook.Workbook.Names["flt_sr_fqdn"].Value
@@ -3257,11 +3264,14 @@ Function New-ManagementInstanceObject
             }
             else 
             {
-                $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)host_overlay_gateway_cidr"].Value
-                $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayGw' -notepropertyvalue $networkDetails.gw
-                $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayCidr' -notepropertyvalue $networkDetails.cidr
-                $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetwork' -notepropertyvalue $networkDetails.network
-                $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetmask' -notepropertyvalue $networkDetails.netmask
+                If ($pnpWorkbook.Workbook.Names["mgmt_nsx_vpc_type_chosen"].Value -ne "VLAN backed VPC")
+                {
+                    $networkDetails = Get-NetworkDetailsFromGateway -gatewayCidr $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)host_overlay_gateway_cidr"].Value
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayGw' -notepropertyvalue $networkDetails.gw
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayCidr' -notepropertyvalue $networkDetails.cidr
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetwork' -notepropertyvalue $networkDetails.network
+                    $az1RackNetworkObject | Add-Member -notepropertyname 'hostOverlayNetmask' -notepropertyvalue $networkDetails.netmask
+                }
             }
 
             $az1RackNetworkObject | Add-Member -notepropertyname 'networkProfileName' -notepropertyvalue $pnpWorkbook.Workbook.Names["$($pnpVariableNameModifier)_az1_$($rackVariableModifier)host_overlay_network_profile_name"].Value
