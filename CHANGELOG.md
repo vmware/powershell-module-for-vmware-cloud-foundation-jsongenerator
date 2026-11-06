@@ -1,5 +1,16 @@
 # Release History
 
+## [v9.1.0.1008]
+> Release Date: 2026-11-06
+ - [Fixed] Edge cluster, edge overlay and storage cluster backend network information
+ - [Fixed] IP pool calculation for addresses 128.x.x.x and above
+ - [Fixed] ENS typo and management domain JSON file
+ - [Fixed] Operations node, collector and IDB portgroups, networks and passwords for Instance B
+ - [Fixed] VCFA Instance B handling (skip option, VIP, node prefix, shared instance object, platform FQDN)
+ - [Fixed] HA load balancer and root password for Operations Instance B
+ - [Fixed] 9.0 fleet manager user and automation version
+ - [Added] Operations collector size question
+
 ## [v9.1.0.1007]
 > Release Date: 2026-09-15
  - [Added] vSAN Data-in-Transit encryption for MGMT,WLD,Cluster
